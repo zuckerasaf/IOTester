@@ -31,7 +31,7 @@ Timeouts:
   pins_to_stabilize: 0.1 # Small delay to allow pins to stabilize on the board 
 
 scale:
-  voltage: 6.14  # Voltage measurement scaling factor for controllino mega
+  voltage: 6.14  # Voltage measurement scaling factor for controllino mega (check the github for others)
 
 
 #  Paths and File Locations
