@@ -1,0 +1,24 @@
+# Card 7 Response Data (64 bytes)
+# Header (bytes 0-1)
+AA 55
+# DI bytes (2-9): DI 33-40 active
+00 00 00 00 FF 00 00 00
+# TTL status (10-11): TTL 7,13
+40 10
+# Matrix row (12-15)
+07 08 01 02
+# AI channels (16-47): AI10=-12.5V, AI16=13.0V
+# AI1-9: 0V
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+# AI10: -12.5V = -30334 = 0x8992
+92 89
+# AI11-15: 0V
+00 00 00 00 00 00 00 00 00 00
+# AI16: 13.0V = 31540 = 0x7B34
+34 7B
+# Matrix data (48-51)
+FF 00 FF 00
+# Encoder (52-59)
+60 61 62 63 64 65 66 67
+# Absolute encoder (60-63)
+E0 E1 E2 E3

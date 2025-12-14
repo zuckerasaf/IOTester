@@ -1,0 +1,850 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- ELBIT SYSTEMS LTD '-->
+<ColumnWidth>25</ColumnWidth>
+<ColumnWidth>25</ColumnWidth>
+<ColumnWidth>310</ColumnWidth>
+<ColumnWidth>302</ColumnWidth>
+<ColumnWidth>136</ColumnWidth>
+<ColumnWidth>100</ColumnWidth>
+<ColumnWidth>100</ColumnWidth>
+<ColumnWidth>300</ColumnWidth>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>Lighting.BRT_DIM_CONTROL</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>BRT_DIM_CONTROL_28V</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.EW_ON_LIGHT_SUFA_EW_ECM_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_EW_ON_LIGHT_SUFA_STBY_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.EW_LIGHT_SUFA_EW_ECM_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_EW_LIGHT_SUFA_RWR_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.ECM_LIGHT_SUFA_EW_MENU_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_ECM_LIGHT_SUFA_MENU_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.ECM_ON_LIGHT_SUFA_EW_CHANGE_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_ECM_ON_LIGHT_SUFA_CHANGE_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_MWS_LIGHT_SUFA_ECM_RDY_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.MWS_ON_LIGHT_SUFA_EW_RWR_ON_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_MWS_ON_LIGHT_SUFA</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.A_LIGHT_SUFA_EW_ECM_STBY_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_A_LIGHT_SUFA</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.B_LIGHT_SUFA_EW_ECM_TEST_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_B_LIGHT_SUFA</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>EW_Power.C_LIGHT_SUFA_EW_GND_TEST_LIGHT_BARAK</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>EW_C_LIGHT_SUFA</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>Lighting.PRIMARY_INS_CONTROL</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>Lighting.PRIMARY_CONSOLE_CONTROL</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>Lighting.FLOOD_INS_CONTROL</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>Lighting.FLOOD_CONSOLE_CONTROL</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>PRIMARY_INS_CONTROL_5V</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>PRIMARY_CONSOLE_CONTROL_5V</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>FLOOD_INS_CONTROL_24V</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>FLOOD_CONSOLE_CONTROL_24V</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>0</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>Audio2.OVRD_Light</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>AUDIO2_OVRD_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LandingGear.LG_PositionWarningLight</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>LG_HANDLE_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LandingGear.LeftWheelLockedDown</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LandingGear.RightWheelLockedDown</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LandingGear.CenterWheelLockedDown</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>LG_NOSE_WHEEL_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>LG_L_WHEEL_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_1_HostToIO_AFT</BlockName>
+		<ElementName>LG_R_WHEEL_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LandingGear.SPEEDBRAKE_POSITION_Indicator</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>CLOSED</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_4_HostToIO_AFT</BlockName>
+		<ElementName>LG_SPEED_BRAKE_DOTS</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_4_HostToIO_AFT</BlockName>
+		<ElementName>LG_SPEED_BRAKE_DIAGONAL</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>ArmamentConsent.AA</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>ArmamentConsent.AG</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>ArmamentConsent.NAV</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>ARMT_CONSENT_AA_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>ARMT_CONSENT_NAV_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>ARMT_CONSENT_AG_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LeftGlareShield.MASTER_CAUTION</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LeftGlareShield.ALT_LOW</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LeftGlareShield.OVRD</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LeftGlareShield.Blank</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>LeftGlareShield.TF</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>MASTER_CAUTION_LIGHT_AMBER</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>L_GS_TF_FAIL_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>L_GS_BLANK_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>L_GS_ALT_LOW_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>L_GS_OVRD_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>AOA_Index.V_Light</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>AOA_Index.O_Light</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>AOA_Index.A_Light</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>AOA_V_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>AOA_O_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>AOA_A_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>AirRefuelingIndicators.RDY</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>AirRefuelingIndicators.AR_NWS</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>AirRefuelingIndicators.DISC</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>AR_AR_NWS_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>AR_DISC_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_3_HostToIO_AFT</BlockName>
+		<ElementName>AR_RDY_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.ENG_FIRE</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.ENGINE</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.HYD_OIL_PRESS</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.CANOPY</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.TO_LDG_CONFIG</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.DBU</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.FLCS</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.OwnshipPanels.Host_To_IO_AFT</BlockName>
+		<ElementName>RightGlareShield.OXY_LOW</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>OFF</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_ENG_FIRE_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_ENGINE_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_HYD_OIL_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_FLCS_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_DBU_ON_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_TO_LDG_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_CANOPY_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>
+<Record>
+	<Element>
+		<BlockName>OwnshipStation.IOMapping.Card_2_HostToIO_AFT</BlockName>
+		<ElementName>R_GS_OXY_LOW_LIGHT</ElementName>
+	</Element>
+	<Mode>Engineering</Mode>
+	<Unit>N/A</Unit>
+	<EngValue>Active</EngValue>
+	<State>Sample</State>
+</Record>

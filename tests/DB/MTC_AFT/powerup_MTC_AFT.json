@@ -1,0 +1,392 @@
+{
+  "Type":"discrete",
+  "Steps":{
+	  "ID_0": {
+		"test_name": "Lighting.BRT_DIM_CONTROL",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.Lighting.BRT_DIM_CONTROL",
+		"input_value": "10",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.BRT_DIM_CONTROL_28V",
+		"output_value": "10",
+		"treshhold": 0.1
+	  },
+	  "ID_1": {
+		"test_name": "EW_Power.EW_ON_LIGHT_SUFA_EW_ECM_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.EW_ON_LIGHT_SUFA_EW_ECM_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_EW_ON_LIGHT_SUFA_STBY_LIGHT_BARAK",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_3": {
+		"test_name": "EW_Power.EW_LIGHT_SUFA_EW_ECM_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.EW_LIGHT_SUFA_EW_ECM_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_EW_LIGHT_SUFA_RWR_LIGHT_BARAK",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_5": {
+		"test_name": "EW_Power.ECM_LIGHT_SUFA_EW_MENU_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.ECM_LIGHT_SUFA_EW_MENU_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_ECM_LIGHT_SUFA_MENU_LIGHT_BARAK",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_7": {
+		"test_name": "EW_Power.ECM_ON_LIGHT_SUFA_EW_CHANGE_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.ECM_ON_LIGHT_SUFA_EW_CHANGE_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_ECM_ON_LIGHT_SUFA_CHANGE_LIGHT_BARAK",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_9": {
+		"test_name": "EW_Power.MWS_LIGHT_SUFA_EW_ECM_RDY_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.MWS_LIGHT_SUFA_EW_ECM_RDY_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_MWS_LIGHT_SUFA_ECM_RDY_LIGHT_BARAK",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_11": {
+		"test_name": "EW_Power.MWS_ON_LIGHT_SUFA_EW_RWR_ON_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.MWS_ON_LIGHT_SUFA_EW_RWR_ON_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_MWS_ON_LIGHT_SUFA",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_13": {
+		"test_name": "EW_Power.A_LIGHT_SUFA_EW_ECM_STBY_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.A_LIGHT_SUFA_EW_ECM_STBY_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_A_LIGHT_SUFA",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_15": {
+		"test_name": "EW_Power.B_LIGHT_SUFA_EW_ECM_TEST_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.B_LIGHT_SUFA_EW_ECM_TEST_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_B_LIGHT_SUFA",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_17": {
+		"test_name": "EW_Power.C_LIGHT_SUFA_EW_GND_TEST_LIGHT_BARAK",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.EW_Power.C_LIGHT_SUFA_EW_GND_TEST_LIGHT_BARAK",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.EW_C_LIGHT_SUFA",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_271": {
+		"test_name": "Audio2.OVRD_Light",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.Audio2.OVRD_Light",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.AUDIO2_OVRD_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_31": {
+		"test_name": "LandingGear.LG_PositionWarningLight",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LandingGear.LG_PositionWarningLight",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.LG_HANDLE_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_33": {
+		"test_name": "LandingGear.LeftWheelLockedDown",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LandingGear.LeftWheelLockedDown",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.LG_L_WHEEL_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_35": {
+		"test_name": "LandingGear.RightWheelLockedDown",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LandingGear.RightWheelLockedDown",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.LG_R_WHEEL_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_37": {
+		"test_name": "LandingGear.CenterWheelLockedDown",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LandingGear.CenterWheelLockedDown",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.LG_NOSE_WHEEL_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },  
+	  "ID_39": {
+		"test_name": "LandingGear.SPEEDBRAKE_POSITION_Indicator",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LandingGear.SPEEDBRAKE_POSITION_Indicator",
+		"input_value": "DIAGONALS",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_4_HostToIO_AFT.LG_SPEED_BRAKE_DIAGONAL",
+		"output_value": "Active",
+		"treshhold": 0.1
+	  },  
+	  "ID_311": {
+		"test_name": "LandingGear.SPEEDBRAKE_POSITION_Indicator",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LandingGear.SPEEDBRAKE_POSITION_Indicator",
+		"input_value": "CLOSED",
+		"test_time": 0.75,
+		"output_element": "OwnshipStation.IOMapping.Card_4_HostToIO_AFT.LG_SPEED_BRAKE_DIAGONAL",
+		"output_value": "Active",
+		"treshhold": 0.1
+	  },"ID_61": {
+		"test_name": "ArmamentConsent.AA",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.ArmamentConsent.AA",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.ARMT_CONSENT_AA_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_63": {
+		"test_name": "ArmamentConsent.AG",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.ArmamentConsent.AG",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.ARMT_CONSENT_AG_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_65": {
+		"test_name": "ArmamentConsent.NAV",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.ArmamentConsent.NAV",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.ARMT_CONSENT_NAV_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_21": {
+		"test_name": "LeftGlareShield.MASTER_CAUTION",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LeftGlareShield.MASTER_CAUTION",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.MASTER_CAUTION_LIGHT_AMBER",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_23": {
+		"test_name": "LeftGlareShield.ALT_LOW",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LeftGlareShield.ALT_LOW",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.L_GS_ALT_LOW_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_25": {
+		"test_name": "LeftGlareShield.OVRD",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LeftGlareShield.OVRD",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.L_GS_OVRD_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_27": {
+		"test_name": "LeftGlareShield.Blank",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LeftGlareShield.Blank",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.L_GS_BLANK_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_29": {
+		"test_name": "LeftGlareShield.TF",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.LeftGlareShield.TF",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.L_GS_TF_FAIL_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_101": {
+		"test_name": "AOA_Index.V_Light",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.AOA_Index.V_Light",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.AOA_V_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_103": {
+		"test_name": "AOA_Index.O_Light",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.AOA_Index.O_Light",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.AOA_O_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_105":{
+		"test_name": "AOA_Index.A_Light",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.AOA_Index.A_Light",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.AOA_A_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_107": {
+		"test_name": "AirRefuelingIndicators.RDY",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.AirRefuelingIndicators.RDY",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_3_HostToIO_AFT.AR_RDY_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_109": {
+		"test_name": "AirRefuelingIndicators.AR_NWS",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.AirRefuelingIndicators.AR_NWS",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.AR_AR_NWS_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_1011": {
+		"test_name": "AirRefuelingIndicators.DISC",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.AirRefuelingIndicators.DISC",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.AR_DISC_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_41": {
+		"test_name": "RightGlareShield.ENG_FIRE",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.ENG_FIRE",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_ENG_FIRE_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_43": {
+		"test_name": "RightGlareShield.ENGINE",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.ENGINE",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_ENGINE_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_45": {
+		"test_name": "RightGlareShield.HYD_OIL_PRESS",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.HYD_OIL_PRESS",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_HYD_OIL_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_47": {
+		"test_name": "RightGlareShield.FLCS",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.FLCS",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_FLCS_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_49": {
+		"test_name": "RightGlareShield.DBU",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.DBU",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_DBU_ON_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_411": {
+		"test_name": "RightGlareShield.TO_LDG_CONFIG",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.TO_LDG_CONFIG",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_TO_LDG_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_413": {
+		"test_name": "RightGlareShield.CANOPY",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.CANOPY",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_CANOPY_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_415": {
+		"test_name": "RightGlareShield.OXY_LOW",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.RightGlareShield.OXY_LOW",
+		"input_value": "ON",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_2_HostToIO_AFT.R_GS_OXY_LOW_LIGHT",
+		"output_value": "NotActive",
+		"treshhold": 0.1
+	  },
+	  "ID_1005": {
+		"test_name": "Lighting.PRIMARY_INS_CONTROL",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.Lighting.PRIMARY_INS_CONTROL",
+		"input_value": "10",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.PRIMARY_INS_CONTROL_5V",
+		"output_value": "10",
+		"treshhold": 0.1
+	  },
+	  "ID_3005": {
+		"test_name": "Lighting.PRIMARY_CONSOLE_CONTROL",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.Lighting.PRIMARY_CONSOLE_CONTROL",
+		"input_value": "10",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.PRIMARY_CONSOLE_CONTROL_5V",
+		"output_value": "10",
+		"treshhold": 0.1
+	  },
+	  "ID_5005": {
+		"test_name": "Lighting.FLOOD_INS_CONTROL",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.Lighting.FLOOD_INS_CONTROL",
+		"input_value": "10",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.FLOOD_INS_CONTROL_24V",
+		"output_value": "10",
+		"treshhold": 0.1
+	  },
+	  "ID_7005": {
+		"test_name": "Lighting.FLOOD_CONSOLE_CONTROL",
+		"input_element": "OwnshipStation.OwnshipPanels.Host_To_IO_AFT.Lighting.FLOOD_CONSOLE_CONTROL",
+		"input_value": "10",
+		"test_time": 0.1,
+		"output_element": "OwnshipStation.IOMapping.Card_1_HostToIO_AFT.FLOOD_CONSOLE_CONTROL_24V",
+		"output_value": "10",
+		"treshhold": 0.1
+
+	  }
+  }
+} 

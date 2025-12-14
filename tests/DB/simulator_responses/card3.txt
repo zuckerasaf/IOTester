@@ -1,0 +1,23 @@
+# Card 3 Response Data (64 bytes)
+# Header (bytes 0-1)
+AA 55
+# DI bytes (2-9): DI 1-8 all active
+FF 00 00 00 00 00 00 00
+# TTL status (10-11): All TTL active
+FF FF
+# Matrix row (12-15)
+03 04 05 06
+# AI channels (16-47): AI1=10.0V, AI2=10.0V
+# AI1: 10.0V = 24268 = 0x5ECC
+CC 5E
+# AI2: 10.0V = 24268 = 0x5ECC
+CC 5E
+# AI3-16: 0V
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00
+# Matrix data (48-51)
+55 55 55 55
+# Encoder (52-59)
+20 21 22 23 24 25 26 27
+# Absolute encoder (60-63)
+A0 A1 A2 A3

@@ -1,0 +1,120 @@
+# =========================================
+# HW Tester - Global Settings
+# =========================================
+
+IO_Tester:
+  Name: HW Tester
+  Version: 1.0.0
+  Description: A tool for testing and validating hardware pin configurations.
+
+IO_Box:
+  Type: MTC_AFT
+  AvailableTypes: [Demo, MTC_FWD, MTC_AFT]  # Available IO box types
+
+#  Board Configuration
+Board:
+  Type: ControllinoMega # Currently selected board type
+  AvailableTypes: [ControllinoMega, ArduinoMega, ArduinoUno, none]  # Available hardware options
+  Port: COM5  # Serial port for pyFirmata or direct comms
+  BaudRate: 115200  # Baud rate for serial communication
+  simulation: false # Enable simulation mode (True) or real hardware (False)
+
+#  Test Behavior
+Timeouts:
+  duration: 3.0  # seconds to wait for voltage stabilization
+  sample_interval: 0.1  # seconds between voltage samples
+  TestStep: 2.5  # seconds to wait for each test step
+  Connection: 5.0  # seconds before declaring connection timeout
+  pins_to_stabilize: 0.1 # Small delay to allow pins to stabilize on the board 
+
+
+
+
+#  Paths and File Locations
+Paths:
+  Path_1: C:/ArduinoProject/IO_Tester  # Base path for the project
+  Path_2: src/hw_tester/config/pin_map.json
+  Path_3: results
+  ConnectorAddressMap: src/hw_tester/config/connector_Address_map.xlsx  # Default connector pin to bit mapping table
+  ConnectorAddressMap_ControllinoMega: 
+    src/hw_tester/config/connector_Address_map.xlsx                                     # Controllino Mega mapping
+  ConnectorAddressMap_ArduinoMega: 
+    src/hw_tester/config/connector_Address_map.xlsx                                 # Arduino Mega mapping - TBD 
+  ConnectorAddressMap_ArduinoUno: 
+    src/hw_tester/config/connector_Address_map.xlsx                                # Arduino Uno mapping - TBD
+  powerup_MTC_FWD: tests/DB/MTC_FWD/powerup_MTC_FWD.json  # Power-up pin configuration for MTC_FWD
+  powerdown_MTC_FWD: tests/DB/MTC_FWD/powerdown_MTC_FWD.json  # Power-down pin configuration for MTC_FWD
+  powerup_MTC_AFT: tests/DB/MTC_AFT/powerup_MTC_AFT.json  # Power-up pin configuration for MTC_AFT
+  powerdown_MTC_AFT: tests/DB/MTC_AFT/powerdown_MTC_AFT.json  # Power-down pin configuration for MTC_AFT
+
+#  Excel Column Configuration
+#  Maps Pin properties to Excel column letters
+ExcelColumns:
+  ID: B  # Pin ID column (Destination 1)
+  Connect: C  # Where pin connects to (Destination 2)
+  Type: F  # Pin type (Associated Potential/Substance)
+  Power_Expected: H  # Expected power test result
+  Power_Input: I  # Pin to connect for power test
+  PullUp_Expected: J  # Expected pullup voltage
+  Logic_Pin_Input: K  # Pin to connect for logic test
+  Test_Result: L  # Test result column
+
+Measure_value:
+  Scale_1: 6  # scalue the mesuermant value 
+#  Optional future extensions
+Logging:
+  Level: INFO
+  File: logs/hwtester.log
+
+Test_trshhold:
+  P_T_R_Connection_Tolerance: 0.5  # Acceptable connection deviation in ohms
+  I_T_R_Connection_Tolerance: 0.5  # Acceptable connection deviation in ohms
+  L_T_R_Connection_Tolerance: 0.5  # Acceptable connection deviation in ohms
+
+UDP_Settings:
+  Frequency_Hz: 20.0  # Update frequency in Hz (20 Hz = 50ms period)
+  Communication_Timeout: 2.0  # seconds - if no data received within this time, declare "no communication"
+  Cards:
+  - card_id: 1
+    enabled: true    # Set to true to enable communication with this card
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.11"
+    send_port: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.10"
+    receive_port: 1011
+  - card_id: 2
+    enabled: true
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.12"
+    send_port: 2881              # Localhost needs unique port | Real: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.10"
+    receive_port: 1012
+  - card_id: 3
+    enabled: true
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.13"
+    send_port: 2882              # Localhost needs unique port | Real: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.10"
+    receive_port: 1013
+  - card_id: 4
+    enabled: true
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.14"
+    send_port: 2883              # Localhost needs unique port | Real: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.10"
+    receive_port: 1014
+  - card_id: 5
+    enabled: true
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.15"
+    send_port: 2884              # Localhost needs unique port | Real: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.10"
+    receive_port: 1015
+  - card_id: 6
+    enabled: true
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.16"
+    send_port: 2885              # Localhost needs unique port | Real: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.10"
+    receive_port: 1016
+  - card_id: 7
+    enabled: true
+    send_ip: 127.0.0.1          # Localhost for testing | Real: "192.168.195.17"
+    send_port: 2886              # Localhost needs unique port | Real: 2880
+    receive_ip: 127.0.0.1       # Localhost for testing | Real: "192.168.195.70"
+    receive_port: 1017
+

@@ -1,0 +1,33 @@
+hw-tester/
+├─ src/
+│  └─ hw_tester/
+│     ├─ __init__.py
+│     ├─ app.py                 # main entry point
+│     ├─ config/
+│     │  ├─ settings.yaml       # global settings (ports, timeouts, etc.)
+│     │  ├─ pin_map.json        # Controllino pin mapping
+│     │  └─ test_profiles/      # optional: JSON/YAML definitions of tests
+│     ├─ hardware/              # talks to Controllino & mux chips
+│     │  ├─ __init__.py
+│     │  ├─ base_io.py          # interface/abstract class
+│     │  ├─ controllino_io.py   # real implementation (pyFirmata/serial/etc.)
+│     │  └─ mock_io.py          # fake HW for offline dev/testing
+│     ├─ core/                  # business logic of the tester
+│     │  ├─ __init__.py
+│     │  ├─ matrix_router.py    # “connect pin A to pin B” using mux matrix
+│     │  ├─ measurer.py         # read voltages, continuity checks
+│     │  ├─ sequencer.py        # runs test sequences
+│     │  └─ results.py          # pass/fail, logs, export
+│     ├─ ui/                    # UI layer only
+│     │  ├─ __init__.py
+│     │  ├─ main_window.py      # GUI plumbing
+│     │  └─ views/              # optional: dialogs, widgets
+│     └─ utils/
+│        ├─ config_loader.py    # load settings.yaml & pin maps
+│        └─ logging_setup.py    # standardized logging
+├─ tests/
+│  ├─ test_matrix_router.py
+│  ├─ test_measurer.py
+│  └─ test_config_loader.py
+├─ requirements.txt or pyproject.toml
+└─ README.md

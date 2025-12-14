@@ -1,0 +1,12 @@
+# YAML parsing with comment preservation
+ruamel.yaml>=0.17.0
+
+# Serial communication and Firmata protocol
+pyserial
+pymata4
+
+# Testing
+pytest
+
+# Excel file handling
+openpyxl

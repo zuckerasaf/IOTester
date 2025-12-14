@@ -1,0 +1,40 @@
+{
+  "ControllinoMega": {
+    "mesure_gain" : 6.14,
+    "voltage_measure_pin_pair1": "A0",
+    "voltage_measure_pin_pair2": "A1",
+    "voltage_measure_pin_pair3": "A2",
+    "voltage_measure_pin_pair4": "A3",
+    "voltage_measure_pin_pair1_B": "A4",
+    "voltage_measure_pin_pair2_B": "A5",
+    "voltage_measure_pin_pair3_B": "A6",
+    "voltage_measure_pin_pair4_B": "A7",
+    "pullup_pins_pin_pair1": "D20",
+    "pullup_pins_pin_pair2": "D21",
+    "pullup_pins_pin_pair3": "D22",
+    "pullup_pins_pin_pair4": "D23",
+    "enable_card_1_A_pin": "D8",
+    "enable_card_1_B_pin": "D9",
+    "enable_card_2_A_pin": "D10",
+    "enable_card_2_B_pin": "D11",
+    "enable_card_3_A_pin": "D12",
+    "enable_card_3_B_pin": "D13",
+    "enable_card_4_A_pin": "D14",
+    "enable_card_4_B_pin": "D15",
+    "enable_Relay_pin_1_A" : "R0",
+    "enable_Relay_pin_1_B" : "R1",
+    "enable_Relay_pin_2_A" : "R2",
+    "enable_Relay_pin_2_B" : "R3",
+    "enable_Relay_pin_3_A" : "R4",
+    "enable_Relay_pin_3_B" : "R5",    
+    "enable_Relay_pin_4_A" : "R6",
+    "enable_Relay_pin_4_B" : "R7"
+
+  },
+  "ArduinoMega": {
+    "voltage_measure_pin": "A0"
+  },
+  "ArduinoUno": {
+    "voltage_measure_pin": "A0"
+  }
+}
