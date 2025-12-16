@@ -17,9 +17,9 @@ class OperationalPanel(tk.Frame):
         parent: tk.Widget,
         on_load: Optional[Callable[[], None]] = None,
         on_keep_alive: Optional[Callable[[], None]] = None,
-        on_monitor: Optional[Callable[[], None]] = None,
+        on_i_bit: Optional[Callable[[], None]] = None,
         on_test: Optional[Callable[[], None]] = None,
-        on_stop_m: Optional[Callable[[], None]] = None,
+        on_stop_ibit: Optional[Callable[[], None]] = None,
         on_stop_t: Optional[Callable[[], None]] = None,
         on_report: Optional[Callable[[], None]] = None,
         on_clear_log: Optional[Callable[[], None]] = None,
@@ -35,9 +35,9 @@ class OperationalPanel(tk.Frame):
             parent: Parent tkinter widget
             on_load: Callback for Load button
             on_keep_alive: Callback for KeepAlive button
-            on_monitor: Callback for Monitor button
+            on_i_bit: Callback for I_Bit button
             on_test: Callback for Test button
-            on_stop_m: Callback for Stop_M button
+            on_stop_ibit: Callback for Stop_IBIT button
             on_stop_t: Callback for Stop_T button
             on_report: Callback for Report button
             on_clear_log: Callback for ClearLog button
@@ -49,8 +49,8 @@ class OperationalPanel(tk.Frame):
         super().__init__(parent)
         
         # Configure grid layout - multiple columns for new layout
-        # Layout: connector_label | Load | HW dropdown | KeepAlive | Monitor | Test | Report (row 0)
-        #                         |      | Sim dropdown |          | Stop_M  | Stop_T | ClearLog (row 1)
+        # Layout: connector_label | Load | HW dropdown | KeepAlive | I_Bit | Test | Report (row 0)
+        #                         |      | Sim dropdown |          | Stop_IBIT  | Stop_T | ClearLog (row 1)
         self.columnconfigure(0, weight=1)  # Connector label (resizable)
         for i in range(1, 8):  # Columns 1-7 for controls
             self.columnconfigure(i, weight=0)
@@ -60,9 +60,9 @@ class OperationalPanel(tk.Frame):
         # Store callbacks
         self.on_load = on_load or (lambda: None)
         self.on_keep_alive = on_keep_alive or (lambda: None)
-        self.on_monitor = on_monitor or (lambda: None)
+        self.on_i_bit = on_i_bit or (lambda: None)
         self.on_test = on_test or (lambda: None)
-        self.on_stop_m = on_stop_m or (lambda: None)
+        self.on_stop_ibit = on_stop_ibit or (lambda: None)
         self.on_stop_t = on_stop_t or (lambda: None)
         self.on_report = on_report or (lambda: None)
         self.on_clear_log = on_clear_log or (lambda: None)
@@ -90,7 +90,7 @@ class OperationalPanel(tk.Frame):
         # Define button styles
         self._setup_styles()
         
-        # Row 0: Load | HW dropdown | KeepAlive | Monitor | Test | Report
+        # Row 0: Load | HW dropdown | KeepAlive | I_Bit | Test | Report
         # Column 1: Load button
         self.btn_load = ttk.Button(
             self,
@@ -139,14 +139,14 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_connect.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
         
-        # Column 4: Monitor button
-        self.btn_monitor = ttk.Button(
+        # Column 4: I_Bit button
+        self.btn_i_bit = ttk.Button(
             self,
-            text="Monitor",
+            text="I_Bit",
             style="Info.TButton",
-            command=self.on_monitor
+            command=self.on_i_bit
         )
-        self.btn_monitor.grid(row=0, column=4, padx=5, pady=5, sticky="ew")
+        self.btn_i_bit.grid(row=0, column=4, padx=5, pady=5, sticky="ew")
         
         # Column 5: Test button
         self.btn_run = ttk.Button(
@@ -166,7 +166,7 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_report.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
         
-        # Row 1: (empty) | Simulate dropdown | (empty) | Stop_M | Stop_T | ClearLog
+        # Row 1: (empty) | Simulate dropdown | (empty) | Stop_IBIT | Stop_T | ClearLog
         # Column 2: Simulate dropdown - populated from settings.yaml
         current_simulation = board_config.get('simulation', False)
         simulate_mode = "Simulation On" if current_simulation else "Simulation Off"
@@ -181,15 +181,15 @@ class OperationalPanel(tk.Frame):
         self.simulate_combo.bind('<<ComboboxSelected>>', self._on_simulate_changed)
         self.simulate_combo.grid(row=1, column=2, padx=5, pady=5, sticky="ew")
         
-        # Column 4: Stop_M button
-        self.btn_stop_m = ttk.Button(
+        # Column 4: Stop_IBIT button
+        self.btn_stop_ibit = ttk.Button(
             self,
-            text="Stop_M",
+            text="Stop_IBIT",
             style="Danger.TButton",
-            command=self.on_stop_m,
+            command=self.on_stop_ibit,
             state=tk.DISABLED
         )
-        self.btn_stop_m.grid(row=1, column=4, padx=5, pady=5, sticky="ew")
+        self.btn_stop_ibit.grid(row=1, column=4, padx=5, pady=5, sticky="ew")
         
         # Column 5: Stop_T button
         self.btn_stop = ttk.Button(
@@ -267,17 +267,17 @@ class OperationalPanel(tk.Frame):
         """Enable or disable the Stop_T button."""
         self.btn_stop.config(state=tk.NORMAL if enabled else tk.DISABLED)
     
-    def enable_stop_m(self, enabled: bool = True) -> None:
-        """Enable or disable the Stop_M button."""
-        self.btn_stop_m.config(state=tk.NORMAL if enabled else tk.DISABLED)
+    def enable_stop_ibit(self, enabled: bool = True) -> None:
+        """Enable or disable the Stop_IBIT button."""
+        self.btn_stop_ibit.config(state=tk.NORMAL if enabled else tk.DISABLED)
     
     def enable_test(self, enabled: bool = True) -> None:
         """Enable or disable the Test button."""
         self.btn_run.config(state=tk.NORMAL if enabled else tk.DISABLED)
     
-    def enable_monitor(self, enabled: bool = True) -> None:
-        """Enable or disable the Monitor button."""
-        self.btn_monitor.config(state=tk.NORMAL if enabled else tk.DISABLED)
+    def enable_i_bit(self, enabled: bool = True) -> None:
+        """Enable or disable the I_Bit button."""
+        self.btn_i_bit.config(state=tk.NORMAL if enabled else tk.DISABLED)
     
     def enable_load(self, enabled: bool = True) -> None:
         """Enable or disable the Load button."""
@@ -328,20 +328,20 @@ if __name__ == "__main__":
         panel.enable_test(True)
         panel.enable_monitor(True)
     
-    def mock_monitor():
-        print("Monitor clicked")
-        panel.enable_stop_m(True)
-        panel.enable_monitor(False)
+    def mock_i_bit():
+        print("I_Bit clicked")
+        panel.enable_stop_ibit(True)
+        panel.enable_i_bit(False)
     
     def mock_run():
         print("Test clicked")
         panel.enable_stop_t(True)
         panel.enable_test(False)
     
-    def mock_stop_m():
-        print("Stop_M clicked")
-        panel.enable_stop_m(False)
-        panel.enable_monitor(True)
+    def mock_stop_ibit():
+        print("Stop_IBIT clicked")
+        panel.enable_stop_ibit(False)
+        panel.enable_i_bit(True)
     
     def mock_stop():
         print("Stop_T clicked")
@@ -368,9 +368,9 @@ if __name__ == "__main__":
         root,
         on_load=mock_load,
         on_keep_alive=mock_keep_alive,
-        on_monitor=mock_monitor,
+        on_i_bit=mock_i_bit,
         on_test=mock_run,
-        on_stop_m=mock_stop_m,
+        on_stop_ibit=mock_stop_ibit,
         on_stop_t=mock_stop,
         on_report=mock_report,
         on_clear_log=mock_clear,

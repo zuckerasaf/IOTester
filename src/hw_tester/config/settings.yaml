@@ -24,7 +24,7 @@ Board:
 
 #  Test Behavior
 Timeouts:
-  duration: 3.0  # seconds to wait for voltage stabilization
+  duration: 0.5  # seconds to wait for voltage stabilization
   sample_interval: 0.1  # seconds between voltage samples
   TestStep: 2.5  # seconds to wait for each test step
   Connection: 5.0  # seconds before declaring connection timeout

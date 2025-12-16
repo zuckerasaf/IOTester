@@ -12,7 +12,7 @@ from pathlib import Path
 
 from hw_tester.hardware.controllino_io import connector_pin_to_bits
 from hw_tester.hardware.pin import Pin
-from hw_tester.utils.general import clear_mux_bits, parse_event_string, get_pin_pair_info_controlino, enable_cards, set_mux_bits
+from hw_tester.utils.general import clear_mux_bits, parse_event_string, get_pin_pair_info_controlino, enable_cards, set_mux_bits, clear_analog_bits
 
 # Fix imports when running as script
 if __name__ == "__main__":
@@ -65,6 +65,7 @@ class MainWindow:
         # Initialize state
         self.connected = False
         self.running = False
+        self.running_ibit = False
         
         # Initialize hardware ONCE and share it between components
         # auto_detect=False uses the Type from settings.yaml
@@ -132,9 +133,9 @@ class MainWindow:
             op_frame,
             on_load=self.on_load,
             on_keep_alive=self.on_keep_alive,
-            on_monitor=self.on_monitor,
+            on_i_bit=self.on_i_bit,
             on_test=self.on_test,
-            on_stop_m=self.on_stop_m,
+            on_stop_ibit=self.on_stop_ibit,
             on_stop_t=self.on_stop_t,
             on_report=self.on_report,
             on_clear_log=self.on_clear_log,
@@ -272,11 +273,30 @@ class MainWindow:
         
         self.log_view.append(f"KeepAlive pulse sequence initiated for all {len(digital_ports)} ports", "SUCCESS")
     
-    def on_monitor(self) -> None:
-        """Handle Monitor button click - Functionality to be defined later."""
-        self.log_view.append("Monitor functionality not yet implemented", "INFO")
-        # TODO: Implement monitor functionality
-        pass
+    def on_i_bit(self) -> None:
+        """Handle I_Bit button click - Run short circuit test on all pins."""
+        self.log_view.append("Starting I_Bit short circuit test...", "INFO")
+        self.running_ibit = True
+        self.op_panel.enable_stop_ibit(True)
+        self.op_panel.enable_i_bit(False)
+        
+        # Run short circuit test in background thread
+        def run_i_bit_test():
+            try:
+                test_results = self.short_circuit_test()
+                passed_count = sum(1 for _, passed in test_results if passed)
+                total_count = len(test_results)
+                self.root.after(0, lambda: self.log_view.append(
+                    f"I_Bit test complete: {passed_count}/{total_count} pins PASSED",
+                    "SUCCESS" if passed_count == total_count else "WARNING"
+                ))
+            except Exception as e:
+                error_msg = f"Error during I_Bit test: {str(e)}"
+                self.root.after(0, lambda: self.log_view.append(error_msg, "ERROR"))
+            finally:
+                self.root.after(0, self._on_ibit_complete)
+        
+        threading.Thread(target=run_i_bit_test, daemon=True).start()
     
     def measure_voltage(self, pin_id: str, analog_port: int, idx: int = 0) -> None:
         """
@@ -702,7 +722,7 @@ class MainWindow:
 
         # Get pair number and associated pins
         pin_number = int(''.join(filter(str.isdigit, pin.Id)))
-        pair_num, voltage_pin_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
+        pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
 
         # Get actual pin names from board config
         voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
@@ -874,7 +894,7 @@ class MainWindow:
 
         # Get pair number and associated pins
         pin_number = int(''.join(filter(str.isdigit, pin.Id)))
-        pair_num, voltage_pin_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
+        pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
 
         # Get actual pin names from board config
         voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
@@ -967,33 +987,419 @@ class MainWindow:
             self.log_view.append(f"Measurement {measured_voltage * voltage_scale:.3f}V is NOT within tolerance of {pin.PullUp_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
             return (measured_voltage * voltage_scale, False, f"Measurement not in tolerance (diff: {voltage_diff:.3f}V)")
     
-    def run_logic_test(self, pin: "Pin") -> bool:
+    def measure_all_pins_system_b(self, pin_number: int, voltage: float) -> tuple[list[float], bool]:
         """
-        Run logic test on a pin.
-        TODO: Implement actual hardware testing logic.
+        System B measurement for loop run with validation.
+        
+        Test Procedure:
+        1. For each pin 1-50: Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
+        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - system B
+        3. Measure voltage on pair-specific analog pin
+        4. Validate measurements:
+           - Pin matching pin_number should measure ~voltage (within tolerance)
+           - All other pins should measure ~0V (within tolerance)
+        5. Return result (array of 50 voltage measurement values + pass/fail status)
         
         Args:
-            pin: Pin object to test
+            pin_number: The pin number that should show the voltage (1-50)
+            voltage: Expected voltage value on the specified pin
             
         Returns:
-            True if test passes, False otherwise
+            tuple[list[float], bool]: 
+                - Array of 50 final voltage readings in volts
+                - True if all measurements pass validation, False otherwise
+        """
+        voltage_measurements = []
+        voltage_scale = 1
+        tolerance = self.settings.get('Test', {}).get('voltage_tolerance', 0.5)
+        all_tests_passed = True
+        
+        self.log_view.append(f"Starting System B measurement for all pins (1-50)... Expected: Pin {pin_number} = {voltage}V, Others = ~0V", "INFO")
+        
+        for current_pin in range(1, 51):
+            try:
+                # Step 1: Get pair info
+                pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(current_pin)
+                
+                # Get actual pin names from board config
+                voltage_pin_name = self.board_config.get(voltage_pin_b_key, 'A0')
+                
+                # Step 2: Convert connector pin to bit representation using system B and set mux matrix
+                bits = connector_pin_to_bits(current_pin, "b")
+                success = set_mux_bits(bits, current_pin, self.pin_map, self.hardware, self.settings, self.log_view.append)
+                
+                if not success:
+                    self.log_view.append(f"Failed to set mux bits for pin {current_pin}", "WARNING")
+                    voltage_measurements.append(0.0)
+                    all_tests_passed = False
+                    continue
+                
+                # Get physical analog port from pin map
+                analog_ports = self.pin_map.get('A', {})
+                analog_port = analog_ports.get(voltage_pin_name)
+                
+                self.log_view.append(f"Pin {current_pin}: Looking for {voltage_pin_name} in analog ports", "DEBUG")
+                self.log_view.append(f"Available analog ports: {list(analog_ports.keys())}", "DEBUG")
+                
+                if analog_port is None:
+                    self.log_view.append(f"Analog pin {voltage_pin_name} not found in pin map for pin {current_pin}", "WARNING")
+                    voltage_measurements.append(0.0)
+                    all_tests_passed = False
+                    continue
+                
+                self.log_view.append(f"Pin {current_pin}: Using analog port {analog_port} ({voltage_pin_name})", "INFO")
+                
+                # Step 3: Measure voltage
+                try:
+                    measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
+                    voltage_measurements.append(measured_voltage)
+                    
+                    # Step 4: Validate measurement
+                    if current_pin == pin_number:
+                        # This pin should measure ~voltage
+                        voltage_diff = abs(measured_voltage - voltage)
+                        if voltage_diff <= tolerance:
+                            self.log_view.append(f"Pin {current_pin}: {measured_voltage:.3f}V (PASS - expected {voltage}V)", "SUCCESS")
+                        else:
+                            self.log_view.append(f"Pin {current_pin}: {measured_voltage:.3f}V (FAIL - expected {voltage}V, diff: {voltage_diff:.3f}V)", "WARNING")
+                            all_tests_passed = False
+                    else:
+                        # This pin should measure ~0V
+                        if abs(measured_voltage) <= tolerance:
+                            self.log_view.append(f"Pin {current_pin}: {measured_voltage:.3f}V (PASS - expected ~0V)", "DEBUG")
+                        else:
+                            self.log_view.append(f"Pin {current_pin}: {measured_voltage:.3f}V (FAIL - expected ~0V)", "WARNING")
+                            all_tests_passed = False
+                            
+                except Exception as e:
+                    self.log_view.append(f"Measurement error on pin {current_pin}: {str(e)}", "ERROR")
+                    voltage_measurements.append(0.0)
+                    all_tests_passed = False
+                
+                # Clear mux bits before next pin
+                clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
+                
+            except Exception as e:
+                self.log_view.append(f"Error processing pin {current_pin}: {str(e)}", "ERROR")
+                voltage_measurements.append(0.0)
+                all_tests_passed = False
+        
+        result_msg = "SUCCESS" if all_tests_passed else "FAILED"
+        self.log_view.append(f"System B measurement complete: {len(voltage_measurements)} pins measured - {result_msg}", "SUCCESS" if all_tests_passed else "WARNING")
+        return voltage_measurements, all_tests_passed
+    
+    def short_circuit_test(self) -> list[tuple[list[float], bool]]:
+        """
+        Short circuit test for all pins.
+        
+        Test Procedure:
+        1. For each pin 1-50: Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
+        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - system A
+        3. Activate pullup_pin_key (set HIGH)
+        4. Wait for signal stabilization
+        5. Measure voltage
+        6. Run measure_all_pins_system_b(pin_number, measured_voltage) to verify routing
+        7. Deactivate pullup_pin_key (set LOW)
+        8. Clear mux bits
+        9. Return result (array of test results from measure_all_pins_system_b)
+        
+        Args:
+            none
+            
+        Returns:
+            list[tuple[list[float], bool]]: Array of 50 test results, each containing:
+                - list[float]: Voltage measurements for all 50 pins
+                - bool: Pass/fail status for that test iteration
+        """
+        test_results = []
+        voltage_scale = 1
+        
+        self.log_view.append("Starting Short Circuit Test for all pins (1-50)...", "INFO")
+        
+        for pin_number in range(1, 51):
+            if not self.running_ibit:
+                self.log_view.append("I_Bit test stopped by user", "WARNING")
+                break
+            
+            try:
+                self.log_view.append(f"Testing pin {pin_number} for short circuits...", "INFO")
+                
+                # Step 1: Get pair info
+                pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
+                
+                # Get actual pin names from board config
+                voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
+                pullup_pin_name = self.board_config.get(pullup_pin_key, 'D20')
+                
+                # Step 2: Convert connector pin to bit representation using system A and set mux matrix
+                bits = connector_pin_to_bits(pin_number, "a")
+                success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log_view.append)
+                
+                if not success:
+                    self.log_view.append(f"Failed to set mux bits for pin {pin_number}", "ERROR")
+                    test_results.append(([], False))
+                    continue
+                
+                # Step 3: Activate pullup pin (set HIGH)
+                digital_ports = self.pin_map.get('D', {})
+                pullup_physical_pin = digital_ports.get(pullup_pin_name)
+                
+                if pullup_physical_pin is None:
+                    self.log_view.append(f"Pullup pin {pullup_pin_name} not found in pin map for pin {pin_number}", "ERROR")
+                    test_results.append(([], False))
+                    continue
+                
+                self.log_view.append(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "DEBUG")
+                self.hardware.digital_write(pullup_physical_pin, True)
+                
+                # Step 4: Wait for signal stabilization
+                stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+                time.sleep(stabilize_delay)
+                
+                # Step 5: Measure voltage
+                analog_ports = self.pin_map.get('A', {})
+                analog_port = analog_ports.get(voltage_pin_name)
+                
+                if analog_port is None:
+                    self.log_view.append(f"Analog pin {voltage_pin_name} not found in pin map for pin {pin_number}", "ERROR")
+                    self.hardware.digital_write(pullup_physical_pin, False)
+                    test_results.append(([], False))
+                    continue
+                
+                try:
+                    measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
+                    self.log_view.append(f"Pin {pin_number} voltage with pullup: {measured_voltage:.3f}V", "DEBUG")
+                except Exception as e:
+                    self.log_view.append(f"Measurement error on pin {pin_number}: {str(e)}", "ERROR")
+                    self.hardware.digital_write(pullup_physical_pin, False)
+                    test_results.append(([], False))
+                    continue
+                
+                # Step 6: Run measure_all_pins_system_b to verify routing
+                # Step 6.1: switch top system B Wait for signal stabilization
+                clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
+                #clear_analog_bits(self.pin_map, self.hardware, self.log_view.append)
+                self.log_view.append(f"ReActivating pullup pin  {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "DEBUG")
+                #self.hardware.digital_write(pullup_physical_pin, True)
+                # Step 6.2: switch top system B Wait for signal stabilization
+                stabilize_delay = self.settings.get('Timeouts', {}).get('switch to system B pins_to_stabilize', 0.1)
+                time.sleep(stabilize_delay)
+
+                voltage_measurements, test_passed = self.measure_all_pins_system_b(pin_number, measured_voltage)
+                test_results.append((voltage_measurements, test_passed))
+                
+                # Step 7: Deactivate pullup pin (set LOW)
+                self.hardware.digital_write(pullup_physical_pin, False)
+                self.log_view.append(f"Deactivating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) LOW", "DEBUG")
+                
+                # Step 8: Clear mux bits before next pin
+                clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
+                
+            except Exception as e:
+                self.log_view.append(f"Error processing pin {pin_number}: {str(e)}", "ERROR")
+                test_results.append(([], False))
+        
+        # Summary
+        passed_count = sum(1 for _, passed in test_results if passed)
+        total_count = len(test_results)
+        self.log_view.append(f"Short Circuit Test complete: {passed_count}/{total_count} pins PASSED", "SUCCESS" if passed_count == total_count else "WARNING")
+        
+        return test_results
+        
+    
+    def run_logic_test(self, pin: "Pin") -> tuple[float, bool, str]:
+        """
+        Run logic test on a pin.
+        
+        Test Procedure:
+        1. Get pair info (voltage_measure_pin, card enables, etc.) for connector pin
+        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15)
+        3. Measure initial voltage on pair-specific analog pin
+        4. If Power_Input is specified (e.g., "C4_DI29_3"):
+           - Measurement the voltage on the Pin if it is 24V get out of the function with comment
+           - Parse Power_Input string to get card, event type (DI), number, and "connect pin number"
+           - Activate the proper relay with the Pin data
+           - Convert connector "connect pin number" to bit pattern and set mux matrix (D0-D15) use system B
+           - Activate the proper relay with the "connect pin number" data
+           - status = read the digital input data from the card, event type (DI), number - high/low
+           - Measure voltage on the proper analog pin of system B
+           - Deactivate the Relay cards
+           - Return result (status)
+        
+        Args:
+            pin: Pin object containing test parameters (Id, Logic_Pin_Input, etc.)
+            
+        Returns:
+            Tuple of (measured_voltage, success, message):
+                - measured_voltage: voltage reading in volts
+                - success: True if status was high, False otherwise
+                - message: Descriptive message about test result or error
         """
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
         
         if is_simulation:
             # Simulation mode - return fixed result
             time.sleep(0.2)  # Simulate test delay
-            # Return pass 90% of the time for simulation
             import random
-            return random.random() > 0.1
+            simulated_voltage = random.uniform(0, 5)
+            success = random.random() > 0.1  # 90% pass rate
+            message = "Simulation: DI high detected" if success else "Simulation: DI low detected"
+            return (simulated_voltage, success, message)
+        
+        # Real hardware mode
+        # Get tolerance from settings (default 0.5V)
+        tolerance = self.settings.get('Test', {}).get('voltage_tolerance', 0.5)
+        high_voltage_threshold = 20.0  # Voltage threshold to detect 24V presence
+        
+        # Get pair number and associated pins
+        pin_number = int(''.join(filter(str.isdigit, pin.Id)))
+        pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
+        
+        # Get actual pin names from board config
+        voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
+        voltage_pin_b_name = self.board_config.get(voltage_pin_b_key, 'A4')
+        
+        # Step 1: Convert connector pin to bit representation and set mux matrix (system A)
+        bits = connector_pin_to_bits(pin_number, "a")
+        success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log_view.append)
+        
+        if not success:
+            self.log_view.append(f"Failed to set mux bits for pin {pin_number}", "ERROR")
+            return (0.0, False, "Error: Failed to set mux matrix")
+        
+        # Step 2: Get physical analog port from pin map
+        analog_ports = self.pin_map.get('A', {})
+        analog_port = analog_ports.get(voltage_pin_name)
+        
+        if analog_port is None:
+            self.log_view.append(f"Analog pin {voltage_pin_name} not found in pin map", "ERROR")
+            return (0.0, False, "Error: Analog pin not found in pin map")
+        
+        # Step 3: Measure initial voltage
+        voltage_scale = 1
+        self.log_view.append(f"Measuring voltage on {voltage_pin_name} (pin {analog_port})", "DEBUG")
+        try:
+            measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
+            self.log_view.append(f"Initial measurement: {measured_voltage:.3f}V", "DEBUG")
+        except Exception as e:
+            self.log_view.append(f"Measurement error: {str(e)}", "ERROR")
+            return (0.0, False, f"Error: Measurement failed - {str(e)}")
+        
+        # Step 4: Check if 24V detected on pin - exit early if present
+        if measured_voltage >= high_voltage_threshold:
+            self.log_view.append(f"24V detected on pin {pin_number} ({measured_voltage:.3f}V) - skipping logic test", "WARNING")
+            return (measured_voltage, False, "24V was detected on pin - logic test skipped")
+        
+        # Step 5: Check if Logic_Pin_Input is specified
+        if not hasattr(pin, 'Logic_Pin_Input') or not pin.Logic_Pin_Input or pin.Logic_Pin_Input.strip().lower() == "none":
+            self.log_view.append(f"No Logic_Pin_Input specified for pin {pin_number} - skipping logic test", "INFO")
+            return (0.0, True, "Logic test skipped (no Logic_Pin_Input)")
+        
+        # Step 6: Parse Logic_Pin_Input (format: "C4_DI29_3")
+        logic_input = pin.Logic_Pin_Input.strip()
+        self.log_view.append(f"Parsing Logic_Pin_Input: {logic_input}", "DEBUG")
+        
+        from hw_tester.utils.general import parse_logic_input_string
+        card, di_number, connect_pin_number = parse_logic_input_string(logic_input)
+        
+        if card is None or di_number is None or connect_pin_number is None:
+            self.log_view.append(f"Failed to parse Logic_Pin_Input '{logic_input}': Invalid format (expected 'C#_DI##_#')", "ERROR")
+            return (0.0, False, f"Error parsing Logic_Pin_Input: Invalid format")
+        
+        self.log_view.append(f"Parsed: Card={card}, DI={di_number}, ConnectPin={connect_pin_number}", "INFO")
+        
+        # Step 7: Activate relay with Pin data (system A)
+        # Get relay pin name from board config
+        relay_a_name = self.board_config.get(relay_enable_a_key, 'R0')
+        relay_ports = self.pin_map.get('R', {})
+        relay_a_pin = relay_ports.get(relay_a_name)
+        
+        if relay_a_pin is None:
+            self.log_view.append(f"Relay pin {relay_a_name} not found in pin map", "ERROR")
+            return (0.0, False, f"Error: Relay pin {relay_a_name} not found")
+        
+        self.log_view.append(f"Activating relay A {relay_a_name} (pin {relay_a_pin}) for pin {pin_number}", "INFO")
+        self.hardware.digital_write(relay_a_pin, True)
+        
+        # Wait for relay to stabilize
+        stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+        time.sleep(stabilize_delay)
+        
+        # Step 8: Convert connect pin to bit pattern and set mux matrix (system B)
+        try:
+            connect_bits = connector_pin_to_bits(connect_pin_number, "b")
+            success = set_mux_bits(connect_bits, connect_pin_number, self.pin_map, self.hardware, self.settings, self.log_view.append)
+            
+            if not success:
+                self.log_view.append(f"Failed to set mux bits for connect pin {connect_pin_number}", "ERROR")
+                self.hardware.digital_write(relay_a_pin, False)
+                return (0.0, False, "Error: Failed to set mux matrix for connect pin")
+            
+        except Exception as e:
+            self.log_view.append(f"Error setting mux for connect pin {connect_pin_number}: {str(e)}", "ERROR")
+            self.hardware.digital_write(relay_a_pin, False)
+            return (0.0, False, f"Error: {str(e)}")
+        
+        # Step 9: Activate relay with connect pin data (system B)
+        relay_b_name = self.board_config.get(relay_enable_b_key, 'R1')
+        relay_b_pin = relay_ports.get(relay_b_name)
+        
+        if relay_b_pin is None:
+            self.log_view.append(f"Relay pin {relay_b_name} not found in pin map", "ERROR")
+            self.hardware.digital_write(relay_a_pin, False)
+            return (0.0, False, f"Error: Relay pin {relay_b_name} not found")
+        
+        self.log_view.append(f"Activating relay B {relay_b_name} (pin {relay_b_pin}) for connect pin {connect_pin_number}", "INFO")
+        self.hardware.digital_write(relay_b_pin, True)
+        
+        # Wait for relay to stabilize
+        time.sleep(stabilize_delay)
+        
+        # Step 10: Read digital input status from card
+        try:
+            di_status = self.card_manager.get_digital_input(card_id=card, di_number=di_number)
+            status_str = "HIGH" if di_status else "LOW"
+            self.log_view.append(f"Card {card} DI{di_number} status: {status_str}", "INFO")
+        except Exception as e:
+            self.log_view.append(f"Error reading DI{di_number} from card {card}: {str(e)}", "ERROR")
+            # Deactivate relays before returning
+            self.hardware.digital_write(relay_a_pin, False)
+            self.hardware.digital_write(relay_b_pin, False)
+            return (0.0, False, f"Error reading DI status: {str(e)}")
+        
+        # Step 11: Measure voltage on system B analog pin
+        analog_port_b = analog_ports.get(voltage_pin_b_name)
+        
+        if analog_port_b is None:
+            self.log_view.append(f"System B analog pin {voltage_pin_b_name} not found in pin map", "ERROR")
+            self.hardware.digital_write(relay_a_pin, False)
+            self.hardware.digital_write(relay_b_pin, False)
+            return (0.0, False, "Error: System B analog pin not found")
+        
+        try:
+            measured_voltage_b = self.measurer.measure_voltage(analog_port_b) * voltage_scale
+            self.log_view.append(f"System B voltage measurement on {voltage_pin_b_name}: {measured_voltage_b:.3f}V", "DEBUG")
+        except Exception as e:
+            self.log_view.append(f"Error measuring voltage on system B: {str(e)}", "ERROR")
+            self.hardware.digital_write(relay_a_pin, False)
+            self.hardware.digital_write(relay_b_pin, False)
+            return (0.0, False, f"Error measuring system B voltage: {str(e)}")
+        
+        # Step 12: Deactivate relay cards
+        self.hardware.digital_write(relay_a_pin, False)
+        self.hardware.digital_write(relay_b_pin, False)
+        self.log_view.append(f"Deactivated relays {relay_a_name} and {relay_b_name}", "DEBUG")
+        
+        # Clear mux bits
+        clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
+        
+        # Step 13: Return result based on DI status
+        if di_status:
+            self.log_view.append(f"Logic test PASSED: DI{di_number} is HIGH, voltage={measured_voltage_b:.3f}V", "SUCCESS")
+            return (measured_voltage_b, True, f"DI{di_number} HIGH detected")
         else:
-            # TODO: Real hardware logic test
-            # Will need to:
-            # 1. Connect Logic_Pin_Input to the test pin
-            # 2. Check digital input state change
-            # 3. Verify expected DI activation
-            self.log_view.append("Real hardware logic test not yet implemented", "WARNING")
-            return False
+            self.log_view.append(f"Logic test FAILED: DI{di_number} is LOW, voltage={measured_voltage_b:.3f}V", "WARNING")
+            return (measured_voltage_b, False, f"DI{di_number} LOW detected")
     
     def _on_test_complete(self) -> None:
         """Called when test run completes."""
@@ -1002,6 +1408,13 @@ class MainWindow:
         self.op_panel.enable_test(True)
         self.log_view.append("Test sequence completed", "SUCCESS")
     
+    def _on_ibit_complete(self) -> None:
+        """Called when I_Bit test completes."""
+        self.running_ibit = False
+        self.op_panel.enable_stop_ibit(False)
+        self.op_panel.enable_i_bit(True)
+        self.log_view.append("I_Bit test sequence completed", "SUCCESS")
+    
     def on_stop_t(self) -> None:
         """Handle Stop_T button click."""
         self.log_view.append("Stopping test sequence...", "WARNING")
@@ -1009,11 +1422,12 @@ class MainWindow:
         self.op_panel.enable_stop_t(False)
         self.op_panel.enable_test(True)
     
-    def on_stop_m(self) -> None:
-        """Handle Stop_M button click - Functionality to be defined later."""
-        self.log_view.append("Stop_M functionality not yet implemented", "INFO")
-        # TODO: Implement stop monitor functionality
-        pass
+    def on_stop_ibit(self) -> None:
+        """Handle Stop_IBIT button click - Stop the I_Bit short circuit test."""
+        self.log_view.append("Stopping I_Bit test...", "WARNING")
+        self.running_ibit = False
+        self.op_panel.enable_stop_ibit(False)
+        self.op_panel.enable_i_bit(True)
     
     def on_report(self) -> None:
         """Handle Report button click."""

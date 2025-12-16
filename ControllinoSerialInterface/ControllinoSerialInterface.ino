@@ -91,10 +91,21 @@ void processCommand(String cmd) {
     Serial.println(value);
     
   } else if (command == 'R') {
-    // Analog read: R,pin
+    // Analog read: R,pin (pin is hardware pin number 54-69 for A0-A15)
     int pin = pinStr.toInt();
+    
+    // Convert hardware pin number (54-69) to analog channel (0-15)
+    int analogChannel = pin - 54;
+    
+    // Validate analog channel range
+    if (analogChannel < 0 || analogChannel > 15) {
+      Serial.print("ERROR:Invalid analog pin ");
+      Serial.println(pin);
+      return;
+    }
+    
     pinMode(pin, INPUT);
-    int reading = analogRead(pin);
+    int reading = analogRead(analogChannel);  // Use channel number, not pin number
     
     // Convert to voltage (0-5V range, 10-bit ADC)
     float voltage = (reading / 1023.0) * 5.0;
