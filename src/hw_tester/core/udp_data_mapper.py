@@ -224,7 +224,7 @@ class SendData:
         # Store logical value
         self.analog_outputs[ao_number] = voltage
         
-        # Convert to 16-bit signed integer
+        # Convert to 16-bit signed integer (±13.5V range)
         raw_value = int(voltage * 65536 / 27.0)
         raw_value = max(-32768, min(32767, raw_value))
         
@@ -398,8 +398,8 @@ class ReceiveData:
             else:
                 signed_value = unsigned_value
             
-            # Convert to voltage (-13.5 to +13.5)
-            voltage = signed_value * 27.0 / 65536
+            # Convert to voltage (±10V range for analog inputs)
+            voltage = signed_value * 20.0 / 65536
             self.analog_inputs[ai_idx + 1] = voltage
         
         # Parse matrix data (bytes 48-51)

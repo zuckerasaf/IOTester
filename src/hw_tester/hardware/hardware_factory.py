@@ -4,12 +4,13 @@ Hardware Factory - Initializes hardware I/O based on board type from settings.
 from typing import Optional
 
 
-def initialize_hardware(settings: dict):
+def initialize_hardware(settings: dict, log_callback=None):
     """
     Initialize hardware I/O based on Board Type from settings.
     
     Args:
         settings: Settings dictionary containing Board configuration
+        log_callback: Optional callback function(message, level) for logging to UI
     
     Returns:
         Hardware I/O object or None for simulation mode or unsupported boards
@@ -39,7 +40,7 @@ def initialize_hardware(settings: dict):
         
         try:
             # Allow no connection in simulation mode
-            return ControllinoIO(port=port, baud_rate=baud, allow_no_connection=is_simulation)
+            return ControllinoIO(port=port, baud_rate=baud, allow_no_connection=is_simulation, log_callback=log_callback)
         except Exception as e:
             print(f"[HardwareFactory ERROR] Failed to initialize {board_type}: {str(e)}")
             print(f"[HardwareFactory] Make sure:")

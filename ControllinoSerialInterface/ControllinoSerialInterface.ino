@@ -5,6 +5,7 @@
  * Commands:
  *   W,pin,value  - Write digital (W,2,1 = set pin 2 HIGH, W,2,0 = set pin 2 LOW)
  *   R,pin        - Read analog (R,54 = read analog from pin 54)
+ *   D,pin        - Read digital (D,2 = read digital from pin 2, returns 0 or 1)
  *   ?            - Ping/alive check (responds with "OK")
  * 
  * Baud rate: 115200
@@ -114,6 +115,18 @@ void processCommand(String cmd) {
     Serial.print(pin);
     Serial.print(",");
     Serial.println(voltage, 3);  // 3 decimal places
+    
+  } else if (command == 'D') {
+    // Digital read: D,pin
+    int pin = pinStr.toInt();
+    
+    pinMode(pin, INPUT);
+    int value = digitalRead(pin);
+    
+    Serial.print("OK:D,");
+    Serial.print(pin);
+    Serial.print(",");
+    Serial.println(value);
     
   } else {
     Serial.println("ERROR:Unknown command");

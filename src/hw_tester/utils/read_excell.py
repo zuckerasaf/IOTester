@@ -6,7 +6,7 @@ from typing import Optional, Dict
 import openpyxl
 import yaml
 
-from ..hardware.pin import Pin, Connector
+from ..hardware.pin import Pin, Connector, TestResult
 
 
 def _column_letter_to_index(column_letter: str) -> int:
@@ -40,8 +40,10 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
             'Power_Expected': 7,        # H
             'Power_Input': 8,           # I
             'PullUp_Expected': 9,       # J
-            'Logic_Pin_Input': 10,      # K
-            'Test_Result': 11           # L
+            'PullUp_Input': 10,         # K
+            'Logic_Pin_Input': 11,      # L
+            'Logic_Expected': 12,       # M
+            'Test_Result': 13           # N
         }
     
     with open(settings_path, 'r') as f:
@@ -56,8 +58,10 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
         'Power_Expected': _column_letter_to_index(excel_cols.get('Power_Expected', 'H')),
         'Power_Input': _column_letter_to_index(excel_cols.get('Power_Input', 'I')),
         'PullUp_Expected': _column_letter_to_index(excel_cols.get('PullUp_Expected', 'J')),
-        'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'K')),
-        'Test_Result': _column_letter_to_index(excel_cols.get('Test_Result', 'L'))
+        'PullUp_Input': _column_letter_to_index(excel_cols.get('PullUp_Input', 'K')),
+        'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'L')),
+        'Logic_Expected': _column_letter_to_index(excel_cols.get('Logic_Expected', 'M')),
+        'Test_Result': _column_letter_to_index(excel_cols.get('Test_Result', 'N'))
     }
 
 
@@ -119,7 +123,9 @@ def load_connector_from_excel(
         power_expected = row[col_map['Power_Expected']] if len(row) > col_map['Power_Expected'] else None
         power_input = row[col_map['Power_Input']] if len(row) > col_map['Power_Input'] else None
         pullup_expected = row[col_map['PullUp_Expected']] if len(row) > col_map['PullUp_Expected'] else None
+        pullup_input = row[col_map['PullUp_Input']] if len(row) > col_map['PullUp_Input'] else None
         logic_pin_input = row[col_map['Logic_Pin_Input']] if len(row) > col_map['Logic_Pin_Input'] else None
+        logic_expected = row[col_map['Logic_Expected']] if len(row) > col_map['Logic_Expected'] else None
         
         # Skip empty rows or rows without pin ID
         if not pin_id:
@@ -145,8 +151,14 @@ def load_connector_from_excel(
         except (ValueError, TypeError):
             pullup_expected_value = 0.0
         
+        # Parse pullup input - keep as string from Excel
+        pullup_input_value = str(pullup_input).strip() if pullup_input else ""
+        
         # Parse logic pin input - keep as string from Excel
         logic_pin_input_value = str(logic_pin_input).strip() if logic_pin_input else ""
+        
+        # Parse logic expected - keep as string from Excel
+        logic_expected_value = str(logic_expected).strip() if logic_expected else ""
         
         # Create pin with new structure
         pin = Pin(
@@ -155,13 +167,15 @@ def load_connector_from_excel(
             Type=pin_type_str,
             Power_Expected=power_expected_value,
             Power_Measured=0.0,
-            Power_Result=False,
+            Power_Result=TestResult.NO_RESULT,
             PullUp_Expected=pullup_expected_value,
             PullUp_Measured=0.0,
-            PullUp_Result=False,
+            PullUp_Result=TestResult.NO_RESULT,
             Power_Input=power_input_value,
+            PullUp_Input=pullup_input_value,
             Logic_Pin_Input=logic_pin_input_value,
-            Logic_DI_Result=False
+            Logic_Expected=logic_expected_value,
+            Logic_DI_Result=TestResult.NO_RESULT
         )
         
         connector.add_pin(pin)

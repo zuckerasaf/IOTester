@@ -13,8 +13,8 @@ class PinTableView(tk.Frame):
     """
     
     COLUMNS = ("ID", "Connect", "Type", "Power_Expected", "Power_Input", "Power_Measured", "Power_Result", 
-               "PullUp_Expected", "PullUp_Measured", "PullUp_Result", 
-               "Logic_Pin_Input", "Logic_DI_Result")
+               "PullUp_Expected", "PullUp_Input", "PullUp_Measured", "PullUp_Result", 
+               "Logic_Pin_Input", "Logic_Expected", "Logic_DI_Result")
     
     def __init__(self, parent: tk.Widget):
         """
@@ -50,7 +50,7 @@ class PinTableView(tk.Frame):
                 self.tree.column(col, width=100, minwidth=80)
             elif col in ("Power_Result", "PullUp_Result", "Logic_DI_Result"):
                 self.tree.column(col, width=80, minwidth=60)
-            elif col in ("Power_Input", "Logic_Pin_Input"):
+            elif col in ("Power_Input", "PullUp_Input", "Logic_Pin_Input", "Logic_Expected"):
                 self.tree.column(col, width=100, minwidth=80)
         
         # Add vertical scrollbar
@@ -61,15 +61,19 @@ class PinTableView(tk.Frame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
         
-        # Configure zebra striping
+        # Configure zebra striping first (lower priority)
         self.tree.tag_configure("oddrow", background="#f0f0f0")
         self.tree.tag_configure("evenrow", background="white")
+        
+        # Configure result status colors last (higher priority - these will override zebra stripes)
+        self.tree.tag_configure("pass", background="#90EE90")  # Light green
+        self.tree.tag_configure("fail", background="#FFB6C1")  # Light red/pink
         
         # Store row data mapping (id -> values)
         self._row_data: Dict[str, str] = {}  # Maps ID to tree item ID
         
         # Editable columns - user can double-click to edit these
-        self.editable_columns = ["Power_Expected", "Power_Input", "PullUp_Expected", "Logic_Pin_Input"]
+        self.editable_columns = ["Power_Expected", "Power_Input", "PullUp_Expected", "PullUp_Input", "Logic_Pin_Input", "Logic_Expected"]
         
         # Bind double-click for editing
         self.tree.bind("<Double-Button-1>", self._on_double_click)
@@ -101,11 +105,29 @@ class PinTableView(tk.Frame):
             pin_id = row.get("ID", "")
             values = tuple(row.get(col, "") for col in self.COLUMNS)
             
-            # Alternate row colors
-            tag = "oddrow" if idx % 2 == 1 else "evenrow"
+            # Determine result status color tags - prioritize Fail over Pass
+            power_result = row.get("Power_Result", "")
+            pullup_result = row.get("PullUp_Result", "")
+            logic_result = row.get("Logic_DI_Result", "")
+            
+            tags = []
+            # If any result is Fail, color the row as Fail (no zebra stripe)
+            if power_result == "Fail" or pullup_result == "Fail" or logic_result == "Fail":
+                tags.append("fail")
+                print(f"Row {pin_id}: Applying FAIL tag (Power={power_result}, PullUp={pullup_result}, Logic={logic_result})")
+            # Otherwise, if any result is Pass, color as Pass (no zebra stripe)
+            elif power_result == "Pass" or pullup_result == "Pass" or logic_result == "Pass":
+                tags.append("pass")
+                print(f"Row {pin_id}: Applying PASS tag (Power={power_result}, PullUp={pullup_result}, Logic={logic_result})")
+            # No result - use zebra striping
+            else:
+                tags.append("oddrow" if idx % 2 == 1 else "evenrow")
+                print(f"Row {pin_id}: No result tag (Power={power_result}, PullUp={pullup_result}, Logic={logic_result})")
+            
+            print(f"  Final tags for {pin_id}: {tags}")
             
             # Insert row
-            item_id = self.tree.insert("", tk.END, values=values, tags=(tag,))
+            item_id = self.tree.insert("", tk.END, values=values, tags=tuple(tags))
             self._row_data[pin_id] = item_id
     
     def get_selected_ids(self) -> List[str]:
@@ -146,6 +168,34 @@ class PinTableView(tk.Frame):
                 current_values[col_idx] = values[col_name]
         
         self.tree.item(item_id, values=tuple(current_values))
+        
+        # Update tags based on result status
+        # Determine new result tag - prioritize Fail over Pass
+        power_result = current_values[self.COLUMNS.index("Power_Result")] if "Power_Result" in self.COLUMNS else ""
+        pullup_result = current_values[self.COLUMNS.index("PullUp_Result")] if "PullUp_Result" in self.COLUMNS else ""
+        logic_result = current_values[self.COLUMNS.index("Logic_DI_Result")] if "Logic_DI_Result" in self.COLUMNS else ""
+        
+        new_tags = []
+        # If any result is Fail, color the row as Fail (no zebra stripe)
+        if power_result == "Fail" or pullup_result == "Fail" or logic_result == "Fail":
+            new_tags.append("fail")
+            print(f"UPDATE Row {pin_id}: Applying FAIL tag (Power={power_result}, PullUp={pullup_result}, Logic={logic_result})")
+        # Otherwise, if any result is Pass, color as Pass (no zebra stripe)
+        elif power_result == "Pass" or pullup_result == "Pass" or logic_result == "Pass":
+            new_tags.append("pass")
+            print(f"UPDATE Row {pin_id}: Applying PASS tag (Power={power_result}, PullUp={pullup_result}, Logic={logic_result})")
+        # No result - preserve zebra striping from original tags
+        else:
+            old_tags = self.tree.item(item_id, "tags")
+            for tag in old_tags:
+                if tag in ["oddrow", "evenrow"]:
+                    new_tags.append(tag)
+                    break
+            print(f"UPDATE Row {pin_id}: No result tag (Power={power_result}, PullUp={pullup_result}, Logic={logic_result})")
+        
+        print(f"  Final tags for {pin_id}: {new_tags}")
+        
+        self.tree.item(item_id, tags=tuple(new_tags))
     
     def clear_selection(self) -> None:
         """Clear current selection."""

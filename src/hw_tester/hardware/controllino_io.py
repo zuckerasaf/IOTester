@@ -63,7 +63,7 @@ class ControllinoIO:
     Requires ControllinoSerialInterface.ino sketch uploaded to the board.
     """
     
-    def __init__(self, port: str = "COM5", baud_rate: int = 115200, allow_no_connection: bool = False):
+    def __init__(self, port: str = "COM5", baud_rate: int = 115200, allow_no_connection: bool = False, log_callback=None):
         """
         Initialize connection to Controllino board.
         
@@ -71,6 +71,7 @@ class ControllinoIO:
             port: Serial port (e.g., 'COM5' on Windows)
             baud_rate: Serial baud rate (115200)
             allow_no_connection: If True, don't raise error on connection failure (simulation mode)
+            log_callback: Optional callback function(message, level) for logging to UI
         
         Raises:
             RuntimeError: If connection fails and allow_no_connection is False
@@ -80,12 +81,13 @@ class ControllinoIO:
         self.serial = None
         self.connected = False
         self._lock = threading.Lock()  # Thread-safe serial access
+        self.log = log_callback if log_callback else lambda msg, level="INFO": print(msg)
         
         # Load connector mapping (cached after first load)
         self.connector_mapping = _load_connector_mapping()
         
         try:
-            print(f"[ControllinoIO] Connecting to board on {port} @ {baud_rate} baud...")
+            self.log(f"[ControllinoIO] Connecting to board on {port} @ {baud_rate} baud...", "INFO")
             self.serial = serial.Serial(
                 port=port,
                 baudrate=baud_rate,
@@ -104,15 +106,15 @@ class ControllinoIO:
             response = self.serial.readline().decode('utf-8').strip()
             
             if response == "OK":
-                print(f"[ControllinoIO] Successfully connected to board on {port}")
+                self.log(f"[ControllinoIO] Successfully connected to board on {port}", "SUCCESS")
                 self.connected = True
             else:
                 raise RuntimeError(f"Board not responding correctly. Got: {response}")
             
         except Exception as e:
             if allow_no_connection:
-                print(f"[ControllinoIO WARNING] Failed to connect to {port}: {str(e)}")
-                print(f"[ControllinoIO] Running in no-connection mode (operations will be no-ops)")
+                self.log(f"[ControllinoIO WARNING] Failed to connect to {port}: {str(e)}", "WARNING")
+                self.log(f"[ControllinoIO] Running in no-connection mode (operations will be no-ops)", "INFO")
                 self.connected = False
             else:
                 raise RuntimeError(f"Failed to connect to board on {port}: {str(e)}")
@@ -151,6 +153,49 @@ class ControllinoIO:
                     
             except Exception as e:
                 print(f"[ControllinoIO ERROR] Failed to write to D{port}: {str(e)}")
+    
+    def digital_read(self, port: int) -> bool:
+        """
+        Read digital value from a pin.
+        
+        Args:
+            port: Digital pin number
+        
+        Returns:
+            True for HIGH (5V), False for LOW (0V)
+        """
+        if not self.connected:
+            # Return False if not connected
+            return False
+            
+        with self._lock:  # Ensure thread-safe access
+            try:
+                # Clear any pending data
+                self.serial.reset_input_buffer()
+                
+                cmd = f"D,{port}\n"
+                self.serial.write(cmd.encode('utf-8'))
+                
+                # Read response: OK:D,pin,value
+                response = self.serial.readline().decode('utf-8').strip()
+                
+                if response.startswith("OK:D"):
+                    parts = response.split(',')
+                    if len(parts) == 3:
+                        value = int(parts[2])
+                        state = "HIGH" if value == 1 else "LOW"
+                        print(f"[ControllinoIO] Digital Read: Pin D{port} -> {state}")
+                        return value == 1
+                    else:
+                        print(f"[ControllinoIO ERROR] Invalid response format: {response}")
+                        return False
+                else:
+                    print(f"[ControllinoIO ERROR] Failed to read from D{port}: {response}")
+                    return False
+                
+            except Exception as e:
+                print(f"[ControllinoIO ERROR] Failed to read from D{port}: {str(e)}")
+                return False
     
     def analog_read(self, port: int) -> float:
         """

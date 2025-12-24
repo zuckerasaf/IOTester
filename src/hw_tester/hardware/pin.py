@@ -16,6 +16,13 @@ class PinType(Enum):
     POWER = "Power"
 
 
+class TestResult(Enum):
+    """Test result enumeration for pin test outcomes"""
+    NO_RESULT = "No Result"
+    PASS = "Pass"
+    FAIL = "Fail"
+
+
 class Pin:
     """
     Represents a physical pin on the connector (device being tested).
@@ -29,13 +36,14 @@ class Pin:
         Type (str): Type of pin (e.g., "DI_25", "5V I/O_1") - Excel column F (Associated Potential/Substance)
         Power_Expected (float): Expected power test result (default: 0.0)
         Power_Measured (float): Measured power test result (default: 0.0)
-        Power_Result (bool): Power test pass/fail result (default: False)
+        Power_Result (TestResult): Power test result (default: TestResult.NO_RESULT)
         PullUp_Expected (float): Expected pin voltage when pullup is on (default: 0.0)
         PullUp_Measured (float): Measured pin voltage when pullup is on (default: 0.0)
-        PullUp_Result (bool): PullUp test pass/fail result (default: False)
+        PullUp_Result (TestResult): PullUp test result (default: TestResult.NO_RESULT)
         Power_Input (str): Pin number that needs to be connected for power test (default: "")
+        PullUp_Input (str): Card output that needs to be activated for pullup test (default: "")
         Logic_Pin_Input (str): Pin number that needs to be connected as part of the test (default: "")
-        Logic_DI_Result (bool): Logic test pass/fail result (default: False)
+        Logic_DI_Result (TestResult): Logic test result (default: TestResult.NO_RESULT)
     """
     
     def __init__(
@@ -45,13 +53,15 @@ class Pin:
         Type: str = "",
         Power_Expected: float = 0.0,
         Power_Measured: float = 0.0,
-        Power_Result: bool = False,
+        Power_Result: TestResult = TestResult.NO_RESULT,
         PullUp_Expected: float = 0.0,
         PullUp_Measured: float = 0.0,
-        PullUp_Result: bool = False,
+        PullUp_Result: TestResult = TestResult.NO_RESULT,
         Power_Input: str = "",
+        PullUp_Input: str = "",
         Logic_Pin_Input: str = "",
-        Logic_DI_Result: bool = False
+        Logic_Expected: str = "",
+        Logic_DI_Result: TestResult = TestResult.NO_RESULT
     ):
         self.Id = Id
         self.Connect = Connect
@@ -66,7 +76,9 @@ class Pin:
         self.PullUp_Result = PullUp_Result
         # Logic test attributes
         self.Power_Input = Power_Input
+        self.PullUp_Input = PullUp_Input
         self.Logic_Pin_Input = Logic_Pin_Input
+        self.Logic_Expected = Logic_Expected
         self.Logic_DI_Result = Logic_DI_Result
     
     def __repr__(self) -> str:
@@ -88,31 +100,47 @@ class Pin:
             "Type": self.Type,
             "Power_Expected": self.Power_Expected,
             "Power_Measured": self.Power_Measured,
-            "Power_Result": self.Power_Result,
+            "Power_Result": self.Power_Result.value,
             "PullUp_Expected": self.PullUp_Expected,
             "PullUp_Measured": self.PullUp_Measured,
-            "PullUp_Result": self.PullUp_Result,
+            "PullUp_Result": self.PullUp_Result.value,
             "Power_Input": self.Power_Input,
             "Logic_Pin_Input": self.Logic_Pin_Input,
-            "Logic_DI_Result": self.Logic_DI_Result
+            "Logic_DI_Result": self.Logic_DI_Result.value
         }
     
     @classmethod
     def from_dict(cls, data: dict) -> 'Pin':
         """Create Pin instance from dictionary"""
+        # Handle conversion from string to TestResult enum
+        def get_test_result(value):
+            if isinstance(value, TestResult):
+                return value
+            elif isinstance(value, bool):
+                # Backward compatibility: convert bool to TestResult
+                return TestResult.PASS if value else TestResult.FAIL
+            elif isinstance(value, str):
+                # Convert string to TestResult
+                for result in TestResult:
+                    if result.value == value:
+                        return result
+                return TestResult.NO_RESULT
+            else:
+                return TestResult.NO_RESULT
+        
         return cls(
             Id=data["Id"],
             Connect=data.get("Connect", ""),
             Type=data.get("Type", ""),
             Power_Expected=data.get("Power_Expected", 0.0),
             Power_Measured=data.get("Power_Measured", 0.0),
-            Power_Result=data.get("Power_Result", False),
+            Power_Result=get_test_result(data.get("Power_Result", TestResult.NO_RESULT)),
             PullUp_Expected=data.get("PullUp_Expected", 0.0),
             PullUp_Measured=data.get("PullUp_Measured", 0.0),
-            PullUp_Result=data.get("PullUp_Result", False),
+            PullUp_Result=get_test_result(data.get("PullUp_Result", TestResult.NO_RESULT)),
             Power_Input=data.get("Power_Input", ""),
             Logic_Pin_Input=data.get("Logic_Pin_Input", ""),
-            Logic_DI_Result=data.get("Logic_DI_Result", False)
+            Logic_DI_Result=get_test_result(data.get("Logic_DI_Result", TestResult.NO_RESULT))
         )
 
 

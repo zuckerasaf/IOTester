@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hw-tester"
+version = "0.1.0"
+description = "Hardware I/O testing framework for Controllino Mega"
+authors = [{name = "IOTester Team"}]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pyserial",
+    "pyyaml",
+    "pandas",
+    "openpyxl",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+hw-tester = "hw_tester.app:main"

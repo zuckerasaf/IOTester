@@ -464,19 +464,29 @@ if __name__ == "__main__":
         # Card 1: DO1=1, AO0=5.0V
         if 1 in manager.cards:
             manager.set_digital_output(card_id=1, do_number=1, state=True)
-            manager.set_analog_output(card_id=1, ao_number=0, voltage=5.0)
-            print("[TEST] Card 1: DO1=1, AO0=5.0V")
+            manager.set_analog_output(card_id=1, ao_number=0, voltage=10.0)
+            print("  [TEST] send Card 1: DO1=0, AO0=10.0V")
+            ao = manager.get_analog_output(card_id=1, ao_number=0)
+            do = manager.get_digital_output(card_id=1, do_number=1)
+            print(f"  [TEST] received Card 1: AO0={ao:.2f}V" f", DO1={int(do)}")
         
         # Card 3: DO16=1, TTL5=1
         if 3 in manager.cards:
-            manager.set_digital_output(card_id=3, do_number=16, state=True)
+            manager.set_digital_output(card_id=3, do_number=16, state=False)
             manager.set_ttl_output(card_id=3, ttl_number=5, state=True)
             print("[TEST] Card 3: DO16=1, TTL5=1")
+            ttl = manager.get_ttl_output(card_id=3, ttl_number=5)
+            do = manager.get_digital_output(card_id=3, do_number=16)
+            print(f"  [TEST] received Card 3: TTL5={int(ttl)}" f", DO16={int(do)}")
         
         # Card 2: Matrix 4x6
         if 2 in manager.cards:
+            manager.set_digital_output(card_id=2, do_number=8, state=True)
             manager.set_matrix_dimensions(card_id=2, rows=4, columns=6)
-            print("[TEST] Card 2: Matrix=4x6")
+            print("[TEST] Card 2: D8=1, Matrix=4x6")
+            dims = manager.get_matrix_dimensions(card_id=2)
+            do = manager.get_digital_output(card_id=2, do_number=8)
+            print(f"  [TEST] received Card 2: Matrix={dims[0]}x{dims[1]}" f", DO8={int(do)}")
         
         # Monitor for 5 seconds
         print("\n[TEST] Monitoring communication...")

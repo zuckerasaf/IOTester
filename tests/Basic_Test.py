@@ -7,13 +7,17 @@ import sys
 from pathlib import Path
 import time
 
+from hw_tester.hardware.controllino_io import connector_pin_to_bits
+from hw_tester.utils.general import clear_mux_bits, set_mux_bits
+
 # Add src to path to import hw_tester modules
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root / "src"))
 
+from hw_tester.ui.views import log_view
 from hw_tester.utils.config_loader import load_settings, get_board_pin_map
 from hw_tester.hardware.hardware_factory import initialize_hardware
-
+from hw_tester.core.udp_card_manager import UDPCardManager
 
 def set_digital_pins(hardware, pin_map: dict, pin_states: dict):
     """
@@ -129,46 +133,86 @@ def main():
         return
     
     print("[Basic_Test] Hardware initialized successfully")
-    input("\n[Basic_Test] Press ENTER to continue to next step...")
-    # Test 1: Set multiple digital pins using helper function
-    print(f"\n[Basic_Test] pin 15 is up")
-    set_digital_pins(hardware, digital_pin_map, {
-        "D0": True,   # LOW
-        "D1": True,  # LOW
-        "D2": True,   # LOW
-        "D3": True,  # LOW 
-        "D8": True,   # HIGH
 
-    })
+    # Initialize UDP card manager
+    print("[Basic_Test] Initializing UDP card manager...")
+    card_manager = UDPCardManager(create_all=False)  # Only create enabled cards
+    card_manager.start_all()
+    time.sleep(0.5)  # Give threads time to initialize
 
-    #print_digital_pin_status(hardware, digital_pin_map, ["D0", "D1", "D2", "D3", "D8"])
-    measure_analog_pins(hardware, analog_pin_map, ["A0"])
-
-    # Wait for user confirmation before proceeding
-    input("\n[Basic_Test] change the value in the SE Press ENTER to continue to next step...")
-
-     #print_digital_pin_status(hardware, digital_pin_map, ["D0", "D1", "D2", "D3", "D8"])
-    measure_analog_pins(hardware, analog_pin_map, ["A0"])
-
-    # Wait for user confirmation before proceeding
-    input("\n[Basic_Test] Press ENTER to continue to next step...")
     
-    print(f"\n[Basic_Test] pin 20 is up")
-    set_digital_pins(hardware, digital_pin_map, {
-        "D20": True,   # HIGh
-    })
+    # Check which cards are enabled
+    enabled_cards = card_manager.get_enabled_cards()
+    print(f"[Basic_Test] Enabled cards: {[card.card_id for card in enabled_cards]}")
     
-    #print_digital_pin_status(hardware, digital_pin_map, ["D0", "D1", "D2", "D3", "D9"])
-    measure_analog_pins(hardware, analog_pin_map, ["A0"])
+    # Check if card 2 exists
+    card_2 = card_manager.get_card(2)
+    if card_2:
+        print(f"[Basic_Test] Card 2 found - Send to: {card_2.send_ip}:{card_2.send_port}, Receive from: {card_2.receive_ip}:{card_2.receive_port}, Enabled: {card_2.enabled}")
+    else:
+        print("[Basic_Test] WARNING: Card 2 not found in card manager!")
+    
+    print("[Basic_Test] UDP card manager initialized successfully")
+    
+    # Give cards a moment to initialize communication
+    print("[Basic_Test] Waiting for card communication to initialize...")
+    time.sleep(0.5)
 
-     # Wait for user confirmation before proceeding
-    input("\n[Basic_Test] change the value in the SE Press ENTER to continue to next step...")
+    clear_mux_bits(board_pin_map, hardware)
+    #input("\n[Basic_Test] Press ENTER to continue to next step...")
+    pin_number = 17
+    pullup_pin_number = "D21"
+    mesure_pin_number = "A1"
+    # Step 2: Convert connector pin to bit representation using system A and set mux matrix
+    bits = connector_pin_to_bits(pin_number, "a")
+    success = set_mux_bits(bits, pin_number, board_pin_map, hardware, settings)
+    print(f"\n[Basic_Test] pin {pin_number} is up")
 
-     #print_digital_pin_status(hardware, digital_pin_map, ["D0", "D1", "D2", "D3", "D8"])
-    measure_analog_pins(hardware, analog_pin_map, ["A0"])
+    #state = hardware.digital_read(digital_pin_map.get(pullup_pin_number))
+    set_digital_pins(hardware, digital_pin_map, {
+        pullup_pin_number: True,})  # HIG
+    #state = hardware.digital_read(digital_pin_map.get(pullup_pin_number))
+    
+    print(f"\n[Basic_Test] pin {pin_number} is up")
+    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
+    print("\n[Basic_Test] Sending UDP commands to card 2...")
+    success = card_manager.set_digital_output(card_id=2, do_number=13, state=bool(1))
+    print(f"[Basic_Test] Card 2 DO13 set to 1: {'Success' if success else 'FAILED'}")
+    
+    success2 = card_manager.set_analog_output(card_id=2, ao_number=1, voltage=10)
+    print(f"[Basic_Test] Card 2 AO1 set to 10V: {'Success' if success2 else 'FAILED'}")
+    
+    # Wait for outputs to stabilize
+    print("[Basic_Test] Waiting for outputs to stabilize...")
+    time.sleep(0.2)
+
+    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
+    # Step 2: Convert connector pin to bit representation using system A and set mux matrix
+    bits = connector_pin_to_bits(pin_number, "b")
+    success = set_mux_bits(bits, pin_number, board_pin_map, hardware, settings)
+    print(f"\n[Basic_Test] pin {pin_number} is up")
+    # set_digital_pins(hardware, digital_pin_map, {
+    #     pullup_pin_number: True,})  # HIG
+    # print(f"\n[Basic_Test] pin {pin_number} is up")
+    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
+   
+    set_digital_pins(hardware, relay_pin_map, {
+        "R6": True,})  # HIG
+    set_digital_pins(hardware, relay_pin_map, {
+        "R7": True,})  # HIG
+    
+    mesure_pin_number = "A3"
+    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
+    mesure_pin_number = "A7"
+    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
 
     # Wait for user confirmation before proceeding
-    input("\n[Basic_Test] Press ENTER to continue...")
+    #input("\n[Basic_Test] Press ENTER to continue...")
     print(f"\n[Basic_Test] pin 20 is up")
     set_digital_pins(hardware, digital_pin_map, {
         "D20": False,   # HIGh
@@ -215,6 +259,8 @@ def main():
     # print("[Basic_Test] Test complete")
     
     # Cleanup
+    card_manager.stop_all()
+    print("[Basic_Test] UDP card manager stopped")
     hardware.close()
     print("[Basic_Test] Hardware closed")
 
