@@ -28,9 +28,10 @@ Timeouts:
   pins_to_stabilize: 0.1
 scale:
   voltage: 6.14
-  voltage_degredation: 3.0
-  voltage_tolerance: 3.0
+  voltage_degredation: 1.5
+  voltage_tolerance: 1.5
   zero_voltage_threshold: 0.5
+  Analog_voltage_threshold: 10.0
 Paths:
   Path_1: C:/ArduinoProject/IO_Tester
   Path_2: src/hw_tester/config/pin_map.json

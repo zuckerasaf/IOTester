@@ -42,7 +42,8 @@ class Pin:
         PullUp_Result (TestResult): PullUp test result (default: TestResult.NO_RESULT)
         Power_Input (str): Pin number that needs to be connected for power test (default: "")
         PullUp_Input (str): Card output that needs to be activated for pullup test (default: "")
-        Logic_Pin_Input (str): Pin number that needs to be connected as part of the test (default: "")
+        Logic_Pin_Input (List[str]): Pin numbers that need to be connected as part of the test (default: [])
+        Logic_Expected (List[str]): Expected logic values for the test (default: [])
         Logic_DI_Result (TestResult): Logic test result (default: TestResult.NO_RESULT)
     """
     
@@ -59,8 +60,8 @@ class Pin:
         PullUp_Result: TestResult = TestResult.NO_RESULT,
         Power_Input: str = "",
         PullUp_Input: str = "",
-        Logic_Pin_Input: str = "",
-        Logic_Expected: str = "",
+        Logic_Pin_Input: List[str] = None,
+        Logic_Expected: List[str] = None,
         Logic_DI_Result: TestResult = TestResult.NO_RESULT
     ):
         self.Id = Id
@@ -77,8 +78,8 @@ class Pin:
         # Logic test attributes
         self.Power_Input = Power_Input
         self.PullUp_Input = PullUp_Input
-        self.Logic_Pin_Input = Logic_Pin_Input
-        self.Logic_Expected = Logic_Expected
+        self.Logic_Pin_Input = Logic_Pin_Input if Logic_Pin_Input is not None else []
+        self.Logic_Expected = Logic_Expected if Logic_Expected is not None else []
         self.Logic_DI_Result = Logic_DI_Result
     
     def __repr__(self) -> str:
@@ -128,6 +129,15 @@ class Pin:
             else:
                 return TestResult.NO_RESULT
         
+        # Handle backward compatibility for Logic_Pin_Input and Logic_Expected
+        logic_pin_input = data.get("Logic_Pin_Input", [])
+        if isinstance(logic_pin_input, str):
+            logic_pin_input = [logic_pin_input] if logic_pin_input else []
+        
+        logic_expected = data.get("Logic_Expected", [])
+        if isinstance(logic_expected, str):
+            logic_expected = [logic_expected] if logic_expected else []
+        
         return cls(
             Id=data["Id"],
             Connect=data.get("Connect", ""),
@@ -139,7 +149,9 @@ class Pin:
             PullUp_Measured=data.get("PullUp_Measured", 0.0),
             PullUp_Result=get_test_result(data.get("PullUp_Result", TestResult.NO_RESULT)),
             Power_Input=data.get("Power_Input", ""),
-            Logic_Pin_Input=data.get("Logic_Pin_Input", ""),
+            PullUp_Input=data.get("PullUp_Input", ""),
+            Logic_Pin_Input=logic_pin_input,
+            Logic_Expected=logic_expected,
             Logic_DI_Result=get_test_result(data.get("Logic_DI_Result", TestResult.NO_RESULT))
         )
 

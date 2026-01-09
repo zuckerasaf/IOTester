@@ -39,7 +39,7 @@ class PinPulser:
         
         # Get default timeout from settings
         timeouts = settings.get('Timeouts', {})
-        self.default_timeout = timeouts.get('TestStep', 2.5)
+        self.default_timeout = timeouts.get('pins_to_stabilize', 2.5)
         
         # Track active timers
         self._active_timers = {}
@@ -53,7 +53,7 @@ class PinPulser:
             # Return defaults if settings file not found
             return {
                 'Timeouts': {
-                    'TestStep': 2.5
+                    'pins_to_stabilize': 2.5
                 }
             }
         
@@ -86,9 +86,22 @@ class PinPulser:
         # Wait for timeout
         time.sleep(timeout)
         
+        # Verify port state low before setting High
+        portState = self.hardware.digital_read(digital_port)    
+        if portState is not True:
+            print(f"[PinPulser] Warning: Digital port {digital_port} state before setting LOW is {portState}")
+
+
         # Set port LOW
         if self.hardware is not None:
             self.hardware.digital_write(digital_port, False)
+        
+        # Verify port state low before setting LOW
+        portState = self.hardware.digital_read(digital_port)    
+        if portState is not False:
+            print(f"[PinPulser] Warning: Digital port {digital_port} state before setting LOW is {portState}")
+
+
     
     def pulse_async(self, digital_port: int, timeout: Optional[float] = None) -> threading.Timer:
         """
@@ -122,6 +135,15 @@ class PinPulser:
         if self.hardware is not None:
             self.hardware.digital_write(digital_port, True)
         
+        # Wait for timeout
+        time.sleep(timeout)
+
+        # Verify port state high
+        portState = self.hardware.digital_read(digital_port)
+        if portState is not True:
+            print(f"[PinPulser] Warning: Digital port {digital_port} state after setting HIGH is {portState}")
+            return 999  # return invalid timer
+        
         # Schedule LOW after timeout
         def set_low():
             if self.hardware is not None:
@@ -129,8 +151,18 @@ class PinPulser:
             # Remove from active timers
             if digital_port in self._active_timers:
                 del self._active_timers[digital_port]
-        
+
         timer = threading.Timer(timeout, set_low)
+        
+        # Wait for timeout
+        time.sleep(timeout)
+
+        # Verify port state low before starting timer
+        portState = self.hardware.digital_read(digital_port)
+        if portState is not False:
+            print(f"[PinPulser] Warning: Digital port {digital_port} state after setting HIGH is {portState}")
+            return 999  # return invalid timer
+        
         self._active_timers[digital_port] = timer
         timer.start()
         

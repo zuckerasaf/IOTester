@@ -9,7 +9,8 @@ from typing import Callable, Optional, Dict
 class OperationalPanel(tk.Frame):
     """
     Operational panel with connector label and action buttons.
-    Layout: Left side = connector label, Right side = 5 buttons in grid.
+    Layout: connector_label | Load | HW dropdown | KeepAlive | I_Bit      | Test   | ClearLog | Report (row 0)
+                            |      | Sim dropdown|           | Stop_IBIT  | Stop_T | Log Filter checkboxes   (row 1)
     """
     
     def __init__(
@@ -26,7 +27,8 @@ class OperationalPanel(tk.Frame):
         settings: Optional[Dict] = None,
         on_hw_change: Optional[Callable[[str], None]] = None,
         on_simulate_change: Optional[Callable[[str], None]] = None,
-        on_iobox_change: Optional[Callable[[str], None]] = None
+        on_iobox_change: Optional[Callable[[str], None]] = None,
+        on_log_filter_change: Optional[Callable[[str], None]] = None
     ):
         """
         Initialize OperationalPanel.
@@ -45,14 +47,15 @@ class OperationalPanel(tk.Frame):
             on_hw_change: Callback when hardware selection changes (receives new hw type)
             on_simulate_change: Callback when simulation mode changes (receives "Simulation On" or "Simulation Off")
             on_iobox_change: Callback when IO Box selection changes (receives new box type)
+            on_log_filter_change: Callback when log filter selection changes (receives list of selected levels)
         """
         super().__init__(parent)
         
         # Configure grid layout - multiple columns for new layout
-        # Layout: connector_label | Load | HW dropdown | KeepAlive | I_Bit | Test | Report (row 0)
-        #                         |      | Sim dropdown |          | Stop_IBIT  | Stop_T | ClearLog (row 1)
+        # Layout: connector_label | Load | HW dropdown | KeepAlive | I_Bit      | Test   | ClearLog | Report (row 0)
+        #                         |      | Sim dropdown|           | Stop_IBIT  | Stop_T | Log Filter checkboxes   (row 1)
         self.columnconfigure(0, weight=1)  # Connector label (resizable)
-        for i in range(1, 8):  # Columns 1-7 for controls
+        for i in range(1, 9):  # Columns 1-8 for controls
             self.columnconfigure(i, weight=0)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -69,6 +72,7 @@ class OperationalPanel(tk.Frame):
         self.on_hw_change = on_hw_change or (lambda hw: None)
         self.on_simulate_change = on_simulate_change or (lambda mode: None)
         self.on_iobox_change = on_iobox_change or (lambda box: None)
+        self.on_log_filter_change = on_log_filter_change or (lambda level: None)
         
         # Store settings
         self.settings = settings or {}
@@ -100,20 +104,20 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_load.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         
-        # Row 1: IO Box dropdown - populated from settings.yaml
-        io_box_config = self.settings.get('IO_Box', {})
-        available_boxes = io_box_config.get('AvailableTypes', ['Demo', 'MTC_FWD', 'MTC_AFT'])
-        current_box = io_box_config.get('Type', 'Demo')
-        
-        self.iobox_combo = ttk.Combobox(
-            self,
-            values=available_boxes,
-            state="readonly",
-            width=15
-        )
-        self.iobox_combo.set(current_box)
-        self.iobox_combo.bind('<<ComboboxSelected>>', self._on_iobox_changed)
-        self.iobox_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        # IO Box dropdown - CODE KEPT BUT REMOVED FROM UI
+        # io_box_config = self.settings.get('IO_Box', {})
+        # available_boxes = io_box_config.get('AvailableTypes', ['Demo', 'MTC_FWD', 'MTC_AFT'])
+        # current_box = io_box_config.get('Type', 'Demo')
+        # 
+        # self.iobox_combo = ttk.Combobox(
+        #     self,
+        #     values=available_boxes,
+        #     state="readonly",
+        #     width=15
+        # )
+        # self.iobox_combo.set(current_box)
+        # self.iobox_combo.bind('<<ComboboxSelected>>', self._on_iobox_changed)
+        # self.iobox_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         
         # Column 2: Hardware dropdown - populated from settings.yaml
         board_config = self.settings.get('Board', {})
@@ -157,16 +161,25 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_run.grid(row=0, column=5, padx=5, pady=5, sticky="ew")
         
-        # Column 6: Report button
+        # Column 6: ClearLog button
+        self.btn_clear_log = ttk.Button(
+            self,
+            text="ClearLog",
+            style="Utility.TButton",
+            command=self.on_clear_log
+        )
+        self.btn_clear_log.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
+        
+        # Column 7: Report button
         self.btn_report = ttk.Button(
             self,
             text="Report",
             style="Info.TButton",
             command=self.on_report
         )
-        self.btn_report.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
+        self.btn_report.grid(row=0, column=7, padx=5, pady=5, sticky="ew")
         
-        # Row 1: (empty) | Simulate dropdown | (empty) | Stop_IBIT | Stop_T | ClearLog
+        # Row 1: (empty) | (empty) | Simulate dropdown | (empty) | Stop_IBIT | Stop_T | Log Filter dropdown
         # Column 2: Simulate dropdown - populated from settings.yaml
         current_simulation = board_config.get('simulation', False)
         simulate_mode = "Simulation On" if current_simulation else "Simulation Off"
@@ -201,14 +214,29 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_stop.grid(row=1, column=5, padx=5, pady=5, sticky="ew")
         
-        # Column 6: ClearLog button
-        self.btn_clear_log = ttk.Button(
-            self,
-            text="ClearLog",
-            style="Utility.TButton",
-            command=self.on_clear_log
-        )
-        self.btn_clear_log.grid(row=1, column=6, padx=5, pady=5, sticky="ew")
+        # Column 6: Log Filter checkboxes in a frame
+        log_filter_frame = tk.LabelFrame(self, text="Log Filter", padx=3, pady=3)
+        log_filter_frame.grid(row=1, column=6, padx=5, pady=5, sticky="ew")
+        
+        # Create checkboxes for each log level
+        self.log_filter_vars = {}
+        log_levels = ["INFO", "SUCCESS", "WARNING", "ERROR", "DEBUG"]
+        
+        # Create a sub-frame for compact horizontal layout
+        checkbox_frame = tk.Frame(log_filter_frame)
+        checkbox_frame.pack()
+        
+        for idx, level in enumerate(log_levels):
+            var = tk.BooleanVar(value=True)  # All checked by default
+            self.log_filter_vars[level] = var
+            
+            cb = tk.Checkbutton(
+                checkbox_frame,
+                text=level[:3] if level != "WARNING" else "WRN",  # Abbreviated labels
+                variable=var,
+                command=self._on_log_filter_changed
+            )
+            cb.pack(side=tk.LEFT, padx=2)
     
     def _setup_styles(self) -> None:
         """Setup custom button styles."""
@@ -251,8 +279,15 @@ class OperationalPanel(tk.Frame):
     
     def _on_iobox_changed(self, event) -> None:
         """Called when IO Box dropdown selection changes."""
-        new_box = self.iobox_combo.get()
-        self.on_iobox_change(new_box)
+        # Note: IO Box dropdown removed from UI but code kept for future use
+        # new_box = self.iobox_combo.get()
+        # self.on_iobox_change(new_box)
+        pass
+    
+    def _on_log_filter_changed(self) -> None:
+        """Called when any log filter checkbox changes."""
+        selected_levels = [level for level, var in self.log_filter_vars.items() if var.get()]
+        self.on_log_filter_change(selected_levels)
     
     def set_connector(self, name: str) -> None:
         """
