@@ -95,13 +95,9 @@ class Measurer:
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
         
         if is_simulation:
-            # Simulation mode: Return predefined/fake voltage data
-            # Simulate realistic voltage reading with small variations
-            import random
-            base_voltage = 3.3 if analog_port % 2 == 0 else 5.0
-            simulated_voltage = base_voltage + random.uniform(-0.1, 0.1)
-            time.sleep(duration)  # Simulate measurement time
-            return round(simulated_voltage, 2)
+            # Simulation mode: Return fake voltage data
+            base_voltage = 6.7  # Example base voltage for simulation
+            return round(base_voltage, 2)
         
         # Real hardware mode: Read actual data from board
         if self.hardware is None:

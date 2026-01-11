@@ -2,7 +2,8 @@
 UDP Card Manager - Manages multiple UDP cards in parallel.
 Provides simple interface to control all 7 cards simultaneously.
 """
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
+from hw_tester.utils.config_loader import load_settings
 
 # Import handling for both direct execution and package import
 try:
@@ -70,10 +71,21 @@ class UDPCardManager:
         """Get list of enabled card instances."""
         return [card for card in self.cards.values() if card.enabled]
     
-    def start_all(self) -> None:
-        """Start all card communication threads."""
+    def start_all(self) -> List[str]:
+        """Start all card communication threads.
+        
+        Returns:
+            List of binding error messages (empty if all successful)
+        """
+        binding_errors = []
         for card in self.cards.values():
-            card.start()
+            try:
+                card.start()
+            except OSError as e:
+                # Collect binding error for reporting
+                error_msg = f"Card {card.card_id}: Failed to bind to {card.receive_ip}:{card.receive_port} - {str(e)}"
+                binding_errors.append(error_msg)
+        return binding_errors
     
     def stop_all(self) -> None:
         """Stop all card communication threads."""
@@ -160,6 +172,14 @@ class UDPCardManager:
         Returns:
             State (True/False) or None if card not found
         """
+        
+        #if the system is in simulation mode we skip the verification
+        settings = load_settings()
+        is_simulation = settings.get('Board', {}).get('simulation', True)
+
+        if is_simulation: 
+            return (True)
+
         card = self.get_card(card_id)
         if card:
             return card.get_digital_output(do_number)
@@ -353,9 +373,63 @@ class UDPCardManager:
             Voltage or None if card not found
         """
         card = self.get_card(card_id)
+
+        settings = load_settings()
+        is_simulation = settings.get('Board', {}).get('simulation', True)
+
+        if is_simulation: 
+            return (5.0)
+
         if card:
             return card.get_analog_input(ai_number)
         return None
+    
+    # ===== Matrix Row Methods =====
+    
+    def get_Matrix_rows(self, card_id: int, row_number: int = None) -> Optional[Union[int, List[int]]]:
+        """
+        Get matrix row data from specific card.
+        
+        Args:
+            card_id: Card identifier (1-7)
+            row_number: Row number (1-8), or None to get all rows
+        
+        Returns:
+            If row_number specified: Single 8-bit row value (0-255) or None if card not found
+            If row_number is None: List of 8 row values or None if card not found
+        
+        Example:
+            # Get all rows
+            rows = manager.get_Matrix_rows(card_id=1)
+            # Result: [0, 255, 128, 64, 32, 16, 8, 4]
+            
+            # Get specific row
+            row2 = manager.get_Matrix_rows(card_id=1, row_number=2)
+            # Result: 255
+        """
+        card = self.get_card(card_id)
+        if card:
+            return card.get_Matrix_rows(row_number)
+        return None
+    
+    def print_data_binary(self, card_id: int) -> bool:
+        """
+        Print binary representation of received data from specific card.
+        
+        Args:
+            card_id: Card identifier (1-7)
+        
+        Returns:
+            True if successful, False if card not found
+        
+        Example:
+            manager.print_data_binary(card_id=1)
+        """
+        card = self.get_card(card_id)
+        if card:
+            card.print_data_binary()
+            return True
+        return False
     
     # ===== Utility Methods =====
     

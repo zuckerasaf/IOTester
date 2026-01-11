@@ -450,6 +450,83 @@ class ReceiveData:
         
         return self.analog_inputs.get(ai_number)
     
+    def get_Matrix_rows(self, card_id: int) -> List[int]:
+        """
+        Get matrix rows data for a card.
+        
+        Returns 8 16-bit values representing the 8 matrix rows.
+        Each value is constructed from 2 bytes (little-endian).
+        
+        Args:
+            card_id: Card ID (currently unused, for future multi-card support)
+        
+        Returns:
+            List of 8 16-bit integer values (one per row)
+        
+        Mapping (according to message specification):
+            Word 6 (bytes 12-13): Row 1 (low byte) | Row 2 (high byte)
+            Word 7 (bytes 14-15): Row 3 (low byte) | Row 4 (high byte)
+            Word 24 (bytes 48-49): Row 5 (low byte) | Row 6 (high byte)
+            Word 25 (bytes 50-51): Row 7 (low byte) | Row 8 (high byte)
+        """
+        matrix_rows = []
+        
+        # Rows 1-4 from bytes 12-15 (words 6-7)
+        for i in range(2):  # 2 words
+            byte_idx = 12 + i * 2
+            low_byte = self.data[byte_idx]
+            high_byte = self.data[byte_idx + 1]
+            
+            # Each word contains 2 rows (low byte = odd row, high byte = even row)
+            matrix_rows.append(low_byte)  # Row 1 or Row 3
+            matrix_rows.append(high_byte)  # Row 2 or Row 4
+        
+        # Rows 5-8 from bytes 48-51 (words 24-25)
+        for i in range(2):  # 2 words
+            byte_idx = 48 + i * 2
+            low_byte = self.data[byte_idx]
+            high_byte = self.data[byte_idx + 1]
+            
+            # Each word contains 2 rows (low byte = odd row, high byte = even row)
+            matrix_rows.append(low_byte)  # Row 5 or Row 7
+            matrix_rows.append(high_byte)  # Row 6 or Row 8
+        
+        return matrix_rows
+    
+    def print_data_binary(self, card_id: int = None) -> None:
+        """
+        Print binary representation of data buffer.
+        Each 16-bit word (2 bytes) is printed on a separate line.
+        Displays byte index, binary representation, hex, and decimal values.
+        
+        Args:
+            card_id: Card ID to display in header (optional)
+        """
+        print("=" * 80)
+        if card_id is not None:
+            print(f"Data Buffer Binary Representation - Card {card_id} (64 bytes = 32 words)")
+        else:
+            print("Data Buffer Binary Representation (64 bytes = 32 words)")
+        print("=" * 80)
+        print(f"{'Word':<6} {'Bytes':<8} {'Byte 0 (LSB)':<18} {'Byte 1 (MSB)':<18} {'Hex':<8} {'Dec':<6}")
+        print("-" * 80)
+        
+        for word_idx in range(32):  # 32 words (64 bytes / 2)
+            byte_idx = word_idx * 2
+            byte0 = self.data[byte_idx]      # Low byte
+            byte1 = self.data[byte_idx + 1]  # High byte
+            
+            # Format binary with spaces for readability
+            bin0 = f"{byte0:08b}"
+            bin1 = f"{byte1:08b}"
+            
+            # Calculate 16-bit word value (little-endian)
+            word_value = (byte1 << 8) | byte0
+            
+            print(f"{word_idx:<6} {byte_idx:2d}-{byte_idx+1:<2d}  {bin0:<18} {bin1:<18} 0x{word_value:04X}  {word_value:<6}")
+        
+        print("=" * 80)
+    
     def to_dict(self) -> Dict:
         """
         Export all parsed data as dictionary.

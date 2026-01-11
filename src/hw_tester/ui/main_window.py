@@ -94,7 +94,22 @@ class MainWindow:
         
         # Initialize UDP Card Manager for controlling IO cards
         self.card_manager = UDPCardManager(create_all=False)  # Only create enabled cards
-        self.card_manager.start_all()  # Start communication threads
+        binding_errors = self.card_manager.start_all()  # Start communication threads
+        
+        # Display binding errors if any
+        if binding_errors:
+            for error in binding_errors:
+                self.log_view.append(error, "ERROR")
+            # Show error messagebox to notify user
+            error_summary = "\n".join(binding_errors)
+            messagebox.showerror(
+                "UDP Binding Error",
+                f"Failed to bind to one or more UDP cards:\n\n{error_summary}\n\n"
+                f"The application will continue running, but affected cards will not function.\n"
+                f"Check if another application is using the same ports."
+                f"---"
+                f"in case you wish to work with locahost run the switch_to_localhost.bat and start over the application."
+            )
         
         # Set up proper cleanup on window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -174,7 +189,8 @@ class MainWindow:
             on_hw_change=self.on_hw_change,
             on_simulate_change=self.on_simulate_change,
             on_iobox_change=self.on_iobox_change,
-            on_log_filter_change=self.on_log_filter_change
+            on_log_filter_change=self.on_log_filter_change,
+            on_localhost_change=self.on_localhost_change
         )
         self.op_panel.pack(fill=tk.BOTH, expand=True)
         
@@ -350,34 +366,25 @@ class MainWindow:
     def measure_voltage(self, pin_id: str, analog_port: int, idx: int = 0) -> None:
         """
         Measure voltage on a pin.
-        If simulation mode is enabled, simulates the measurement.
-        Otherwise, uses real hardware via Measurer.
+        Delegates to Measurer which handles simulation mode internally.
         
         Args:
             pin_id: Pin ID to measure
             analog_port: Analog port number (e.g., 0 for A0)
             idx: Index for simulation variation (default: 0)
         """
-        is_simulation = self.settings.get('Board', {}).get('simulation', True)
-        
         # Get voltage scale factor from settings
         scale_factor = self.settings.get('Measure_value', {}).get('Scale_1', 1.0)
         
-        if is_simulation:
-            # Simulation mode - generate fake voltage
-            time.sleep(0.5)
-            voltage = 5.0 if "power" in pin_id or "digital" in pin_id else 3.3
-            measured_voltage = voltage + (idx * 0.01)
-        else:
-            # Real hardware mode - use Measurer
-            try:
-                measured_voltage = self.measurer.measure_voltage(analog_port)
-            except Exception as e:
-                measured = f"ERROR: {str(e)}"
-                self.log_view.append(f"Measurement error on {pin_id}: {str(e)}", "ERROR")
-                # Update the measurement in the UI
-                self.root.after(0, self._update_measurement, pin_id, measured)
-                return
+        # Measurer handles simulation mode internally
+        try:
+            measured_voltage = self.measurer.measure_voltage(analog_port)
+        except Exception as e:
+            measured = f"ERROR: {str(e)}"
+            self.log_view.append(f"Measurement error on {pin_id}: {str(e)}", "ERROR")
+            # Update the measurement in the UI
+            self.root.after(0, self._update_measurement, pin_id, measured)
+            return
         
         # Apply scale factor to the measured voltage
         scaled_voltage = measured_voltage * scale_factor
@@ -619,17 +626,14 @@ class MainWindow:
                 - message: Descriptive message about test result or error
         """
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
+
         
         if is_simulation:
             # Simulation mode - return fixed value based on expected
             time.sleep(0.2)  # Simulate measurement delay
-            # Return expected value with small variation
             import random
             variation = random.uniform(-0.1, 0.1)
-            simulated_voltage = pin.Power_Expected + variation
-            success = abs(simulated_voltage - pin.Power_Expected) < 0.5
-            message = "Simulation: measurement in tolerance" if success else "Simulation: measurement not in tolerance"
-            return (simulated_voltage, success, message)
+            
         
         # Real hardware mode
         # Get tolerance from settings (default 0.5V)
@@ -678,7 +682,13 @@ class MainWindow:
 
         
         # Step 2: Check if Power_Input is "none" or empty
+        # in case it is in simulation mode the mesured volateg will be as the expected voltage or zero ....
+
         if not pin.Power_Input or pin.Power_Input.strip().lower() == "none" or pin.Power_Input.strip() == "P" or pin.Power_Input.strip() == "Power":
+            if is_simulation:
+                measured_voltage = pin.Power_Expected + variation
+                self.log_view.append(f"the measure_Voltage is simulated (pin.Power_Expected + variation) + samll variation = {variation} ", "DEBUG")
+            
             # No external control needed - just verify measurement
             voltage_diff = abs(measured_voltage* voltage_scale - pin.Power_Expected)
             if voltage_diff <= tolerance:
@@ -690,6 +700,11 @@ class MainWindow:
         
         # Step 3: Power_Input is provided - need to activate external card
         # First verify initial measurement is ~0V
+
+        if is_simulation:
+            measured_voltage = 0 + variation
+            self.log_view.append(f"the measure_Voltage is simulated (pin.Power_Expected + variation) + samll variation = {variation} ", "DEBUG")
+            
         if abs(measured_voltage* voltage_scale) > tolerance:
             self.log_view.append(f"Initial voltage {measured_voltage* voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V) - test failed", "WARNING")
             return (measured_voltage* voltage_scale, False, f"Initial voltage {measured_voltage:.3f}V is not ~0V")
@@ -776,6 +791,9 @@ class MainWindow:
         if not verify_success:
             return (measured_voltage, False, verify_msg)
         
+        if is_simulation:
+            measured_voltage = pin.Power_Expected + variation
+            self.log_view.append(f"the measure_Voltage is simulated (pin.Power_Expected + variation) + samll variation = {variation} ", "DEBUG")
         # Compare to expected value
         voltage_diff = abs(measured_voltage* voltage_scale - pin.Power_Expected)
         if voltage_diff <= tolerance:
@@ -822,17 +840,14 @@ class MainWindow:
                 - message: Descriptive message about test result or error
         """
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
+
         
         if is_simulation:
             # Simulation mode - return fixed value based on expected
             time.sleep(0.2)  # Simulate measurement delay
-            # Return expected value with small variation
             import random
             variation = random.uniform(-0.1, 0.1)
-            simulated_voltage = pin.PullUp_Expected + variation
-            success = abs(simulated_voltage - pin.PullUp_Expected) < 0.5
-            message = "Simulation: measurement in tolerance" if success else "Simulation: measurement not in tolerance"
-            return (simulated_voltage, success, message)
+            
         
         # Real hardware mode
         # Get tolerance from settings (default 0.5V)
@@ -879,6 +894,9 @@ class MainWindow:
             self.log_view.append(f"in pullup test - Measurement error: {str(e)}", "ERROR")
             return (0.0, False, f"Error: Measurement failed - {str(e)}")
         
+        if is_simulation:
+            measured_voltage = 0 + variation
+            self.log_view.append(f"the measure_Voltage is simulated (pin.PullUp_Expected + variation) + samll variation = {variation} ", "DEBUG")
         # Step 2: Verify initial measurement is ~0V
         if abs(measured_voltage * voltage_scale) > tolerance:
             self.log_view.append(f"Initial voltage {measured_voltage * voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V) - test failed", "WARNING")
@@ -916,6 +934,9 @@ class MainWindow:
             return (0.0, False, f"Error: Measurement failed after pullup activation - {str(e)}")
         
         # Step 6: Check that measured voltage matches PullUp_Expected
+        if is_simulation:
+            measured_voltage = pin.PullUp_Expected + variation
+            self.log_view.append(f"the measure_Voltage is simulated (pin.PullUp_Expected + variation) + samll variation = {variation} ", "DEBUG")
         voltage_diff = abs(measured_voltage * voltage_scale - pin.PullUp_Expected)
         if voltage_diff > tolerance:
             self.log_view.append(f"Pullup voltage {measured_voltage * voltage_scale:.3f}V does NOT match expected {pin.PullUp_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
@@ -964,6 +985,10 @@ class MainWindow:
         
         # Step 11: Read DO status to verify it was set
         actual_do_state = self.card_manager.get_digital_output(card_id=card, do_number=event_num)
+        if is_simulation:
+            actual_do_state = do_state  # Simulate correct setting in simulation mode
+            self.log_view.append(f"the DO state is simulated to be {actual_do_state} ", "DEBUG")
+
         if actual_do_state != do_state:
             self.log_view.append(f"DO verification failed: Expected {do_state}, got {actual_do_state}", "WARNING")
             # Deactivate pullup and DO, then return with warning
@@ -989,6 +1014,10 @@ class MainWindow:
             return (0.0, False, f"Error: Measurement failed after DO activation - {str(e)}")
         
         # Step 13: Check that voltage is now ~0V (within tolerance)
+        if is_simulation:
+            measured_voltage_after_do = 0 + variation
+            self.log_view.append(f"the measure_Voltage is simulated to be ~0V + samll variation = {variation} ", "DEBUG")
+
         if abs(measured_voltage_after_do * voltage_scale) > tolerance:
             self.log_view.append(f"Voltage after DO activation {measured_voltage_after_do * voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V)", "WARNING")
             # Cleanup and return with warning
@@ -1015,6 +1044,9 @@ class MainWindow:
         
         # Step 16: Read DO status to verify it was deactivated
         actual_do_state_after = self.card_manager.get_digital_output(card_id=card, do_number=event_num)
+        if is_simulation:
+            actual_do_state_after = False  # Simulate correct deactivation in simulation mode
+            self.log_view.append(f"the DO state after deactivation is simulated to be {actual_do_state_after} ", "DEBUG")
         if actual_do_state_after != False:
             self.log_view.append(f"DO deactivation verification failed: Expected False, got {actual_do_state_after}", "WARNING")
             return (measured_voltage * voltage_scale, False, f"DO not deactivated correctly: got {actual_do_state_after}")
@@ -1439,15 +1471,14 @@ class MainWindow:
         """
         Overallsuccess = False 
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
+
         
         if is_simulation:
-            # Simulation mode - return fixed result
-            time.sleep(0.2)  # Simulate test delay
+            # Simulation mode - return fixed value based on expected
+            time.sleep(0.2)  # Simulate measurement delay
             import random
-            success = random.random() > 0.1  # 90% pass rate
-            message = "Simulation: DI high detected" if success else "Simulation: DI low detected"
-            return (0.0, success, message)
-        
+            variation = random.uniform(-0.1, 0.1)
+            
         # Real hardware mode
         # Get tolerance from settings (default 0.5V)
         tolerance = self.settings.get('scale', {}).get('voltage_tolerance', 0.5)
@@ -1615,10 +1646,20 @@ class MainWindow:
                 clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
                 return (0.0, False, f"Error reading DI status: {str(e)}")
             
+            if is_simulation:
+                self.log_view.append(f"workingin in simulation mode the tatus against Logic_Expected are good", "DEBUG")
+
+
             # Step 10: Check the read status against Logic_Expected
             if "DI" in pin.Logic_Expected:
+                if is_simulation:
+                    di_status = expected_state_bool
+               
                 status_match = (di_status == expected_state_bool)
             elif  "AI" in pin.Logic_Expected:    
+                if is_simulation:
+                    ai_status = event_value
+                
                 status_match = (abs(ai_status - event_value)<tolerance)
             # Step 11: Deactivate relay cards
             self.hardware.digital_write(relay_a_pin, False)
@@ -1628,6 +1669,7 @@ class MainWindow:
             # Clear mux bits
             clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
             
+
             # Step 12: Return result based on status match
             if "DI" in pin.Logic_Expected:
                 if status_match:
@@ -1770,6 +1812,55 @@ class MainWindow:
             self.log_view.append(f"IO Box type changed: {old_box} → {new_box}", "SUCCESS")
         except Exception as e:
             self.log_view.append(f"Error saving IO Box type: {str(e)}", "ERROR")
+    
+    def on_localhost_change(self, new_mode: str) -> None:
+        """
+        Handle localhost mode change (IO_box or Local Host).
+        Updates settings.yaml localhost_mode and restarts UDP card manager.
+        
+        Args:
+            new_mode: New mode ("IO_box" or "Local Host")
+        """
+        localhost_enabled = (new_mode == "Local Host")
+        mode_display = "enabled" if localhost_enabled else "disabled"
+        
+        self.log_view.append(f"Localhost mode changed to: {new_mode} (localhost_mode={localhost_enabled})", "INFO")
+        
+        # Update settings
+        if 'UDP_Settings' not in self.settings:
+            self.settings['UDP_Settings'] = {}
+        self.settings['UDP_Settings']['localhost_mode'] = localhost_enabled
+        
+        try:
+            # Save updated settings
+            save_settings(self.settings)
+            self.log_view.append(f"Settings saved with localhost_mode={localhost_enabled}", "SUCCESS")
+            
+            # Restart UDP card manager with new settings
+            self.log_view.append("Restarting UDP card manager with new settings...", "WARNING")
+            
+            # Stop existing card manager
+            if hasattr(self, 'card_manager') and self.card_manager is not None:
+                self.card_manager.stop_all()
+            
+            # Reload settings and recreate card manager
+            self.settings = load_settings()
+            self.card_manager = UDPCardManager(create_all=False)
+            binding_errors = self.card_manager.start_all()
+            
+            # Display binding errors if any
+            if binding_errors:
+                for error in binding_errors:
+                    self.log_view.append(error, "ERROR")
+                messagebox.showerror(
+                    "UDP Binding Error",
+                    f"Failed to bind to one or more UDP cards after mode change:\n\n{chr(10).join(binding_errors)}"
+                )
+            else:
+                self.log_view.append("UDP card manager restarted successfully", "SUCCESS")
+        except Exception as e:
+            self.log_view.append(f"Error changing localhost mode: {str(e)}", "ERROR")
+            messagebox.showerror("Configuration Error", f"Failed to change localhost mode:\n{str(e)}")
     
     def run(self) -> None:
         """Start the application main loop."""

@@ -7,7 +7,7 @@ import socket
 import struct
 import threading
 import time
-from typing import Optional, Callable, List, Dict
+from typing import Optional, Callable, List, Dict, Union
 import yaml
 from pathlib import Path
 
@@ -70,7 +70,10 @@ class UDPSender:
             FileNotFoundError: If settings.yaml not found or Cards section missing
         """
         udp_settings = cls.load_settings(settings_path)
-        cards = udp_settings.get('Cards', [])
+        if udp_settings.get('localhost_mode', False) == False:
+            cards = udp_settings.get('Cards', [])
+        else:
+            cards = udp_settings.get('Cards_localhost', [])
         
         if not cards:
             if settings_path is None:
@@ -190,6 +193,9 @@ class UDPSender:
         self.send_count = 0
         self.receive_count = 0
         
+        # Binding error tracking
+        self.binding_error = None
+        
         # Callbacks
         self.on_data_received: Optional[Callable[[List[int]], None]] = None
     
@@ -201,22 +207,43 @@ class UDPSender:
         if self.running:
             return
         
-        # Create send socket
-        self.send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
-        # Create receive socket
-        self.receive_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.receive_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.receive_socket.bind((self.receive_ip, self.receive_port))
-        self.receive_socket.settimeout(1.0)
-        
-        # Start threads
-        self.running = True
-        self.send_thread = threading.Thread(target=self._send_loop, daemon=True, name=f"UDPSend-Card{self.card_id}")
-        self.receive_thread = threading.Thread(target=self._receive_loop, daemon=True, name=f"UDPRecv-Card{self.card_id}")
-        
-        self.send_thread.start()
-        self.receive_thread.start()
+        try:
+            # Create send socket
+            self.send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            
+            # Create receive socket
+            self.receive_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.receive_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.receive_socket.bind((self.receive_ip, self.receive_port))
+            self.receive_socket.settimeout(1.0)
+            
+            # Start threads
+            self.running = True
+            self.send_thread = threading.Thread(target=self._send_loop, daemon=True, name=f"UDPSend-Card{self.card_id}")
+            self.receive_thread = threading.Thread(target=self._receive_loop, daemon=True, name=f"UDPRecv-Card{self.card_id}")
+            
+            self.send_thread.start()
+            self.receive_thread.start()
+            
+        except OSError as e:
+            # Binding failed - store error for later reporting
+            error_msg = f"Card {self.card_id}: Failed to bind to {self.receive_ip}:{self.receive_port} - {str(e)}"
+            self.binding_error = error_msg
+            # Clean up any partially created resources
+            if self.send_socket:
+                try:
+                    self.send_socket.close()
+                except:
+                    pass
+            if self.receive_socket:
+                try:
+                    self.receive_socket.close()
+                except:
+                    pass
+            self.send_socket = None
+            self.receive_socket = None
+            self.running = False
+            raise  # Re-raise to allow caller to handle
     
     def stop(self) -> None:
         """Stop UDP sender and receiver threads."""
@@ -320,6 +347,34 @@ class UDPSender:
         """Get analog input voltage (AI 1-16)."""
         with self._data_lock:
             return self._receive_data.get_analog_input(ai_number)
+    
+    def get_Matrix_rows(self, row_number: int = None) -> Optional[Union[int, List[int]]]:
+        """
+        Get matrix row data.
+        
+        Args:
+            row_number: Row number (1-8), or None to get all rows
+        
+        Returns:
+            If row_number specified: Single 8-bit row value (0-255)
+            If row_number is None: List of 8 row values
+        """
+        with self._data_lock:
+            all_rows = self._receive_data.get_Matrix_rows(self.card_id)
+            
+            if row_number is None:
+                # Return all rows
+                return all_rows
+            else:
+                # Return specific row
+                if not (1 <= row_number <= 8):
+                    raise ValueError(f"Row number {row_number} out of range (1-8)")
+                return all_rows[row_number - 1]
+    
+    def print_data_binary(self) -> None:
+        """Print binary representation of received data."""
+        with self._data_lock:
+            self._receive_data.print_data_binary(card_id=self.card_id)
     
     def get_receive_data_dict(self) -> Dict:
         """Export received data as dictionary."""

@@ -4,6 +4,7 @@ General utility functions for HW Tester application.
 import re
 import time
 from typing import Tuple, Optional, Dict, Callable, Any
+from hw_tester.utils.config_loader import load_settings
 
 
 def verify_card_output(card_manager, card: int, event_type: str, event_num: int, 
@@ -32,6 +33,15 @@ def verify_card_output(card_manager, card: int, event_type: str, event_num: int,
     """
     # Brief delay for card to update
     time.sleep(0.05)
+
+    #if the system is in simulation mode we skip the verification
+    settings = load_settings()
+    is_simulation = settings.get('Board', {}).get('simulation', True)
+
+    if is_simulation: 
+        msg = f"Verification in simulation mode : Card {card} DO{event_num} confirmed at {event_type}"
+        log_callback(msg, "DEBUG")
+        return (True, msg)
     
     if event_type == "AO":
         # Verify analog output
@@ -453,7 +463,10 @@ def set_mux_bits(
         if not digital_ports:
             log("No digital ports found in pin map", "ERROR")
             return False
-        
+        board_type = settings.get('Board', {}).get('Type', 'ControllinoMega')
+        if board_type == 'none':
+            log("Board type is 'none'; skipping setting mux bits", "DEBUG")
+            return True
         # Build pin states dictionary (D0-D15)
         pin_states = {}
         for bit_idx, bit_value in enumerate(bits):

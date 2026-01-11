@@ -28,7 +28,8 @@ class OperationalPanel(tk.Frame):
         on_hw_change: Optional[Callable[[str], None]] = None,
         on_simulate_change: Optional[Callable[[str], None]] = None,
         on_iobox_change: Optional[Callable[[str], None]] = None,
-        on_log_filter_change: Optional[Callable[[str], None]] = None
+        on_log_filter_change: Optional[Callable[[str], None]] = None,
+        on_localhost_change: Optional[Callable[[str], None]] = None
     ):
         """
         Initialize OperationalPanel.
@@ -48,6 +49,7 @@ class OperationalPanel(tk.Frame):
             on_simulate_change: Callback when simulation mode changes (receives "Simulation On" or "Simulation Off")
             on_iobox_change: Callback when IO Box selection changes (receives new box type)
             on_log_filter_change: Callback when log filter selection changes (receives list of selected levels)
+            on_localhost_change: Callback when localhost mode changes (receives "IO_box" or "Local Host")
         """
         super().__init__(parent)
         
@@ -73,6 +75,7 @@ class OperationalPanel(tk.Frame):
         self.on_simulate_change = on_simulate_change or (lambda mode: None)
         self.on_iobox_change = on_iobox_change or (lambda box: None)
         self.on_log_filter_change = on_log_filter_change or (lambda level: None)
+        self.on_localhost_change = on_localhost_change or (lambda mode: None)
         
         # Store settings
         self.settings = settings or {}
@@ -103,6 +106,21 @@ class OperationalPanel(tk.Frame):
             command=self.on_load
         )
         self.btn_load.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Row 1, Column 1: Localhost mode dropdown - IO_box (default) or Local Host
+        udp_settings = self.settings.get('UDP_Settings', {})
+        current_localhost_mode = udp_settings.get('localhost_mode', False)
+        localhost_display = "Local Host" if current_localhost_mode else "IO_box"
+        
+        self.localhost_combo = ttk.Combobox(
+            self,
+            values=["IO_box", "Local Host"],
+            state="readonly",
+            width=15
+        )
+        self.localhost_combo.set(localhost_display)
+        self.localhost_combo.bind('<<ComboboxSelected>>', self._on_localhost_changed)
+        self.localhost_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         
         # IO Box dropdown - CODE KEPT BUT REMOVED FROM UI
         # io_box_config = self.settings.get('IO_Box', {})
@@ -277,6 +295,11 @@ class OperationalPanel(tk.Frame):
         new_mode = self.simulate_combo.get()
         self.on_simulate_change(new_mode)
     
+    def _on_localhost_changed(self, event) -> None:
+        """Called when localhost mode dropdown selection changes."""
+        new_mode = self.localhost_combo.get()
+        self.on_localhost_change(new_mode)
+    
     def _on_iobox_changed(self, event) -> None:
         """Called when IO Box dropdown selection changes."""
         # Note: IO Box dropdown removed from UI but code kept for future use
@@ -337,6 +360,14 @@ class OperationalPanel(tk.Frame):
     def set_simulation_mode(self, mode: str) -> None:
         """Set the simulation mode."""
         self.simulate_combo.set(mode)
+    
+    def get_localhost_mode(self) -> str:
+        """Get the localhost mode (IO_box/Local Host)."""
+        return self.localhost_combo.get()
+    
+    def set_localhost_mode(self, mode: str) -> None:
+        """Set the localhost mode (IO_box or Local Host)."""
+        self.localhost_combo.set(mode)
 
 
 # Demo/Test code
