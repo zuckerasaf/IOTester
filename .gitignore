@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+lets add to the .git# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
@@ -205,3 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+src/hw_tester/web/~$IO_Tester_logic_Power_test.xlsm
+
+# Generated web visualization files (from Web_Presentation.py)
+*.dot
+*.svg
+*.html
+*.xlsx
+tests/DB/Demo/JDemo.xlsx
+tests/DB/MTC_AFT/J17_Armant_1.xlsx
+tests/DB/Demo/JDemo.xlsx

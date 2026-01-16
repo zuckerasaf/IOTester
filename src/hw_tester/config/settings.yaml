@@ -3,7 +3,7 @@ IO_Tester:
   Version: 1.0.0
   Description: A tool for testing and validating hardware pin configurations.
 Debug:
-  mode: false
+  mode: true
 IO_Box:
   Type: MTC_AFT
   AvailableTypes:

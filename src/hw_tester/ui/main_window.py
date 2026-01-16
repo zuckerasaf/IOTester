@@ -6,12 +6,16 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import threading
 import time
+import subprocess
+import webbrowser
 from typing import List, Optional
 import sys
 from pathlib import Path
 from hw_tester.hardware.controllino_io import connector_pin_to_bits
 from hw_tester.hardware.pin import Pin
 from hw_tester.utils.general import clear_mux_bits, parse_event_string, get_pin_pair_info_controlino, set_mux_bits, clear_bits, verify_card_output
+from hw_tester.web.trace_writer import trace_step
+
 
 # Fix imports when running as script
 if __name__ == "__main__":
@@ -65,6 +69,12 @@ class MainWindow:
         self.connected = False
         self.running = False
         self.running_ibit = False
+        
+        # HTTP server process for HTML viewing
+        self.http_server_process = None
+        
+        # Threading event for Next button debug control
+        self.next_event = threading.Event()
         
         # Buffer for hardware initialization logs (before log_view exists)
         self._init_log_buffer = []
@@ -190,7 +200,10 @@ class MainWindow:
             on_simulate_change=self.on_simulate_change,
             on_iobox_change=self.on_iobox_change,
             on_log_filter_change=self.on_log_filter_change,
-            on_localhost_change=self.on_localhost_change
+            on_localhost_change=self.on_localhost_change,
+            on_next=self.on_next,
+            on_html_file_change=self.on_html_file_change,
+            on_debug_change=self.on_debug_change
         )
         self.op_panel.pack(fill=tk.BOTH, expand=True)
         
@@ -322,6 +335,11 @@ class MainWindow:
         
         self.log_view.append(f"KeepAlive pulse sequence initiated for all {len(digital_ports)} ports", "SUCCESS")
     
+    def on_next(self) -> None:
+        """Handle Next button click - Resume test execution from debug pause."""
+        self.next_event.set()
+        self.log_view.append("Next button pressed - resuming execution", "INFO")
+    
     def on_i_bit(self) -> None:
         """Handle I_Bit button click - Run short circuit test on all pins."""
         self.log_view.append("Starting I_Bit short circuit test...", "INFO")
@@ -426,6 +444,8 @@ class MainWindow:
         # Run test sequence in background
         def run_tests():
             from hw_tester.hardware.pin import Pin
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(10, "active")
             
             for idx, pin_id in enumerate(selected_ids):
                 if not self.running:
@@ -485,6 +505,8 @@ class MainWindow:
                     # Clear mux bits before setting new ones
                     clear_mux_bits(self.pin_map, self.hardware, self.log_view.append)
                     if run_power_test:
+                        
+
                         self.log_view.append(f"Running Power Test for {pin.Id}", "INFO")
                         power_voltage, power_success, power_message = self.run_power_test(pin)
                         # Clear mux bits before setting new ones
@@ -575,6 +597,18 @@ class MainWindow:
         
         threading.Thread(target=run_tests, daemon=True).start()
     
+    def wait_debug(self,ID: int = 0, status: str = "active") -> None:
+        """
+        Pause execution for debugging purposes.
+        Waits for user to press next button .
+        """
+        trace_step(ID, status)
+
+        self.root.after(0, lambda: self.log_view.append("Waiting for Next button press to continue...", "INFO"))
+        self.next_event.wait()  # Wait for Next button press
+        self.next_event.clear()  # Reset event for next pause
+        self.root.after(0, lambda: self.log_view.append("Continuing test execution...", "INFO"))
+
     def _update_measurement(self, pin_id: str, measured_value: str) -> None:
         """Update measurement in the table."""
         self.pin_table.update_row(pin_id, {"Measure": measured_value})
@@ -626,15 +660,16 @@ class MainWindow:
                 - message: Descriptive message about test result or error
         """
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
-
         
         if is_simulation:
             # Simulation mode - return fixed value based on expected
             time.sleep(0.2)  # Simulate measurement delay
             import random
             variation = random.uniform(-0.1, 0.1)
-            
-        
+  
+        if self.settings.get('Debug', {}).get('mode', False):
+            self.wait_debug(100, "active")
+
         # Real hardware mode
         # Get tolerance from settings (default 0.5V)
         tolerance = self.settings.get('scale', {}).get('voltage_tolerance', 0.5)
@@ -645,20 +680,25 @@ class MainWindow:
 
         # Get actual pin names from board config
         voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
-        
+
+       
         # Convert connector pin to bit representation and set mux matrix
         bits = connector_pin_to_bits(pin_number, "a")
         success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log_view.append)
         
-        # Debug mode - wait for user confirmation
-        mode_debug = self.settings.get('Debug', {}).get('mode', False)
-        if mode_debug:
-            input("\nWAIT...")
+        if self.settings.get('Debug', {}).get('mode', False):
+            #self.wait_debug(100, "done")
+            self.wait_debug(110, "active")
 
         if not success:
             self.log_view.append(f"in Power test -Failed to set mux bits for pin {pin_number}", "ERROR")
+            if self.settings.get('Debug', {}).get('mode', False):
+                #self.wait_debug(110, "done")
+                self.wait_debug(120, "active")
             return (0.0, False, "Error: Failed to set mux matrix")
         
+
+       
         # Get physical analog port from pin map
         analog_ports = self.pin_map.get('A', {})
         analog_port = analog_ports.get(voltage_pin_name)
@@ -669,33 +709,42 @@ class MainWindow:
         
         # Apply voltage scaling factor from settings
         voltage_scale = 1
-
+    
         # Step 1: Measure initial voltage
         self.log_view.append(f"Measuring voltage on {voltage_pin_name} (pin {analog_port})", "DEBUG")
         try:
             measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
             self.log_view.append(f"Initial measurement: {measured_voltage:.3f}V", "DEBUG")
+            if self.settings.get('Debug', {}).get('mode', False):
+                #self.wait_debug(110, "done")
+                self.wait_debug(121, "active")
         except Exception as e:
             self.log_view.append(f"in Power test - Measurement error: {str(e)}", "ERROR")
+            if self.settings.get('Debug', {}).get('mode', False):
+                #self.wait_debug(110, "done")
+                self.wait_debug(122, "active")
             return (0.0, False, f"Error: Measurement failed - {str(e)}")
-        
-
         
         # Step 2: Check if Power_Input is "none" or empty
         # in case it is in simulation mode the mesured volateg will be as the expected voltage or zero ....
-
+        if self.settings.get('Debug', {}).get('mode', False):
+            self.wait_debug(123, "active")
         if not pin.Power_Input or pin.Power_Input.strip().lower() == "none" or pin.Power_Input.strip() == "P" or pin.Power_Input.strip() == "Power":
             if is_simulation:
                 measured_voltage = pin.Power_Expected + variation
                 self.log_view.append(f"the measure_Voltage is simulated (pin.Power_Expected + variation) + samll variation = {variation} ", "DEBUG")
-            
+
             # No external control needed - just verify measurement
             voltage_diff = abs(measured_voltage* voltage_scale - pin.Power_Expected)
             if voltage_diff <= tolerance:
                 self.log_view.append(f"Measurement {measured_voltage* voltage_scale:.3f}V is within tolerance of {pin.Power_Expected:.3f}V", "SUCCESS")
+                if self.settings.get('Debug', {}).get('mode', False):
+                    self.wait_debug(124, "active")
                 return (measured_voltage* voltage_scale, True, "Measurement is in tolerance")
             else:
                 self.log_view.append(f"Measurement {measured_voltage* voltage_scale:.3f}V is NOT within tolerance of {pin.Power_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
+                if self.settings.get('Debug', {}).get('mode', False):
+                    self.wait_debug(124, "active")
                 return (measured_voltage* voltage_scale, False, f"Measurement not in tolerance (diff: {voltage_diff:.3f}V)")
         
         # Step 3: Power_Input is provided - need to activate external card
@@ -707,10 +756,11 @@ class MainWindow:
             
         if abs(measured_voltage* voltage_scale) > tolerance:
             self.log_view.append(f"Initial voltage {measured_voltage* voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V) - test failed", "WARNING")
+            if self.settings.get('Debug', {}).get('mode', False):
+                    self.wait_debug(124, "active")
             return (measured_voltage* voltage_scale, False, f"Initial voltage {measured_voltage:.3f}V is not ~0V")
         
         self.log_view.append(f"Initial voltage {measured_voltage* voltage_scale:.3f}V is ~0V - proceeding to activate card", "DEBUG")
-        
         
         # Parse Power_Input and activate card
         card, event_type, event_num, event_value = parse_event_string(pin.Power_Input)
@@ -722,50 +772,58 @@ class MainWindow:
         if event_type == "AO":
             success = self.card_manager.set_analog_output(card_id=card, ao_number=event_num, voltage=event_value)
             self.log_view.append(f"active: Set Card {card} AO{event_num} to {event_value}V: {'Success' if success else 'Failed'}", "INFO")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(130, "active")
         elif event_type == "DO":
             success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=bool(event_value))
             self.log_view.append(f"active: Set Card {card} DO{event_num} to {event_value}: {'Success' if success else 'Failed'}", "INFO")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(130, "active")
         else:
             self.log_view.append(f"in Power test - Unknown event type: {event_type}", "ERROR")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(131, "active")
             return (measured_voltage, False, f"Unknown event type: {event_type}")
         
         if not success:
             self.log_view.append(f"in Power test - Failed to activate card {card}", "ERROR")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(131, "active")
             return (measured_voltage, False, f"Failed to activate card {card}")
         
         # Wait for signal to stabilize
         stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
         time.sleep(stabilize_delay)
-
         # Verify the output was set correctly
         verify_success, verify_msg = verify_card_output(
             self.card_manager, card, event_type, event_num, event_value, 
             tolerance, self.log_view.append
         )
+        if self.settings.get('Debug', {}).get('mode', False):
+            self.wait_debug(140, "active")
         if not verify_success:
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(141, "active")
             return (measured_voltage, False, verify_msg)
         
         # Wait for signal to stabilize
         stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
         time.sleep(stabilize_delay)
 
-        # Debug mode - wait for user confirmation
-        mode_debug = self.settings.get('Debug', {}).get('mode', False)
-        if mode_debug:
-            input("\nWAIT...")
-
         # Measure voltage again after activation
         try:
             measured_voltage = self.measurer.measure_voltage(analog_port)
             self.log_view.append(f"Measurement after activation: {measured_voltage* voltage_scale:.3f}V", "DEBUG")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(150, "active")
 
         except Exception as e:
             self.log_view.append(f"in Power test - Measurement error after activation: {str(e)}", "ERROR")
-
-        
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(151, "active")
             return (0.0, False, f"Error: Measurement failed after activation - {str(e)}")
-        
-
+        if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(160, "active")
         # Set analog or digital output  buck to zero 
         if event_type == "AO":
             success = self.card_manager.set_analog_output(card_id=card, ao_number=event_num, voltage=0)
@@ -777,6 +835,8 @@ class MainWindow:
             self.log_view.append(f"DeActive: Set Card {card} DO{event_num} to False: {'Success' if success else 'Failed'}", "INFO")
         else:
             self.log_view.append(f"in Power test - Unknown event type: {event_type}", "ERROR")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(161, "active")
             return (measured_voltage, False, f"Unknown event type: {event_type}")
         
         if not success:
@@ -788,19 +848,29 @@ class MainWindow:
             self.card_manager, card, event_type, event_num, event_value, 
             tolerance, self.log_view.append
         )
+        if self.settings.get('Debug', {}).get('mode', False):
+            self.wait_debug(170, "active")
         if not verify_success:
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(180, "active")
             return (measured_voltage, False, verify_msg)
         
         if is_simulation:
             measured_voltage = pin.Power_Expected + variation
             self.log_view.append(f"the measure_Voltage is simulated (pin.Power_Expected + variation) + samll variation = {variation} ", "DEBUG")
         # Compare to expected value
+
+            self.root.after(0, lambda: self.log_view.append("Continuing test execution...", "INFO"))
         voltage_diff = abs(measured_voltage* voltage_scale - pin.Power_Expected)
         if voltage_diff <= tolerance:
             self.log_view.append(f"Measurement {measured_voltage* voltage_scale:.3f}V is within tolerance of {pin.Power_Expected:.3f}V", "SUCCESS")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(180, "active")
             return (measured_voltage* voltage_scale* voltage_scale, True, "Measurement is in tolerance")
         else:
             self.log_view.append(f"Measurement {measured_voltage* voltage_scale:.3f}V is NOT within tolerance of {pin.Power_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
+            if self.settings.get('Debug', {}).get('mode', False):
+                self.wait_debug(180, "active")
             return (measured_voltage* voltage_scale, False, f"Measurement not in tolerance (diff: {voltage_diff:.3f}V)")
         
         
@@ -1862,9 +1932,104 @@ class MainWindow:
             self.log_view.append(f"Error changing localhost mode: {str(e)}", "ERROR")
             messagebox.showerror("Configuration Error", f"Failed to change localhost mode:\n{str(e)}")
     
+    def on_html_file_change(self, filename: str) -> None:
+        """
+        Handle HTML file selection change.
+        Starts HTTP server and opens selected HTML file in browser.
+        
+        Args:
+            filename: Selected HTML filename or "none"
+        """
+        if filename == "none":
+            # Stop HTTP server if running
+            if self.http_server_process is not None:
+                self.log_view.append("Stopping HTTP server...", "INFO")
+                try:
+                    self.http_server_process.terminate()
+                    self.http_server_process.wait(timeout=3)
+                    self.http_server_process = None
+                    self.log_view.append("HTTP server stopped", "SUCCESS")
+                except Exception as e:
+                    self.log_view.append(f"Error stopping HTTP server: {str(e)}", "ERROR")
+            return
+        
+        # Get web directory path
+        web_dir = Path(__file__).resolve().parent.parent / "web"
+        
+        # Start HTTP server if not already running
+        if self.http_server_process is None:
+            self.log_view.append(f"Starting HTTP server (no-cache) in {web_dir}...", "INFO")
+            try:
+                # Use custom server script that disables caching for trace.json
+                server_script = web_dir / "serve_nocache.py"
+                self.http_server_process = subprocess.Popen(
+                    [sys.executable, str(server_script)],
+                    cwd=str(web_dir),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+                )
+                # Give server time to start
+                time.sleep(0.5)
+                self.log_view.append("HTTP server started on port 8000 (trace.json caching disabled)", "SUCCESS")
+            except Exception as e:
+                self.log_view.append(f"Error starting HTTP server: {str(e)}", "ERROR")
+                messagebox.showerror("HTTP Server Error", f"Failed to start HTTP server:\n{str(e)}")
+                return
+        
+        # Open HTML file in browser
+        url = f"http://localhost:8000/{filename}"
+        self.log_view.append(f"Opening {filename} in browser...", "INFO")
+        try:
+            webbrowser.open(url)
+            self.log_view.append(f"Opened {url} in default browser", "SUCCESS")
+        except Exception as e:
+            self.log_view.append(f"Error opening browser: {str(e)}", "ERROR")
+            messagebox.showerror("Browser Error", f"Failed to open browser:\n{str(e)}")
+    
+    def on_debug_change(self, new_mode: str) -> None:
+        """
+        Handle debug mode change (Debug or Normal).
+        Updates settings.yaml Debug.mode setting.
+        
+        Args:
+            new_mode: New mode ("Debug" or "Normal")
+        """
+        debug_enabled = (new_mode == "Debug")
+        
+        self.log_view.append(f"Debug mode changed to: {new_mode} (mode={debug_enabled})", "INFO")
+        
+        # Update settings
+        if 'Debug' not in self.settings:
+            self.settings['Debug'] = {}
+        self.settings['Debug']['mode'] = debug_enabled
+        
+        try:
+            # Save updated settings
+            save_settings(self.settings)
+            self.log_view.append(f"Settings saved with Debug.mode={debug_enabled}", "SUCCESS")
+        except Exception as e:
+            self.log_view.append(f"Error saving Debug mode: {str(e)}", "ERROR")
+            messagebox.showerror("Configuration Error", f"Failed to save Debug mode:\n{str(e)}")
+    
     def run(self) -> None:
         """Start the application main loop."""
+        # Register cleanup on window close
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         self.root.mainloop()
+    
+    def _on_closing(self) -> None:
+        """Handle window closing - cleanup resources."""
+        # Stop HTTP server if running
+        if self.http_server_process is not None:
+            try:
+                self.http_server_process.terminate()
+                self.http_server_process.wait(timeout=2)
+            except Exception:
+                pass
+        
+        # Destroy window
+        self.root.destroy()
 
 
 # Standalone demo

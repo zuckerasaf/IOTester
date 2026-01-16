@@ -4,13 +4,16 @@ OperationalPanel component - Connector label and action buttons.
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional, Dict
+import os
+import glob
 
 
 class OperationalPanel(tk.Frame):
     """
     Operational panel with connector label and action buttons.
-    Layout: connector_label | Load | HW dropdown | KeepAlive | I_Bit      | Test   | ClearLog | Report (row 0)
-                            |      | Sim dropdown|           | Stop_IBIT  | Stop_T | Log Filter checkboxes   (row 1)
+    Layout: connector_label | Load | Sim dropdown | HTML Files | Debug | HW dropdown | I_Bit | ClearLog | Report (row 0)
+            (rowspan=2)     | (empty) | Localhost | Next | (empty) | KeepAlive | Stop_IBIT | Log Filter checkboxes (row 1)
+            (empty)         | Test (2x width) | Stop_T (2x width) | ... (row 2)
     """
     
     def __init__(
@@ -29,7 +32,10 @@ class OperationalPanel(tk.Frame):
         on_simulate_change: Optional[Callable[[str], None]] = None,
         on_iobox_change: Optional[Callable[[str], None]] = None,
         on_log_filter_change: Optional[Callable[[str], None]] = None,
-        on_localhost_change: Optional[Callable[[str], None]] = None
+        on_localhost_change: Optional[Callable[[str], None]] = None,
+        on_next: Optional[Callable[[], None]] = None,
+        on_html_file_change: Optional[Callable[[str], None]] = None,
+        on_debug_change: Optional[Callable[[str], None]] = None
     ):
         """
         Initialize OperationalPanel.
@@ -50,17 +56,21 @@ class OperationalPanel(tk.Frame):
             on_iobox_change: Callback when IO Box selection changes (receives new box type)
             on_log_filter_change: Callback when log filter selection changes (receives list of selected levels)
             on_localhost_change: Callback when localhost mode changes (receives "IO_box" or "Local Host")
+            on_html_file_change: Callback when HTML file selection changes (receives filename or "none")
+            on_debug_change: Callback when debug mode changes (receives "Debug" or "Normal")
         """
         super().__init__(parent)
         
         # Configure grid layout - multiple columns for new layout
-        # Layout: connector_label | Load | HW dropdown | KeepAlive | I_Bit      | Test   | ClearLog | Report (row 0)
-        #                         |      | Sim dropdown|           | Stop_IBIT  | Stop_T | Log Filter checkboxes   (row 1)
+        # Layout: connector_label | Load | Sim dropdown | HTML Files | Debug | HW dropdown | I_Bit | ClearLog | Report (row 0)
+        #         (rowspan=2)     | (empty) | Localhost | Next | (empty) | KeepAlive | Stop_IBIT | Log Filter checkboxes (row 1)
+        #         (empty)         | Test (2x width) | Stop_T (2x width) | ... (row 2)
         self.columnconfigure(0, weight=1)  # Connector label (resizable)
-        for i in range(1, 9):  # Columns 1-8 for controls
+        for i in range(1, 11):  # Columns 1-10 for controls
             self.columnconfigure(i, weight=0)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
         
         # Store callbacks
         self.on_load = on_load or (lambda: None)
@@ -76,6 +86,9 @@ class OperationalPanel(tk.Frame):
         self.on_iobox_change = on_iobox_change or (lambda box: None)
         self.on_log_filter_change = on_log_filter_change or (lambda level: None)
         self.on_localhost_change = on_localhost_change or (lambda mode: None)
+        self.on_next = on_next or (lambda: None)
+        self.on_html_file_change = on_html_file_change or (lambda file: None)
+        self.on_debug_change = on_debug_change or (lambda mode: None)
         
         # Store settings
         self.settings = settings or {}
@@ -97,8 +110,11 @@ class OperationalPanel(tk.Frame):
         # Define button styles
         self._setup_styles()
         
-        # Row 0: Load | HW dropdown | KeepAlive | I_Bit | Test | Report
-        # Column 1: Load button
+        # New Layout Implementation
+        # Row 0: connector_label | Load | Sim dropdown | HTML Files | Debug | HW dropdown | I_Bit | Test | ClearLog | Report
+        # Row 1: (connector_label spans) | (empty) | Localhost | Next | (empty) | KeepAlive | Stop_IBIT | Stop_T | Log Filter checkboxes
+        
+        # Column 1, Row 0: Load button
         self.btn_load = ttk.Button(
             self,
             text="Load",
@@ -107,7 +123,22 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_load.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         
-        # Row 1, Column 1: Localhost mode dropdown - IO_box (default) or Local Host
+        # Column 2, Row 0: Simulate dropdown
+        board_config = self.settings.get('Board', {})
+        current_simulation = board_config.get('simulation', False)
+        simulate_mode = "Simulation On" if current_simulation else "Simulation Off"
+        
+        self.simulate_combo = ttk.Combobox(
+            self,
+            values=["Simulation On", "Simulation Off"],
+            state="readonly",
+            width=15
+        )
+        self.simulate_combo.set(simulate_mode)
+        self.simulate_combo.bind('<<ComboboxSelected>>', self._on_simulate_changed)
+        self.simulate_combo.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        
+        # Column 2, Row 1: Localhost mode dropdown
         udp_settings = self.settings.get('UDP_Settings', {})
         current_localhost_mode = udp_settings.get('localhost_mode', False)
         localhost_display = "Local Host" if current_localhost_mode else "IO_box"
@@ -120,25 +151,58 @@ class OperationalPanel(tk.Frame):
         )
         self.localhost_combo.set(localhost_display)
         self.localhost_combo.bind('<<ComboboxSelected>>', self._on_localhost_changed)
-        self.localhost_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.localhost_combo.grid(row=1, column=2, padx=5, pady=5, sticky="ew")
         
-        # IO Box dropdown - CODE KEPT BUT REMOVED FROM UI
-        # io_box_config = self.settings.get('IO_Box', {})
-        # available_boxes = io_box_config.get('AvailableTypes', ['Demo', 'MTC_FWD', 'MTC_AFT'])
-        # current_box = io_box_config.get('Type', 'Demo')
-        # 
-        # self.iobox_combo = ttk.Combobox(
-        #     self,
-        #     values=available_boxes,
-        #     state="readonly",
-        #     width=15
-        # )
-        # self.iobox_combo.set(current_box)
-        # self.iobox_combo.bind('<<ComboboxSelected>>', self._on_iobox_changed)
-        # self.iobox_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        # Column 3, Row 1: Next button (always enabled, independent of debug mode)
+        self.btn_next = ttk.Button(
+            self,
+            text="Next",
+            style="Info.TButton",
+            command=self.on_next,
+            state=tk.NORMAL
+        )
+        self.btn_next.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
         
-        # Column 2: Hardware dropdown - populated from settings.yaml
-        board_config = self.settings.get('Board', {})
+        # Column 3, Row 0: HTML Files dropdown (enabled only in debug mode)
+        debug_settings = self.settings.get('Debug', {})
+        debug_mode = debug_settings.get('mode', False)
+        html_dropdown_state = "readonly" if debug_mode else tk.DISABLED
+        html_files = self._scan_html_files()
+        
+        self.html_combo = ttk.Combobox(
+            self,
+            values=html_files,
+            state=html_dropdown_state,
+            width=20
+        )
+        self.html_combo.set("none")
+        self.html_combo.bind('<<ComboboxSelected>>', self._on_html_file_changed)
+        self.html_combo.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+        
+        # Column 4, Row 0: Debug dropdown (Debug/Normal)
+        current_debug = debug_settings.get('mode', False)
+        debug_display = "Debug" if current_debug else "Normal"
+        
+        self.debug_combo = ttk.Combobox(
+            self,
+            values=["Debug", "Normal"],
+            state="readonly",
+            width=12
+        )
+        self.debug_combo.set(debug_display)
+        self.debug_combo.bind('<<ComboboxSelected>>', self._on_debug_changed)
+        self.debug_combo.grid(row=0, column=4, padx=5, pady=5, sticky="ew")
+        
+        # Column 4, Row 1: KeepAlive button
+        self.btn_connect = ttk.Button(
+            self,
+            text="KeepAlive",
+            style="Secondary.TButton",
+            command=self.on_keep_alive
+        )
+        self.btn_connect.grid(row=1, column=5, padx=5, pady=5, sticky="ew")
+        
+        # Column 5, Row 0: Hardware dropdown
         available_types = board_config.get('AvailableTypes', ['ControllinoMega', 'ArduinoUno', 'none'])
         current_type = board_config.get('Type', 'ControllinoMega')
         
@@ -150,69 +214,9 @@ class OperationalPanel(tk.Frame):
         )
         self.hw_combo.set(current_type)
         self.hw_combo.bind('<<ComboboxSelected>>', self._on_hw_changed)
-        self.hw_combo.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        self.hw_combo.grid(row=0, column=5, padx=5, pady=5, sticky="ew")
         
-        # Column 3: KeepAlive button
-        self.btn_connect = ttk.Button(
-            self,
-            text="KeepAlive",
-            style="Secondary.TButton",
-            command=self.on_keep_alive
-        )
-        self.btn_connect.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
-        
-        # Column 4: I_Bit button
-        self.btn_i_bit = ttk.Button(
-            self,
-            text="I_Bit",
-            style="Info.TButton",
-            command=self.on_i_bit
-        )
-        self.btn_i_bit.grid(row=0, column=4, padx=5, pady=5, sticky="ew")
-        
-        # Column 5: Test button
-        self.btn_run = ttk.Button(
-            self,
-            text="Test",
-            style="Primary.TButton",
-            command=self.on_test
-        )
-        self.btn_run.grid(row=0, column=5, padx=5, pady=5, sticky="ew")
-        
-        # Column 6: ClearLog button
-        self.btn_clear_log = ttk.Button(
-            self,
-            text="ClearLog",
-            style="Utility.TButton",
-            command=self.on_clear_log
-        )
-        self.btn_clear_log.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
-        
-        # Column 7: Report button
-        self.btn_report = ttk.Button(
-            self,
-            text="Report",
-            style="Info.TButton",
-            command=self.on_report
-        )
-        self.btn_report.grid(row=0, column=7, padx=5, pady=5, sticky="ew")
-        
-        # Row 1: (empty) | (empty) | Simulate dropdown | (empty) | Stop_IBIT | Stop_T | Log Filter dropdown
-        # Column 2: Simulate dropdown - populated from settings.yaml
-        current_simulation = board_config.get('simulation', False)
-        simulate_mode = "Simulation On" if current_simulation else "Simulation Off"
-        
-        self.simulate_combo = ttk.Combobox(
-            self,
-            values=["Simulation On", "Simulation Off"],
-            state="readonly",
-            width=15
-        )
-        self.simulate_combo.set(simulate_mode)
-        self.simulate_combo.bind('<<ComboboxSelected>>', self._on_simulate_changed)
-        self.simulate_combo.grid(row=1, column=2, padx=5, pady=5, sticky="ew")
-        
-        # Column 4: Stop_IBIT button
+        # Column 5, Row 1: Stop_IBIT button
         self.btn_stop_ibit = ttk.Button(
             self,
             text="Stop_IBIT",
@@ -220,9 +224,27 @@ class OperationalPanel(tk.Frame):
             command=self.on_stop_ibit,
             state=tk.DISABLED
         )
-        self.btn_stop_ibit.grid(row=1, column=4, padx=5, pady=5, sticky="ew")
+        self.btn_stop_ibit.grid(row=1, column=6, padx=5, pady=5, sticky="ew")
         
-        # Column 5: Stop_T button
+        # Column 6, Row 0: I_Bit button
+        self.btn_i_bit = ttk.Button(
+            self,
+            text="I_Bit",
+            style="Info.TButton",
+            command=self.on_i_bit
+        )
+        self.btn_i_bit.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
+        
+        # Row 2, Column 1: Test button (2x width)
+        self.btn_run = ttk.Button(
+            self,
+            text="Test",
+            style="Primary.TButton",
+            command=self.on_test
+        )
+        self.btn_run.grid(row=2, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
+        
+        # Row 2, Column 3: Stop_T button (2x width)
         self.btn_stop = ttk.Button(
             self,
             text="Stop_T",
@@ -230,31 +252,72 @@ class OperationalPanel(tk.Frame):
             command=self.on_stop_t,
             state=tk.DISABLED
         )
-        self.btn_stop.grid(row=1, column=5, padx=5, pady=5, sticky="ew")
+        self.btn_stop.grid(row=2, column=3, columnspan=2, padx=5, pady=5, sticky="ew")
         
-        # Column 6: Log Filter checkboxes in a frame
+        # Column 7, Row 1: Log Filter checkboxes (spanning 2 columns)
         log_filter_frame = tk.LabelFrame(self, text="Log Filter", padx=3, pady=3)
-        log_filter_frame.grid(row=1, column=6, padx=5, pady=5, sticky="ew")
+        log_filter_frame.grid(row=1, column=8, columnspan=2, padx=5, pady=5, sticky="ew")
         
-        # Create checkboxes for each log level
         self.log_filter_vars = {}
         log_levels = ["INFO", "SUCCESS", "WARNING", "ERROR", "DEBUG"]
-        
-        # Create a sub-frame for compact horizontal layout
         checkbox_frame = tk.Frame(log_filter_frame)
         checkbox_frame.pack()
         
         for idx, level in enumerate(log_levels):
-            var = tk.BooleanVar(value=True)  # All checked by default
+            var = tk.BooleanVar(value=True)
             self.log_filter_vars[level] = var
-            
             cb = tk.Checkbutton(
                 checkbox_frame,
-                text=level[:3] if level != "WARNING" else "WRN",  # Abbreviated labels
+                text=level[:3] if level != "WARNING" else "WRN",
                 variable=var,
                 command=self._on_log_filter_changed
             )
             cb.pack(side=tk.LEFT, padx=2)
+        
+        # Column 8, Row 0: ClearLog button
+        self.btn_clear_log = ttk.Button(
+            self,
+            text="ClearLog",
+            style="Utility.TButton",
+            command=self.on_clear_log
+        )
+        self.btn_clear_log.grid(row=0, column=8, padx=5, pady=5, sticky="ew")
+        
+        # Column 9, Row 0: Report button
+        self.btn_report = ttk.Button(
+            self,
+            text="Report",
+            style="Info.TButton",
+            command=self.on_report
+        )
+        self.btn_report.grid(row=0, column=9, padx=5, pady=5, sticky="ew")
+    
+    def _scan_html_files(self) -> list:
+        """
+        Scan the web directory for .html files.
+        
+        Returns:
+            List of HTML filenames (without path) plus "none" option
+        """
+        try:
+            # Get the web directory path relative to this file
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            web_dir = os.path.join(current_dir, '..', '..', 'web')
+            web_dir = os.path.normpath(web_dir)
+            
+            # Find all .html files
+            html_pattern = os.path.join(web_dir, '*.html')
+            html_paths = glob.glob(html_pattern)
+            
+            # Extract just the filenames (without path)
+            html_files = [os.path.basename(path) for path in html_paths]
+            html_files.sort()
+            
+            # Add "none" at the beginning
+            return ["none"] + html_files
+        except Exception as e:
+            print(f"Error scanning HTML files: {e}")
+            return ["none"]
     
     def _setup_styles(self) -> None:
         """Setup custom button styles."""
@@ -312,6 +375,19 @@ class OperationalPanel(tk.Frame):
         selected_levels = [level for level, var in self.log_filter_vars.items() if var.get()]
         self.on_log_filter_change(selected_levels)
     
+    def _on_html_file_changed(self, event) -> None:
+        """Called when HTML file dropdown selection changes."""
+        new_file = self.html_combo.get()
+        self.on_html_file_change(new_file)
+    
+    def _on_debug_changed(self, event) -> None:
+        """Called when debug mode dropdown selection changes."""
+        new_mode = self.debug_combo.get()
+        self.on_debug_change(new_mode)
+        # Update HTML dropdown state based on debug mode
+        is_debug = (new_mode == "Debug")
+        self.html_combo.config(state="readonly" if is_debug else tk.DISABLED)
+    
     def set_connector(self, name: str) -> None:
         """
         Set the connector name displayed in the label.
@@ -368,6 +444,29 @@ class OperationalPanel(tk.Frame):
     def set_localhost_mode(self, mode: str) -> None:
         """Set the localhost mode (IO_box or Local Host)."""
         self.localhost_combo.set(mode)
+    
+    def get_html_file(self) -> str:
+        """Get the selected HTML file."""
+        return self.html_combo.get()
+    
+    def set_html_file(self, filename: str) -> None:
+        """Set the selected HTML file."""
+        self.html_combo.set(filename)
+    
+    def enable_html_dropdown(self, enabled: bool = True) -> None:
+        """Enable or disable the HTML file dropdown."""
+        self.html_combo.config(state="readonly" if enabled else tk.DISABLED)
+    
+    def get_debug_mode(self) -> str:
+        """Get the debug mode (Debug/Normal)."""
+        return self.debug_combo.get()
+    
+    def set_debug_mode(self, mode: str) -> None:
+        """Set the debug mode (Debug or Normal)."""
+        self.debug_combo.set(mode)
+        # Update HTML dropdown based on debug mode
+        is_debug = (mode == "Debug")
+        self.html_combo.config(state="readonly" if is_debug else tk.DISABLED)
 
 
 # Demo/Test code
