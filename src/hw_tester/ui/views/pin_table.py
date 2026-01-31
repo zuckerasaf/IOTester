@@ -12,7 +12,8 @@ class PinTableView(tk.Frame):
     Uses ttk.Treeview with columns: ID, type, volt, Measure, destination, substance, card, Event, Eventvalue, Status.
     """
     
-    COLUMNS = ("ID", "Connect", "Type", "Power_Expected", "Power_Input", "Power_Measured", "Power_Result", 
+    COLUMNS = ("ID", "Connect", "Discrete_Name", "Signal_Name", "Plug", "Type", "Pin", 
+               "Power_Expected", "Power_Input", "Power_Measured", "Power_Result", 
                "PullUp_Expected", "PullUp_Input", "PullUp_Measured", "PullUp_Result", 
                "Logic_Pin_Input", "Logic_Expected", "Logic_DI_Result")
     
@@ -41,25 +42,44 @@ class PinTableView(tk.Frame):
         # Configure columns
         for col in self.COLUMNS:
             self.tree.heading(col, text=col)
-            # Set column widths
+            # Set column widths based on image layout
             if col == "ID":
-                self.tree.column(col, width=100, minwidth=80)
-            elif col in ("Connect", "Type"):
+                self.tree.column(col, width=35, minwidth=30)
+            elif col == "Connect":
+                self.tree.column(col, width=60, minwidth=50)
+            elif col == "Discrete_Name":
                 self.tree.column(col, width=120, minwidth=100)
-            elif col in ("Power_Expected", "Power_Measured", "PullUp_Expected", "PullUp_Measured"):
-                self.tree.column(col, width=100, minwidth=80)
-            elif col in ("Power_Result", "PullUp_Result", "Logic_DI_Result"):
-                self.tree.column(col, width=80, minwidth=60)
-            elif col in ("Power_Input", "PullUp_Input", "Logic_Pin_Input", "Logic_Expected"):
+            elif col == "Signal_Name":
+                self.tree.column(col, width=180, minwidth=150)
+            elif col in ("Plug", "Type"):
+                self.tree.column(col, width=150, minwidth=120)
+            elif col == "Pin":
+                self.tree.column(col, width=60, minwidth=50)
+            elif col in ("Power_Expected", "Power_Input", "Power_Measured"):
+                self.tree.column(col, width=110, minwidth=90)
+            elif col == "Power_Result":
+                self.tree.column(col, width=90, minwidth=70)
+            elif col in ("PullUp_Expected", "PullUp_Input", "PullUp_Measured"):
+                self.tree.column(col, width=110, minwidth=90)
+            elif col == "PullUp_Result":
+                self.tree.column(col, width=90, minwidth=70)
+            elif col in ("Logic_Pin_Input", "Logic_Expected"):
+                self.tree.column(col, width=110, minwidth=90)
+            elif col == "Logic_DI_Result":
                 self.tree.column(col, width=100, minwidth=80)
         
         # Add vertical scrollbar
-        scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        v_scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscrollcommand=v_scrollbar.set)
+        
+        # Add horizontal scrollbar
+        h_scrollbar = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.tree.xview)
+        self.tree.configure(xscrollcommand=h_scrollbar.set)
         
         # Grid layout
         self.tree.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
+        v_scrollbar.grid(row=0, column=1, sticky="ns")
+        h_scrollbar.grid(row=1, column=0, sticky="ew")
         
         # Configure zebra striping first (lower priority)
         self.tree.tag_configure("oddrow", background="#f0f0f0")
@@ -72,11 +92,19 @@ class PinTableView(tk.Frame):
         # Store row data mapping (id -> values)
         self._row_data: Dict[str, str] = {}  # Maps ID to tree item ID
         
+        # Sorting state
+        self._sort_column = None
+        self._sort_reverse = False
+        
         # Editable columns - user can double-click to edit these
         self.editable_columns = ["Power_Expected", "Power_Input", "PullUp_Expected", "PullUp_Input", "Logic_Pin_Input", "Logic_Expected"]
         
         # Bind double-click for editing
         self.tree.bind("<Double-Button-1>", self._on_double_click)
+        
+        # Bind column header clicks for sorting
+        for col in self.COLUMNS:
+            self.tree.heading(col, text=col, command=lambda c=col: self._sort_by_column(c))
         
         # Store reference to edit popup
         self._edit_popup = None
@@ -200,6 +228,73 @@ class PinTableView(tk.Frame):
     def clear_selection(self) -> None:
         """Clear current selection."""
         self.tree.selection_remove(*self.tree.selection())
+    
+    def _sort_by_column(self, col: str) -> None:
+        """Sort table by the specified column.
+        
+        Args:
+            col: Column name to sort by
+        """
+        # Toggle sort direction if clicking same column
+        if self._sort_column == col:
+            self._sort_reverse = not self._sort_reverse
+        else:
+            self._sort_column = col
+            self._sort_reverse = False
+        
+        # Get all current data
+        data = []
+        for item in self.tree.get_children():
+            values = self.tree.item(item, "values")
+            tags = self.tree.item(item, "tags")
+            data.append((values, tags))
+        
+        # Get column index
+        col_idx = self.COLUMNS.index(col)
+        
+        # Sort data - handle numeric values for certain columns
+        def sort_key(item):
+            value = item[0][col_idx]
+            # Try to convert to number for numeric columns
+            if col in ("Power_Expected", "Power_Measured", "PullUp_Expected", "PullUp_Measured"):
+                try:
+                    return float(value) if value else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+            # Try to extract numeric part from ID (e.g., "21" from ID)
+            elif col == "ID":
+                try:
+                    # Extract all digits and convert to int
+                    import re
+                    numbers = re.findall(r'\d+', str(value))
+                    if numbers:
+                        return int(numbers[0])
+                    return 0
+                except (ValueError, TypeError):
+                    return 0
+            # String sort for other columns
+            return str(value).lower()
+        
+        data.sort(key=sort_key, reverse=self._sort_reverse)
+        
+        # Clear and repopulate tree
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        self._row_data.clear()
+        
+        # Re-insert sorted data
+        for idx, (values, tags) in enumerate(data):
+            pin_id = values[0]  # ID is first column
+            item_id = self.tree.insert("", tk.END, values=values, tags=tags)
+            self._row_data[pin_id] = item_id
+        
+        # Update column header to show sort direction
+        for column in self.COLUMNS:
+            if column == col:
+                arrow = " ↓" if self._sort_reverse else " ↑"
+                self.tree.heading(column, text=f"{column}{arrow}")
+            else:
+                self.tree.heading(column, text=column)
     
     def get_all_rows(self) -> List[Dict[str, str]]:
         """

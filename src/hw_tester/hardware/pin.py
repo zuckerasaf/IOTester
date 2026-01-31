@@ -33,7 +33,11 @@ class Pin:
     Attributes:
         Id (str): Unique identifier for the connector pin (e.g., "J1-1") - Excel column B (Destination 1)
         Connect (str): Where the pin is connected to (e.g., "1P2 27" = card 1, connector 2, pin 27) - Excel column C (Destination 2)
-        Type (str): Type of pin (e.g., "DI_25", "5V I/O_1") - Excel column F (Associated Potential/Substance)
+        Discrete_Name (str): Discrete name of pin (e.g., "DI_25", "5V I/O_1") - Excel column F (Associated Potential/Substance)
+        SIGNAL_NAME (str): Signal name for the pin (default: "")
+        Plug (str): Plug identifier (default: "")
+        Type (str): Type identifier (default: "")
+        Pin (str): Pin number on the plug (default: "")
         Power_Expected (float): Expected power test result (default: 0.0)
         Power_Measured (float): Measured power test result (default: 0.0)
         Power_Result (TestResult): Power test result (default: TestResult.NO_RESULT)
@@ -51,7 +55,11 @@ class Pin:
         self,
         Id: str,
         Connect: str = "",
+        Discrete_Name: str = "",
+        Signal_Name: str = "",
+        Plug: str = "",
         Type: str = "",
+        Pin: str = "",
         Power_Expected: float = 0.0,
         Power_Measured: float = 0.0,
         Power_Result: TestResult = TestResult.NO_RESULT,
@@ -66,7 +74,11 @@ class Pin:
     ):
         self.Id = Id
         self.Connect = Connect
+        self.Discrete_Name = Discrete_Name
+        self.Signal_Name = Signal_Name
+        self.Plug = Plug
         self.Type = Type
+        self.Pin = Pin
         # Power test attributes
         self.Power_Expected = Power_Expected
         self.Power_Measured = Power_Measured
@@ -84,21 +96,26 @@ class Pin:
     
     def __repr__(self) -> str:
         return (
-            f"Pin(Id='{self.Id}', Connect='{self.Connect}', Type='{self.Type}', "
+            f"Pin(Id='{self.Id}', Connect='{self.Connect}', Discrete_Name='{self.Discrete_Name}', "
+            f"Signal_Name='{self.Signal_Name}', Plug='{self.Plug}', Type='{self.Type}', Pin='{self.Pin}', "
             f"Power_Expected={self.Power_Expected}, Power_Measured={self.Power_Measured}, Power_Result={self.Power_Result}, "
             f"PullUp_Expected={self.PullUp_Expected}, PullUp_Measured={self.PullUp_Measured}, PullUp_Result={self.PullUp_Result}, "
             f"Power_Input={self.Power_Input}, Logic_Pin_Input={self.Logic_Pin_Input}, Logic_DI_Result={self.Logic_DI_Result})"
         )
     
     def __str__(self) -> str:
-        return f"{self.Id} (Type: {self.Type}, Connect: {self.Connect})"
+        return f"{self.Id} (Discrete_Name: {self.Discrete_Name}, Connect: {self.Connect}, Signal: {self.Signal_Name}, Plug: {self.Plug}, Type: {self.Type}, Pin: {self.Pin})"
     
     def to_dict(self) -> dict:
         """Convert pin to dictionary representation"""
         return {
             "Id": self.Id,
             "Connect": self.Connect,
+            "Discrete_Name": self.Discrete_Name,
+            "Signal_Name": self.Signal_Name,
+            "Plug": self.Plug,
             "Type": self.Type,
+            "Pin": self.Pin,
             "Power_Expected": self.Power_Expected,
             "Power_Measured": self.Power_Measured,
             "Power_Result": self.Power_Result.value,
@@ -141,7 +158,11 @@ class Pin:
         return cls(
             Id=data["Id"],
             Connect=data.get("Connect", ""),
+            Discrete_Name=data.get("Discrete_Name", ""),
+            Signal_Name=data.get("Signal_Name", ""),
+            Plug=data.get("Plug", ""),
             Type=data.get("Type", ""),
+            Pin=data.get("Pin", ""),
             Power_Expected=data.get("Power_Expected", 0.0),
             Power_Measured=data.get("Power_Measured", 0.0),
             Power_Result=get_test_result(data.get("Power_Result", TestResult.NO_RESULT)),

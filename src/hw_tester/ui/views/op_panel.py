@@ -179,6 +179,9 @@ class OperationalPanel(tk.Frame):
         self.html_combo.bind('<<ComboboxSelected>>', self._on_html_file_changed)
         self.html_combo.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
         
+        # Delete trace.json on startup to prevent displaying old data
+        self._clear_trace_file()
+        
         # Column 4, Row 0: Debug dropdown (Debug/Normal)
         current_debug = debug_settings.get('mode', False)
         debug_display = "Debug" if current_debug else "Normal"
@@ -387,6 +390,24 @@ class OperationalPanel(tk.Frame):
         # Update HTML dropdown state based on debug mode
         is_debug = (new_mode == "Debug")
         self.html_combo.config(state="readonly" if is_debug else tk.DISABLED)
+    
+    def _clear_trace_file(self) -> None:
+        """Reset trace.json on startup to prevent displaying old data."""
+        try:
+            import json
+            import time
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            trace_file = os.path.join(current_dir, '..', '..', 'web', 'trace.json')
+            trace_file = os.path.normpath(trace_file)
+            
+            # Write a reset state instead of deleting
+            reset_data = {"key": 0, "status": "none", "ts": time.time()}
+            with open(trace_file, 'w', encoding='utf-8') as f:
+                json.dump(reset_data, f)
+            
+            print(f"✓ Reset trace.json on startup: {trace_file}")
+        except Exception as e:
+            print(f"Warning: Could not reset trace.json: {e}")
     
     def set_connector(self, name: str) -> None:
         """

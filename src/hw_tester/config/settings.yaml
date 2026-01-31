@@ -3,7 +3,7 @@ IO_Tester:
   Version: 1.0.0
   Description: A tool for testing and validating hardware pin configurations.
 Debug:
-  mode: true
+  mode: false
 IO_Box:
   Type: MTC_AFT
   AvailableTypes:
@@ -47,16 +47,20 @@ Paths:
   powerup_MTC_AFT: tests/DB/MTC_AFT/powerup_MTC_AFT.json
   powerdown_MTC_AFT: tests/DB/MTC_AFT/powerdown_MTC_AFT.json
 ExcelColumns:
-  ID: B
-  Connect: C
-  Type: F
-  Power_Expected: H
-  Power_Input: I
-  PullUp_Expected: J
-  PullUp_Input: K
-  Logic_Pin_Input: L
-  Logic_Expected: M
-  Test_Result: N
+  ID: H
+  Connect: A
+  Discrete_Name: B
+  Signal_Name: C
+  Plug: J
+  Pin: K
+  Type: D
+  Power_Expected: N
+  Power_Input: O
+  PullUp_Expected: P
+  PullUp_Input: Q
+  Logic_Pin_Input: R
+  Logic_Expected: S
+  Test_Result: T
 Measure_value:
   Scale_1: 6
 Logging:

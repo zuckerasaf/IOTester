@@ -8,7 +8,7 @@ import pandas as pd
 BASE_DIR = Path(__file__).resolve().parent
 
 
-file_name = "IO_Tester_logic_Pullup_test"
+file_name = "IO_Tester_logic_Power_test"
 XLSM_PATH = BASE_DIR / f"{file_name}.xlsm"
 
 OUT_DOT = BASE_DIR / f"{file_name}.dot"
@@ -155,6 +155,8 @@ html_doc = f"""<!doctype html>
   <button onclick="highlight(document.getElementById('nodeKey').value)">Highlight</button>
   <button onclick="clearAll()">Clear</button>
   <button onclick="manualRefresh()" style="background:#059669;">Force Refresh Trace</button>
+  <button onclick="testUpdate()" style="background:#dc2626;">Test Update</button>
+  <span id="statusInfo" style="margin-left:auto; opacity:.8; font-size:13px;">Initializing...</span>
 </header>
 
 <div id="wrap">
@@ -166,12 +168,24 @@ html_doc = f"""<!doctype html>
     key = String(key).trim();
     if (!key) return null;
 
+    // Debug: Log available nodes (only first time or when key is unusual)
+    if (!window.nodesLogged) {{
+      const allNodes = document.querySelectorAll('g.node title');
+      const nodeKeys = Array.from(allNodes).map(t => t.textContent.trim());
+      console.log('Available nodes in SVG:', nodeKeys.join(', '));
+      window.nodesLogged = true;
+    }}
+
     // Graphviz typically uses: <g class="node"> ... <title>450</title> ...
     const nodes = document.querySelectorAll('g.node');
     for (const g of nodes) {{
       const t = g.querySelector('title');
-      if (t && t.textContent.trim() === key) return g;
+      if (t && t.textContent.trim() === key) {{
+        console.log('✓ Found node for key:', key);
+        return g;
+      }}
     }}
+    console.warn('✗ Node not found for key:', key);
     return null;
   }}
 
@@ -205,61 +219,175 @@ html_doc = f"""<!doctype html>
   window.traceStep = function(key, status) {{
     setNodeStatus(key, status || 'active');
   }}
+
+// Server-Sent Events (SSE) for real-time updates
+let eventSource = null;
 let lastTs = 0;
 let lastKey = null;
-let pollActive = true;
+let lastStatus = null;
+let updateCount = 0;
+let reconnectAttempts = 0;
+let maxReconnectAttempts = 5;
 
-async function pollTrace() {{
-  if (!pollActive) return;
+// Update status display
+function updateStatusDisplay() {{
+  const info = document.getElementById('statusInfo');
+  if (info) {{
+    const status = eventSource && eventSource.readyState === EventSource.OPEN ? '✓ Connected' : '✗ Disconnected';
+    info.textContent = `${{status}} | Updates: ${{updateCount}} | Last: ${{lastKey || 'none'}}`;
+  }}
+}}
+
+function connectSSE() {{
+  console.log('[SSE] Connecting to event stream...');
   
+  eventSource = new EventSource('/events');
+  
+  eventSource.onopen = function() {{
+    console.log('✓ SSE connection established');
+    reconnectAttempts = 0;
+    updateStatusDisplay();
+    // Immediately fetch current state
+    fetchTraceData();
+  }};
+  
+  eventSource.onmessage = function(event) {{
+    console.log('[SSE] Received:', event.data);
+    if (event.data === 'update') {{
+      // Server notified us of an update - fetch trace.json
+      fetchTraceData();
+    }}
+  }};
+  
+  eventSource.onerror = function(err) {{
+    console.error('[SSE] Connection error:', err);
+    eventSource.close();
+    updateStatusDisplay();
+    
+    // Attempt to reconnect with exponential backoff
+    if (reconnectAttempts < maxReconnectAttempts) {{
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+      console.log(`[SSE] Reconnecting in ${{delay}}ms (attempt ${{reconnectAttempts}}/${{maxReconnectAttempts}})...`);
+      setTimeout(connectSSE, delay);
+    }} else {{
+      console.error('[SSE] Max reconnect attempts reached. Please refresh page.');
+      document.getElementById('statusInfo').textContent = '✗ Connection lost - Refresh page';
+    }}
+  }};
+}}
+
+async function fetchTraceData() {{
   try {{
-    const res = await fetch('trace.json?_=' + Date.now(), {{
-      cache: 'no-store',
-      headers: {{
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }}
+    // Simple fetch without aggressive caching (SSE tells us when to read)
+    const res = await fetch('trace.json?t=' + Date.now(), {{
+      cache: 'no-store'
     }});
+    
     if (!res.ok) {{
-      console.log('trace.json not found yet');
+      console.warn('[TRACE] File not found yet');
       return;
     }}
 
     const data = await res.json();
     
-    // Update if either timestamp OR key changed (to handle rapid updates)
-    if (!data.ts || (data.ts === lastTs && data.key === lastKey)) return;
+    // Validate data structure
+    if (!data || typeof data.key === 'undefined') {{
+      console.warn('[TRACE] Invalid data:', data);
+      return;
+    }}
+    
+    // Detect changes: timestamp OR key OR status changed
+    const hasChanged = (
+      data.ts !== lastTs || 
+      data.key !== lastKey || 
+      data.status !== lastStatus
+    );
+    
+    if (!hasChanged) {{
+      return; // No changes detected
+    }}
 
-    console.log('✓ Trace update: Key=' + data.key + ', Status=' + data.status + ', TS=' + data.ts);
+    // Update detected!
+    updateCount++;
+    updateStatusDisplay();
+    console.log('✓ Update #' + updateCount + ': Key=' + data.key + ', Status=' + data.status + ', TS=' + data.ts.toFixed(2));
+    
+    // Clear previous node if key changed
+    if (lastKey !== null && lastKey !== data.key) {{
+      setNodeStatus(lastKey, 'done');
+      console.log('  → Marked previous node ' + lastKey + ' as done');
+    }}
+    
+    // Update tracking variables
     lastTs = data.ts;
     lastKey = data.key;
+    lastStatus = data.status;
     
+    // Apply the new status
     const success = setNodeStatus(data.key, data.status);
     if (success) {{
-      console.log('✓ Node ' + data.key + ' highlighted as ' + data.status);
+      console.log('  ✓ Node ' + data.key + ' highlighted as "' + data.status + '"');
+      
+      // Scroll to the active node
+      const g = findNodeGroupByKey(data.key);
+      if (g) {{
+        g.scrollIntoView({{behavior:'smooth', block:'center', inline:'center'}});
+        console.log('  → Scrolled to node');
+      }}
     }} else {{
-      console.warn('✗ Node ' + data.key + ' NOT FOUND in SVG!');
+      console.warn('  ✗ Node ' + data.key + ' NOT FOUND in SVG!');
     }}
   }} catch (e) {{
-    // Ignore errors (file might not exist yet or be being written)
+    console.error('[TRACE] Fetch error:', e.message);
   }}
 }}
 
-// Poll every 200ms
-setInterval(pollTrace, 200);
+// Connect to SSE on page load
+connectSSE();
+
+// Fallback: also check once on page load
+fetchTraceData();
 
 // Manual controls for debugging
-window.startPolling = function() {{ pollActive = true; console.log('Polling started'); }};
-window.stopPolling = function() {{ pollActive = false; console.log('Polling stopped'); }};
+window.reconnectSSE = function() {{
+  if (eventSource) {{
+    eventSource.close();
+  }}
+  reconnectAttempts = 0;
+  connectSSE();
+}};
+
 window.manualRefresh = function() {{
   lastTs = 0;
   lastKey = null;
-  console.log('Manual refresh triggered - forcing next poll to update');
-  pollTrace();
+  lastStatus = null;
+  updateCount = 0;
+  clearAll();
+  updateStatusDisplay();
+  console.log('✓ Manual refresh - fetching current state');
+  fetchTraceData();
 }};
 
-console.log('✓ Trace viewer initialized. Polling every 200ms. Use stopPolling() to pause.');
+window.checkStatus = function() {{
+  console.log('───────────────────────────────');
+  console.log('SSE State:');
+  console.log('  ReadyState:', eventSource ? eventSource.readyState : 'null');
+  console.log('  (0=CONNECTING, 1=OPEN, 2=CLOSED)');
+  console.log('  Reconnect attempts:', reconnectAttempts);
+  console.log('  Update Count:', updateCount);
+  console.log('Last Trace Data:');
+  console.log('  Key:', lastKey);
+  console.log('  Status:', lastStatus);
+  console.log('  Timestamp:', lastTs);
+  console.log('───────────────────────────────');
+  return {{ eventSource, updateCount, lastKey, lastStatus, lastTs }};
+}};
+
+console.log('✓ Trace viewer initialized with Server-Sent Events (SSE)');
+console.log('  Mode: Event-driven (no polling!)');
+console.log('  Commands: reconnectSSE(), manualRefresh(), checkStatus()');
+console.log('  Open browser console to see update logs');
 
 </script>
 </body>

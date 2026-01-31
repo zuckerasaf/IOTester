@@ -34,16 +34,20 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
     if not settings_path.exists():
         # Return default column mapping if settings not found
         return {
-            'Id': 1,                    # B
-            'Connect': 2,               # C
-            'Type': 5,                  # F
-            'Power_Expected': 7,        # H
-            'Power_Input': 8,           # I
-            'PullUp_Expected': 9,       # J
-            'PullUp_Input': 10,         # K
-            'Logic_Pin_Input': 11,      # L
-            'Logic_Expected': 12,       # M
-            'Test_Result': 13           # N
+            'Id': 7,                    # H
+            'Connect': 1,               # A
+            'Discrete_Name': 2,         # B
+            'Signal_Name': 3,           # C
+            'Plug': 9,                  # J
+            'Type': 3,                  # D
+            'Pin': 10,                  # K
+            'Power_Expected': 13,       # N
+            'Power_Input': 14,          # O
+            'PullUp_Expected': 15,      # P
+            'PullUp_Input': 16,         # Q
+            'Logic_Pin_Input': 17,      # R
+            'Logic_Expected': 18,       # S
+            'Test_Result': 19           # T
         }
     
     with open(settings_path, 'r') as f:
@@ -52,16 +56,20 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
     excel_cols = settings.get('ExcelColumns', {})
     
     return {
-        'Id': _column_letter_to_index(excel_cols.get('ID', 'B')),
-        'Connect': _column_letter_to_index(excel_cols.get('Connect', 'C')),
-        'Type': _column_letter_to_index(excel_cols.get('Type', 'F')),
-        'Power_Expected': _column_letter_to_index(excel_cols.get('Power_Expected', 'H')),
-        'Power_Input': _column_letter_to_index(excel_cols.get('Power_Input', 'I')),
-        'PullUp_Expected': _column_letter_to_index(excel_cols.get('PullUp_Expected', 'J')),
-        'PullUp_Input': _column_letter_to_index(excel_cols.get('PullUp_Input', 'K')),
-        'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'L')),
-        'Logic_Expected': _column_letter_to_index(excel_cols.get('Logic_Expected', 'M')),
-        'Test_Result': _column_letter_to_index(excel_cols.get('Test_Result', 'N'))
+        'Id': _column_letter_to_index(excel_cols.get('ID', 'H')),
+        'Connect': _column_letter_to_index(excel_cols.get('Connect', 'A')),
+        'Discrete_Name': _column_letter_to_index(excel_cols.get('Discrete_Name', 'B')),
+        'Signal_Name': _column_letter_to_index(excel_cols.get('Signal_Name', 'C')),
+        'Plug': _column_letter_to_index(excel_cols.get('Plug', 'J')),
+        'Type': _column_letter_to_index(excel_cols.get('Type', 'D')),
+        'Pin': _column_letter_to_index(excel_cols.get('Pin', 'K')),
+        'Power_Expected': _column_letter_to_index(excel_cols.get('Power_Expected', 'N')),
+        'Power_Input': _column_letter_to_index(excel_cols.get('Power_Input', 'O')),
+        'PullUp_Expected': _column_letter_to_index(excel_cols.get('PullUp_Expected', 'P')),
+        'PullUp_Input': _column_letter_to_index(excel_cols.get('PullUp_Input', 'Q')),
+        'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'R')),
+        'Logic_Expected': _column_letter_to_index(excel_cols.get('Logic_Expected', 'S')),
+        'Test_Result': _column_letter_to_index(excel_cols.get('Test_Result', 'T'))
     }
 
 
@@ -119,7 +127,11 @@ def load_connector_from_excel(
         # Read values from configured columns
         pin_id = row[col_map['Id']] if len(row) > col_map['Id'] else None
         connect = row[col_map['Connect']] if len(row) > col_map['Connect'] else None
-        pin_type_str = row[col_map['Type']] if len(row) > col_map['Type'] else None
+        discrete_name = row[col_map['Discrete_Name']] if len(row) > col_map['Discrete_Name'] else None
+        signal_name = row[col_map['Signal_Name']] if len(row) > col_map['Signal_Name'] else None
+        plug = row[col_map['Plug']] if len(row) > col_map['Plug'] else None
+        type_value = row[col_map['Type']] if len(row) > col_map['Type'] else None
+        pin_number = row[col_map['Pin']] if len(row) > col_map['Pin'] else None
         power_expected = row[col_map['Power_Expected']] if len(row) > col_map['Power_Expected'] else None
         power_input = row[col_map['Power_Input']] if len(row) > col_map['Power_Input'] else None
         pullup_expected = row[col_map['PullUp_Expected']] if len(row) > col_map['PullUp_Expected'] else None
@@ -134,7 +146,11 @@ def load_connector_from_excel(
         # Convert to string and strip whitespace
         pin_id = str(pin_id).strip()
         connect = str(connect).strip() if connect else ""
-        pin_type_str = str(pin_type_str).strip() if pin_type_str else ""
+        discrete_name_value = str(discrete_name).strip() if discrete_name else ""
+        signal_name_value = str(signal_name).strip() if signal_name else ""
+        plug_value = str(plug).strip() if plug else ""
+        type_value_str = str(type_value).strip() if type_value else ""
+        pin_number_value = str(pin_number).strip() if pin_number else ""
         
         # Parse power input - keep as string from Excel
         power_input_value = str(power_input).strip() if power_input else ""
@@ -164,7 +180,11 @@ def load_connector_from_excel(
         pin = Pin(
             Id=pin_id,
             Connect=connect,
-            Type=pin_type_str,
+            Discrete_Name=discrete_name_value,
+            Signal_Name=signal_name_value,
+            Plug=plug_value,
+            Type=type_value_str,
+            Pin=pin_number_value,
             Power_Expected=power_expected_value,
             Power_Measured=0.0,
             Power_Result=TestResult.NO_RESULT,
