@@ -1,12 +1,12 @@
-from __future__ import annotations
-
 from pathlib import Path
 import pandas as pd
 from openpyxl import load_workbook
+import re
 
 
 SOURCE_XLSX = Path(r"HSID AFT V_7 15.05.2025.xlsx")
-TARGET_TEMPLATE_XLSX = Path(r"J5_AFT_.xlsx")  # used only as structure/template
+TARGET_TEMPLATE_XLSX = Path(r"J_structure.xlsx")  # used only as structure/templateJ12
+
 SHEET_PREFIXES = ("CARD",)
 
 
@@ -55,6 +55,88 @@ def extract_connector_rows(source_path: Path, connector_value: str) -> pd.DataFr
     return pd.concat(rows, ignore_index=True)
 
 
+def apply_autofill_rules(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply autofill rules to populate empty cells based on other column values."""
+    if df.empty:
+        return df
+    
+    df = df.copy()
+    
+    # Ensure required columns exist
+    required_cols = ['CARD', 'DISCRETE NAME', 'PLUG', 'Pin', 
+                     'Power_Expected', 'Power_Input', 'PullUp_Expected', 
+                     'PullUp_Input', 'logic_input', 'Logic_Expected']
+    for col in required_cols:
+        if col not in df.columns:
+            df[col] = None
+    
+    for idx, row in df.iterrows():
+        discrete_name = str(row.get('DISCRETE NAME', '')).strip().upper()
+        plug = str(row.get('PLUG', '')).strip().upper()
+        pin = str(row.get('Pin', '')).strip().upper()
+        card_num = str(row.get('CARD', '')).strip()
+        
+        # Priority 1: Check DISCRETE NAME first (Rules 1, 2, 8)
+        # Rule 1: If B (DISCRETE NAME) contains "DO"
+        if 'DO_' in discrete_name or discrete_name.startswith('DO'):
+            df.at[idx, 'Power_Expected'] = 0
+            df.at[idx, 'PullUp_Expected'] = 21
+            # Extract just the DO part (e.g., "DO_16" -> "DO16")
+            discrete_clean = discrete_name.replace('_', '')
+            df.at[idx, 'PullUp_Input'] = f"C{card_num}_{discrete_clean}_1"
+            continue  # Skip PLUG checks for this row
+        
+        # Rule 2: If B (DISCRETE NAME) contains "DI"
+        if 'DI_' in discrete_name or discrete_name.startswith('DI'):
+            df.at[idx, 'Power_Expected'] = 0
+            df.at[idx, 'logic_input'] = "?"
+            discrete_clean = discrete_name.replace('_', '')
+            df.at[idx, 'Logic_Expected'] = f"C{card_num}_{discrete_clean}_0"
+            continue  # Skip PLUG checks for this row
+        
+        # Rule 8: If B (DISCRETE NAME) contains "AI"
+        if 'AI_' in discrete_name or discrete_name.startswith('AI'):
+            df.at[idx, 'Power_Expected'] = 0
+            df.at[idx, 'logic_input'] = "?"
+            discrete_clean = discrete_name.replace('_', '')
+            df.at[idx, 'Logic_Expected'] = f"C{card_num}_{discrete_clean}_10"
+            continue  # Skip PLUG checks for this row
+        
+        # Priority 2: Check PLUG and Pin columns (Rules 3-7)
+        # Rule 6: If J contains "I\O RTN" (check before Rule 7 to avoid conflict)
+        if 'I\\O RTN' in plug or 'I/O RTN' in plug:
+            df.at[idx, 'Power_Expected'] = 0
+            df.at[idx, 'PullUp_Expected'] = 0
+            df.at[idx, 'PullUp_Input'] = "G"
+        
+        # Rule 7: If J contains "I\O" (but not "I\O RTN")
+        elif ('I\\O' in plug or 'I/O' in plug) and 'RTN' not in plug:
+            # Extract voltage number (e.g., "24V I\O" -> 24)
+            voltage_match = re.search(r'(\d+)V', plug)
+            if voltage_match:
+                voltage = int(voltage_match.group(1))
+                df.at[idx, 'Power_Expected'] = voltage
+                df.at[idx, 'Power_Input'] = "P"
+        
+        # Rule 3: If J contains "0-28V" and K contains "+"
+        elif '0-28V' in plug and '+' in pin:
+            df.at[idx, 'Power_Expected'] = 24
+            df.at[idx, 'Power_Input'] = "C1_AO5_10"
+        
+        # Rule 4: If J contains "0-5V" and K contains "+"
+        elif '0-5V' in plug and '+' in pin:
+            df.at[idx, 'Power_Expected'] = 5
+            df.at[idx, 'Power_Input'] = "C1_AO2_10"
+        
+        # Rule 5: If J contains "0-5V" and K contains "-"
+        elif '0-5V' in plug and '-' in pin:
+            df.at[idx, 'Power_Expected'] = 0
+            df.at[idx, 'PullUp_Expected'] = 0
+            df.at[idx, 'PullUp_Input'] = "G"
+    
+    return df
+
+
 def write_into_template(template_path: Path, output_path: Path, data: pd.DataFrame) -> None:
     wb = load_workbook(template_path)
     ws = wb.worksheets[0]
@@ -97,6 +179,10 @@ def main() -> None:
     output_file = Path(f"{connector_value}.xlsx")
 
     df = extract_connector_rows(SOURCE_XLSX, connector_value)
+    
+    # Apply autofill rules to populate empty cells
+    df = apply_autofill_rules(df)
+    
     write_into_template(TARGET_TEMPLATE_XLSX, output_file, df)
 
     print(f"✔ Done: {len(df)} rows written to '{output_file.name}'")

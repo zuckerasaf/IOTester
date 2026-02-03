@@ -67,8 +67,9 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
         'Power_Input': _column_letter_to_index(excel_cols.get('Power_Input', 'O')),
         'PullUp_Expected': _column_letter_to_index(excel_cols.get('PullUp_Expected', 'P')),
         'PullUp_Input': _column_letter_to_index(excel_cols.get('PullUp_Input', 'Q')),
-        'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'R')),
-        'Logic_Expected': _column_letter_to_index(excel_cols.get('Logic_Expected', 'S')),
+            'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'R')),
+        'Logic_Command': _column_letter_to_index(excel_cols.get('Logic_Command', 'S')),
+        'Logic_Expected': _column_letter_to_index(excel_cols.get('Logic_Expected', 'T')),
         'Test_Result': _column_letter_to_index(excel_cols.get('Test_Result', 'T'))
     }
 
@@ -137,6 +138,7 @@ def load_connector_from_excel(
         pullup_expected = row[col_map['PullUp_Expected']] if len(row) > col_map['PullUp_Expected'] else None
         pullup_input = row[col_map['PullUp_Input']] if len(row) > col_map['PullUp_Input'] else None
         logic_pin_input = row[col_map['Logic_Pin_Input']] if len(row) > col_map['Logic_Pin_Input'] else None
+        logic_command = row[col_map['Logic_Command']] if len(row) > col_map['Logic_Command'] else None
         logic_expected = row[col_map['Logic_Expected']] if len(row) > col_map['Logic_Expected'] else None
         
         # Skip empty rows or rows without pin ID
@@ -172,7 +174,9 @@ def load_connector_from_excel(
         
         # Parse logic pin input - keep as string from Excel
         logic_pin_input_value = str(logic_pin_input).strip() if logic_pin_input else ""
-        
+        # Parse logic command - keep as string from Excel
+        logic_command_value = str(logic_command).strip() if logic_command else ""
+
         # Parse logic expected - keep as string from Excel
         logic_expected_value = str(logic_expected).strip() if logic_expected else ""
         
@@ -194,6 +198,7 @@ def load_connector_from_excel(
             Power_Input=power_input_value,
             PullUp_Input=pullup_input_value,
             Logic_Pin_Input=logic_pin_input_value,
+            Logic_Command=logic_command_value,
             Logic_Expected=logic_expected_value,
             Logic_DI_Result=TestResult.NO_RESULT
         )

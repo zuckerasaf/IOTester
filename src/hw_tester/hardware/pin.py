@@ -47,6 +47,7 @@ class Pin:
         Power_Input (str): Pin number that needs to be connected for power test (default: "")
         PullUp_Input (str): Card output that needs to be activated for pullup test (default: "")
         Logic_Pin_Input (List[str]): Pin numbers that need to be connected as part of the test (default: [])
+        Logic_Command (List[str]): Command(s) to execute before checking expectations (default: [])
         Logic_Expected (List[str]): Expected logic values for the test (default: [])
         Logic_DI_Result (TestResult): Logic test result (default: TestResult.NO_RESULT)
     """
@@ -69,6 +70,7 @@ class Pin:
         Power_Input: str = "",
         PullUp_Input: str = "",
         Logic_Pin_Input: List[str] = None,
+        Logic_Command: List[str] = None,
         Logic_Expected: List[str] = None,
         Logic_DI_Result: TestResult = TestResult.NO_RESULT
     ):
@@ -91,6 +93,7 @@ class Pin:
         self.Power_Input = Power_Input
         self.PullUp_Input = PullUp_Input
         self.Logic_Pin_Input = Logic_Pin_Input if Logic_Pin_Input is not None else []
+        self.Logic_Command = Logic_Command if Logic_Command is not None else []
         self.Logic_Expected = Logic_Expected if Logic_Expected is not None else []
         self.Logic_DI_Result = Logic_DI_Result
     
@@ -124,6 +127,7 @@ class Pin:
             "PullUp_Result": self.PullUp_Result.value,
             "Power_Input": self.Power_Input,
             "Logic_Pin_Input": self.Logic_Pin_Input,
+            "Logic_Command": self.Logic_Command,
             "Logic_DI_Result": self.Logic_DI_Result.value
         }
     
@@ -154,6 +158,10 @@ class Pin:
         logic_expected = data.get("Logic_Expected", [])
         if isinstance(logic_expected, str):
             logic_expected = [logic_expected] if logic_expected else []
+
+        logic_command = data.get("Logic_Command", [])
+        if isinstance(logic_command, str):
+            logic_command = [logic_command] if logic_command else []
         
         return cls(
             Id=data["Id"],
@@ -173,6 +181,7 @@ class Pin:
             PullUp_Input=data.get("PullUp_Input", ""),
             Logic_Pin_Input=logic_pin_input,
             Logic_Expected=logic_expected,
+            Logic_Command=logic_command,
             Logic_DI_Result=get_test_result(data.get("Logic_DI_Result", TestResult.NO_RESULT))
         )
 

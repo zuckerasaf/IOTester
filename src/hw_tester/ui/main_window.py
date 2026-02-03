@@ -300,6 +300,7 @@ class MainWindow:
                         "PullUp_Measured": "" if pin.PullUp_Measured == 0.0 else f"{pin.PullUp_Measured:.2f}",
                         "PullUp_Result": pin.PullUp_Result.value,
                         "Logic_Pin_Input": str(pin.Logic_Pin_Input),
+                        "Logic_Command": str(pin.Logic_Command),
                         "Logic_Expected": str(pin.Logic_Expected),
                         "Logic_DI_Result": pin.Logic_DI_Result.value
                     })

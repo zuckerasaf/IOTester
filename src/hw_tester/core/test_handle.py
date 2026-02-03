@@ -10,6 +10,16 @@ if TYPE_CHECKING:
     from hw_tester.hardware.pin import Pin
 
 from hw_tester.hardware.pin import TestResult
+from hw_tester.hardware.controllino_io import connector_pin_to_bits
+from hw_tester.utils.general import (
+    parse_event_string,
+    get_pin_pair_info_controlino,
+    set_mux_bits,
+    verify_card_output,
+    enable_cards,
+    clear_mux_bits,
+    clear_bits,
+)
 
 
 class TestHandle:
@@ -124,11 +134,7 @@ class TestHandle:
                 - success: True if measurement within tolerance, False otherwise
                 - message: Descriptive message about test result or error
         """
-        from hw_tester.hardware.controllino_io import connector_pin_to_bits
-        from hw_tester.utils.general import (
-            parse_event_string, get_pin_pair_info_controlino, 
-            set_mux_bits, verify_card_output
-        )
+        
         
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
         
@@ -378,10 +384,8 @@ class TestHandle:
                 - success: True if measurement within tolerance, False otherwise
                 - message: Descriptive message about test result or error
         """
-        from hw_tester.hardware.controllino_io import connector_pin_to_bits
-        from hw_tester.utils.general import (
-            parse_event_string, get_pin_pair_info_controlino, set_mux_bits
-        )
+        
+        
         
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
 
@@ -667,11 +671,7 @@ class TestHandle:
                 - success: True if status matches expected, False otherwise
                 - message: Descriptive message about test result or error
         """
-        from hw_tester.hardware.controllino_io import connector_pin_to_bits
-        from hw_tester.utils.general import (
-            parse_event_string, get_pin_pair_info_controlino, 
-            set_mux_bits, clear_mux_bits
-        )
+        
         
         Overallsuccess = False 
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
@@ -738,8 +738,8 @@ class TestHandle:
                 self.log(f"we are connecting Digital input, the connection should be to RTN line ~0V")
                 zero_voltage_threshold = self.settings.get('scale', {}).get('zero_voltage_threshold', 0.5)
                 
-                if second_pin_power_measured > zero_voltage_threshold:
-                    self.log(f"Second pin {second_pin_number} Power_Result is not ~0 (got '{second_pin_power_measured}') - invalid Logic_Pin_Input", "WARNING")
+                if second_pin_power_measured > zero_voltage_threshold  and pin.Power_Measured > zero_voltage_threshold:
+                    self.log(f"Pin measured voltage is {pin.Power_Measured}.  and the Second pin {second_pin_number}  measured voltage is {second_pin_power_measured} one of them need to be ~0 - invalid Logic_Pin_Input", "WARNING")
                     return (0.0, False, f"Wrong logic pin input: Second pin power test not passed")
             elif "AI" in pin.Logic_Expected:
                 self.log(f"we are connecting Analog input, the connection should be to RTN line ~0V or Power ~10V")
@@ -811,9 +811,30 @@ class TestHandle:
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
                 return (0.0, False, "Logic test incomplete (no Logic_Expected)")
             
+
+            # Parse Logic_cpmmand  for DO if exsit and operate  (format: "C2_DO13_1" or similar)
+            if pin.Logic_Command is not "" and pin.Logic_Command is not None:
+                card, event_type, event_num, event_value = parse_event_string(pin.Logic_Command.split(",")[i])
+                success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=bool(event_value))
+                self.log(f"active: Set Card {card} DO{event_num} to {event_value}: {'Success' if success else 'Failed'}", "INFO")
+                # Wait for signal to stabilize
+                stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+                time.sleep(stabilize_delay)
+                # Verify the output was set correctly
+                verify_success, verify_msg = verify_card_output(
+                    self.card_manager, card, event_type, event_num, event_value, 
+                    tolerance, self.log
+                )
+                if not verify_success:
+                                    # Deactivate relays
+                    self.hardware.digital_write(relay_a_pin, False)
+                    self.hardware.digital_write(relay_b_pin, False)
+                    clear_mux_bits(self.pin_map, self.hardware, self.log)
+                    return (0.0, False, f"Error: Invalid Logic_command operate - the output not set correctly: {verify_msg}")
+
             # Parse Logic_Expected for DI control (format: "C2_DI13_1" or similar)
-            card, event_type, event_num, event_value = parse_event_string(pin.Logic_Expected.split(",")[i])
-            
+            card, event_type, event_num, event_value = parse_event_string(pin.Logic_Expected.split(",")[i])            
+
             if card is None or event_type is None :
                 self.log(f"Failed to parse Logic_Expected '{pin.Logic_Expected}': Expected format 'C#_DI##_#' or 'C#_AI##_#'", "ERROR")
                 # Deactivate relays
@@ -860,6 +881,8 @@ class TestHandle:
                     ai_status = event_value
                 
                 status_match = (abs(ai_status - event_value)<tolerance)
+            
+
             # Step 11: Deactivate relay cards
             self.hardware.digital_write(relay_a_pin, False)
             self.hardware.digital_write(relay_b_pin, False)
@@ -868,6 +891,28 @@ class TestHandle:
             # Clear mux bits
             clear_mux_bits(self.pin_map, self.hardware, self.log)
             
+            # Parse Logic_cpmmand  for DO if exsit and Deactivate it   (format: "C2_DO13_1" or similar)
+            if pin.Logic_Command is not "" and pin.Logic_Command is not None:
+                card, event_type, event_num, event_value = parse_event_string(pin.Logic_Command.split(",")[i])
+                success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
+                event_value = False
+                self.log(f"active: Set Card {card} DO{event_num} to False: {'Success' if success else 'Failed'}", "INFO")
+                # Wait for signal to stabilize
+                stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+                time.sleep(stabilize_delay)
+                # Verify the output was set correctly
+                verify_success, verify_msg = verify_card_output(
+                    self.card_manager, card, event_type, event_num, event_value, 
+                    tolerance, self.log
+                )
+                if not verify_success:
+                                    # Deactivate relays
+                    self.hardware.digital_write(relay_a_pin, False)
+                    self.hardware.digital_write(relay_b_pin, False)
+                    clear_mux_bits(self.pin_map, self.hardware, self.log)
+                    return (0.0, False, f"Error: Invalid Logic_command operate - the output not set correctly: {verify_msg}")
+
+
 
             # Step 12: Return result based on status match
             if "DI" in pin.Logic_Expected:
@@ -918,7 +963,7 @@ class TestHandle:
                 - message: Result message string
                 - status: True if test passed, False otherwise
         """
-        from hw_tester.utils.general import enable_cards, clear_mux_bits
+        
         
         self.log("Starting Relay Fuse Test...", "INFO")
         
@@ -1116,10 +1161,8 @@ class TestHandle:
                 - bool: Pass/fail status for that test iteration
                 - list[dict]: Failed pins with details {'pin': N, 'measured': V, 'expected': V}
         """
-        from hw_tester.hardware.controllino_io import connector_pin_to_bits
-        from hw_tester.utils.general import (
-            get_pin_pair_info_controlino, set_mux_bits, clear_mux_bits
-        )
+        
+        
         
         test_results = []
         voltage_scale = 1
@@ -1232,10 +1275,8 @@ class TestHandle:
                 - True if all measurements pass validation, False otherwise
                 - List of failed pins with format: [{'pin': int, 'measured': float, 'expected': float}, ...]
         """
-        from hw_tester.hardware.controllino_io import connector_pin_to_bits
-        from hw_tester.utils.general import (
-            get_pin_pair_info_controlino, set_mux_bits, clear_bits
-        )
+        
+        
         
         voltage_measurements = []
         failed_pins = []  # Track failed pins with their measurements
@@ -1337,7 +1378,7 @@ class TestHandle:
             on_test_complete: Callback function when tests complete
         """
         from hw_tester.hardware.pin import Pin
-        from hw_tester.utils.general import clear_mux_bits
+        
         
         if self.settings.get('Debug', {}).get('mode', False):
             self.wait_debug(10, "active")
@@ -1382,6 +1423,7 @@ class TestHandle:
                     Power_Input=pin_row.get("Power_Input", ""),
                     PullUp_Input=pin_row.get("PullUp_Input", ""),
                     Logic_Pin_Input=pin_row.get("Logic_Pin_Input", ""),
+                    Logic_Command=pin_row.get("Logic_Command", ""),
                     Logic_Expected=pin_row.get("Logic_Expected", ""),
                     Logic_DI_Result=TestResult.NO_RESULT
                 )
@@ -1394,7 +1436,8 @@ class TestHandle:
                 power_expected_str = pin_row.get("Power_Expected", "").strip()
                 pullup_expected_str = pin_row.get("PullUp_Input", "").strip()
                 logic_Expected_str = pin_row.get("Logic_Expected", "").strip()
-                
+                logic_Command_str = pin_row.get("Logic_Command", "").strip()
+
                 run_power_test = (power_expected_str != "" and power_expected_str != "-")
                 run_pullup_test = (pullup_expected_str != "" and pullup_expected_str != "-")
                 run_logic_test = (logic_Expected_str != "" and logic_Expected_str != "-")

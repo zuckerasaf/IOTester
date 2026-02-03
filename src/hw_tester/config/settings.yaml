@@ -19,7 +19,7 @@ Board:
   - none
   Port: COM5
   BaudRate: 115200
-  simulation: true
+  simulation: false
 Timeouts:
   duration: 0.5
   sample_interval: 0.1
@@ -59,8 +59,9 @@ ExcelColumns:
   PullUp_Expected: P
   PullUp_Input: Q
   Logic_Pin_Input: R
-  Logic_Expected: S
-  Test_Result: T
+  Logic_Command: S
+  Logic_Expected: T
+  Test_Result: U
 Measure_value:
   Scale_1: 6
 Logging:
@@ -73,7 +74,7 @@ Test_trshhold:
 UDP_Settings:
   Frequency_Hz: 20.0
   Communication_Timeout: 2.0
-  localhost_mode: true
+  localhost_mode: false
   Cards:
   - card_id: 1
     enabled: true

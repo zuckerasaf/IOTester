@@ -15,7 +15,7 @@ class PinTableView(tk.Frame):
     COLUMNS = ("ID", "Connect", "Discrete_Name", "Signal_Name", "Plug", "Type", "Pin", 
                "Power_Expected", "Power_Input", "Power_Measured", "Power_Result", 
                "PullUp_Expected", "PullUp_Input", "PullUp_Measured", "PullUp_Result", 
-               "Logic_Pin_Input", "Logic_Expected", "Logic_DI_Result")
+               "Logic_Pin_Input", "Logic_Command", "Logic_Expected", "Logic_DI_Result")
     
     def __init__(self, parent: tk.Widget):
         """
@@ -63,7 +63,7 @@ class PinTableView(tk.Frame):
                 self.tree.column(col, width=110, minwidth=90)
             elif col == "PullUp_Result":
                 self.tree.column(col, width=90, minwidth=70)
-            elif col in ("Logic_Pin_Input", "Logic_Expected"):
+            elif col in ("Logic_Pin_Input", "Logic_Command", "Logic_Expected"):
                 self.tree.column(col, width=110, minwidth=90)
             elif col == "Logic_DI_Result":
                 self.tree.column(col, width=100, minwidth=80)
@@ -97,7 +97,7 @@ class PinTableView(tk.Frame):
         self._sort_reverse = False
         
         # Editable columns - user can double-click to edit these
-        self.editable_columns = ["Power_Expected", "Power_Input", "PullUp_Expected", "PullUp_Input", "Logic_Pin_Input", "Logic_Expected"]
+        self.editable_columns = ["Power_Expected", "Power_Input", "PullUp_Expected", "PullUp_Input", "Logic_Pin_Input", "Logic_Command", "Logic_Expected"]
         
         # Bind double-click for editing
         self.tree.bind("<Double-Button-1>", self._on_double_click)
