@@ -216,3 +216,11 @@ tests/DB/Demo/JDemo.xlsx
 tests/DB/MTC_AFT/J17_Armant_1.xlsx
 tests/DB/Demo/JDemo.xlsx
 src/hw_tester/config/settings copy.yaml
+src/hw_tester/web/IO_Tester_logic_Power_test.xlsm
+src/hw_tester/web/IO_Tester_logic_Power_test.xlsm
+src/hw_tester/web/trace.json
+src/hw_tester/web/trace.tmp
+tests/DB/Demo/JDemo.xlsx
+tests/Basic_Test.py
+tests/DB/Demo/JDemo.xlsx
+tests/DB/MTC_AFT/J17_Armant_1.xlsx
