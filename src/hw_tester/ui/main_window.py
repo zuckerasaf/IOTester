@@ -8,6 +8,9 @@ import threading
 import time
 import subprocess
 import webbrowser
+from datetime import datetime
+import re
+import openpyxl
 from typing import List, Optional
 import sys
 from pathlib import Path
@@ -208,6 +211,8 @@ class MainWindow:
             on_keep_alive=self.on_keep_alive,
             on_i_bit=self.on_i_bit,
             on_test=self.on_test,
+            on_test_all=self.on_test_all,
+            on_doc=self.on_doc,
             on_stop_ibit=self.on_stop_ibit,
             on_stop_t=self.on_stop_t,
             on_report=self.on_report,
@@ -295,14 +300,17 @@ class MainWindow:
                         "Power_Input": pin.Power_Input,
                         "Power_Measured": "" if pin.Power_Measured == 0.0 else f"{pin.Power_Measured:.2f}",
                         "Power_Result": pin.Power_Result.value,
+                        "Power_Result_Reason": "",
                         "PullUp_Expected": f"{pin.PullUp_Expected:.2f}",
                         "PullUp_Input": pin.PullUp_Input,
                         "PullUp_Measured": "" if pin.PullUp_Measured == 0.0 else f"{pin.PullUp_Measured:.2f}",
                         "PullUp_Result": pin.PullUp_Result.value,
+                        "PullUp_Result_Reason": "",
                         "Logic_Pin_Input": str(pin.Logic_Pin_Input),
                         "Logic_Command": str(pin.Logic_Command),
                         "Logic_Expected": str(pin.Logic_Expected),
-                        "Logic_DI_Result": pin.Logic_DI_Result.value
+                        "Logic_DI_Result": pin.Logic_DI_Result.value,
+                        "Logic_DI_Result_Reason": ""
                     })
                 
                 # Update UI on main thread
@@ -317,9 +325,10 @@ class MainWindow:
     def _on_load_complete(self, filename: str, connector_id: str, rows: List[dict]) -> None:
         """Called when Excel file loading completes successfully."""
         self.pin_table.set_rows(rows)
-        self.op_panel.set_connector(filename)  # Show filename instead of connector ID
+        self.op_panel.set_connector(filename.split(".")[0])  # Show filename instead of connector ID without the .xlsx
         self.connected = True
         self.op_panel.enable_test(True)
+        self.op_panel.enable_test_all(True)
         self.log_view.append(f"Successfully loaded {len(rows)} pins from {filename} (Connector: {connector_id})", "SUCCESS")
     
     def _on_load_error(self, error_msg: str) -> None:
@@ -443,19 +452,44 @@ class MainWindow:
         if not selected_ids:
             self.log_view.append("No pins selected. Please select pins to test.", "WARNING")
             return
+
+        all_rows = self.pin_table.get_all_rows()
+        self._start_test(selected_ids, all_rows, "selected")
+
+    def on_test_all(self) -> None:
+        """Handle Test_All button click - Execute test sequence for all pins."""
+        if not self.connected:
+            self.log_view.append("Not connected. Please connect first.", "WARNING")
+            return
+
+        all_rows = self.pin_table.get_all_rows()
+        if not all_rows:
+            self.log_view.append("No pins available. Please load pins first.", "WARNING")
+            return
+
+        self.pin_table.select_all()
+        selected_ids = [row.get("ID", "") for row in all_rows if row.get("ID")]
+        self._start_test(selected_ids, all_rows, "all")
+
+    def _start_test(self, selected_ids: List[str], all_rows: List[dict], scope_label: str) -> None:
+        """Start a test run for the provided pin IDs."""
+        if not selected_ids:
+            self.log_view.append("No pins selected. Please select pins to test.", "WARNING")
+            return
         
         # Clear all Measure column data before starting test
-        all_rows = self.pin_table.get_all_rows()
         for row in all_rows:
             self.pin_table.update_row(row["ID"], {"Measure": ""})
         
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
         mode_str = "SIMULATION" if is_simulation else "HARDWARE"
-        self.log_view.append(f"Starting test sequence on {len(selected_ids)} selected pins ({mode_str} mode)", "INFO")
+        label = "all" if scope_label == "all" else "selected"
+        self.log_view.append(f"Starting test sequence on {len(selected_ids)} {label} pins ({mode_str} mode)", "INFO")
         self.running = True
         self.test_handler.running = True  # Sync flag to test handler
         self.op_panel.enable_stop_t(True)
         self.op_panel.enable_test(False)
+        self.op_panel.enable_test_all(False)
         
         # Get digital pin map for bit setting
         #digital_ports = self.pin_map.get('D', {})
@@ -897,6 +931,7 @@ class MainWindow:
         self.running = False
         self.op_panel.enable_stop_t(False)
         self.op_panel.enable_test(True)
+        self.op_panel.enable_test_all(True)
         self.log_view.append("Test sequence completed", "SUCCESS")
     
     def _on_ibit_complete(self) -> None:
@@ -913,6 +948,7 @@ class MainWindow:
         self.test_handler.running = False  # Sync flag to test handler
         self.op_panel.enable_stop_t(False)
         self.op_panel.enable_test(True)
+        self.op_panel.enable_test_all(True)
     
     def on_stop_ibit(self) -> None:
         """Handle Stop_IBIT button click - Stop the I_Bit short circuit test."""
@@ -923,20 +959,88 @@ class MainWindow:
         self.op_panel.enable_i_bit(True)
     
     def on_report(self) -> None:
-        """Handle Report button click."""
-        self.log_view.append("Generating test report...", "INFO")
-        
-        # TODO(core): Implement actual report generation
-        rows = self.pin_table.get_all_rows()
-        tested_count = sum(1 for row in rows if row.get("Measure"))
-        
-        time.sleep(0.3)
-        self.log_view.append(f"Report: {tested_count}/{len(rows)} pins tested", "SUCCESS")
-        
-        messagebox.showinfo(
-            "Test Report",
-            f"Tested Pins: {tested_count}/{len(rows)}\n\nReport saved to results folder."
-        )
+        """Handle Report button click.
+
+        Creates an Excel file named with the connector label and current
+        timestamp in the reports directory configured in settings (falls
+        back to workspace Results folder). Copies all pin table rows
+        into the spreadsheet and notifies the user.
+        """
+        try:
+            self.log_view.append("Generating test report...", "INFO")
+
+            # Get rows from pin table
+            rows = self.pin_table.get_all_rows()
+
+            # Determine connector name from operational panel label
+            try:
+                connector_name = self.op_panel.connector_label.cget("text")
+            except Exception:
+                connector_name = "connector"
+
+            # Sanitize connector name for filename
+            safe_name = re.sub(r"[^0-9A-Za-z._-]", "_", connector_name).strip("_") or "connector"
+
+            # Build timestamped filename
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{safe_name}_{ts}.xlsx"
+
+            # Determine reports directory from settings or default Results folder
+            reports_dir_setting = self.settings.get('Paths', {}).get('reports', None)
+            if reports_dir_setting:
+                reports_dir = Path(reports_dir_setting)
+            else:
+                # Use workspace Results folder relative to cwd
+                reports_dir = Path.cwd() / "Results"
+
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            out_path = reports_dir / filename
+
+            # Create Excel workbook and write rows
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Report"
+
+            if rows:
+                # Write header from keys of first row
+                headers = list(rows[0].keys())
+                ws.append(headers)
+
+                for row in rows:
+                    # Ensure consistent order matching headers
+                    ws.append([row.get(h, "") for h in headers])
+            else:
+                ws.append(["No data"])
+
+            wb.save(str(out_path))
+
+            tested_count = sum(1 for row in rows if row.get("Measure"))
+            self.log_view.append(f"Report: {tested_count}/{len(rows)} pins tested - saved to {out_path}", "SUCCESS")
+
+            messagebox.showinfo(
+                "Test Report",
+                f"Tested Pins: {tested_count}/{len(rows)}\n\nReport saved to: {out_path}"
+            )
+
+        except Exception as e:
+            error_msg = f"Error generating report: {e}"
+            self.log_view.append(error_msg, "ERROR")
+            messagebox.showerror("Report Error", error_msg)
+
+    def on_doc(self) -> None:
+        """Handle DOC button click (placeholder)."""
+        try:
+            from hw_tester.core.doc_handle import create_doc_report_via_dialog
+
+            output_path = create_doc_report_via_dialog()
+            if output_path:
+                self.log_view.append(f"DOC report saved to {output_path}", "SUCCESS")
+            else:
+                self.log_view.append("DOC report creation canceled", "INFO")
+        except Exception as e:
+            error_msg = f"DOC report generation failed: {e}"
+            self.log_view.append(error_msg, "ERROR")
+            messagebox.showerror("DOC Report Error", error_msg)
     
     def on_clear_log(self) -> None:
         """Handle Clear Log button click."""

@@ -23,6 +23,8 @@ class OperationalPanel(tk.Frame):
         on_keep_alive: Optional[Callable[[], None]] = None,
         on_i_bit: Optional[Callable[[], None]] = None,
         on_test: Optional[Callable[[], None]] = None,
+        on_test_all: Optional[Callable[[], None]] = None,
+        on_doc: Optional[Callable[[], None]] = None,
         on_stop_ibit: Optional[Callable[[], None]] = None,
         on_stop_t: Optional[Callable[[], None]] = None,
         on_report: Optional[Callable[[], None]] = None,
@@ -46,6 +48,8 @@ class OperationalPanel(tk.Frame):
             on_keep_alive: Callback for KeepAlive button
             on_i_bit: Callback for I_Bit button
             on_test: Callback for Test button
+            on_test_all: Callback for Test_All button
+            on_doc: Callback for DOC button
             on_stop_ibit: Callback for Stop_IBIT button
             on_stop_t: Callback for Stop_T button
             on_report: Callback for Report button
@@ -66,7 +70,7 @@ class OperationalPanel(tk.Frame):
         #         (rowspan=2)     | (empty) | Localhost | Next | (empty) | KeepAlive | Stop_IBIT | Log Filter checkboxes (row 1)
         #         (empty)         | Test (2x width) | Stop_T (2x width) | ... (row 2)
         self.columnconfigure(0, weight=1)  # Connector label (resizable)
-        for i in range(1, 11):  # Columns 1-10 for controls
+        for i in range(1, 12):  # Columns 1-11 for controls
             self.columnconfigure(i, weight=0)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
@@ -77,6 +81,8 @@ class OperationalPanel(tk.Frame):
         self.on_keep_alive = on_keep_alive or (lambda: None)
         self.on_i_bit = on_i_bit or (lambda: None)
         self.on_test = on_test or (lambda: None)
+        self.on_test_all = on_test_all or (lambda: None)
+        self.on_doc = on_doc or (lambda: None)
         self.on_stop_ibit = on_stop_ibit or (lambda: None)
         self.on_stop_t = on_stop_t or (lambda: None)
         self.on_report = on_report or (lambda: None)
@@ -238,14 +244,23 @@ class OperationalPanel(tk.Frame):
         )
         self.btn_i_bit.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
         
-        # Row 2, Column 1: Test button (2x width)
+        # Row 2, Column 1: Test button
         self.btn_run = ttk.Button(
             self,
             text="Test",
             style="Primary.TButton",
             command=self.on_test
         )
-        self.btn_run.grid(row=2, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
+        self.btn_run.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+        # Row 2, Column 2: Test_All button
+        self.btn_run_all = ttk.Button(
+            self,
+            text="Test_All",
+            style="Primary.TButton",
+            command=self.on_test_all
+        )
+        self.btn_run_all.grid(row=2, column=2, padx=5, pady=5, sticky="ew")
         
         # Row 2, Column 3: Stop_T button (2x width)
         self.btn_stop = ttk.Button(
@@ -294,6 +309,15 @@ class OperationalPanel(tk.Frame):
             command=self.on_report
         )
         self.btn_report.grid(row=0, column=9, padx=5, pady=5, sticky="ew")
+
+        # Column 10, Row 0: DOC button
+        self.btn_doc = ttk.Button(
+            self,
+            text="DOC",
+            style="Info.TButton",
+            command=self.on_doc
+        )
+        self.btn_doc.grid(row=0, column=10, padx=5, pady=5, sticky="ew")
     
     def _scan_html_files(self) -> list:
         """
@@ -429,6 +453,10 @@ class OperationalPanel(tk.Frame):
     def enable_test(self, enabled: bool = True) -> None:
         """Enable or disable the Test button."""
         self.btn_run.config(state=tk.NORMAL if enabled else tk.DISABLED)
+
+    def enable_test_all(self, enabled: bool = True) -> None:
+        """Enable or disable the Test_All button."""
+        self.btn_run_all.config(state=tk.NORMAL if enabled else tk.DISABLED)
     
     def enable_i_bit(self, enabled: bool = True) -> None:
         """Enable or disable the I_Bit button."""

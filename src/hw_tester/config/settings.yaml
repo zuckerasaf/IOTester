@@ -19,7 +19,7 @@ Board:
   - none
   Port: COM5
   BaudRate: 115200
-  simulation: false
+  simulation: true
 Timeouts:
   duration: 0.5
   sample_interval: 0.1
@@ -35,7 +35,7 @@ scale:
 Paths:
   Path_1: C:/ArduinoProject/IO_Tester
   Path_2: src/hw_tester/config/pin_map.json
-  Path_3: results
+  reports: C:\ArduinoProject\IO_Tester\tests\Results
   ConnectorAddressMap: src/hw_tester/config/connector_Address_map.xlsx
   ConnectorAddressMap_A: src/hw_tester/config/connector_Address_A_map.xlsx
   ConnectorAddressMap_B: src/hw_tester/config/connector_Address_B_map.xlsx
@@ -74,7 +74,7 @@ Test_trshhold:
 UDP_Settings:
   Frequency_Hz: 20.0
   Communication_Timeout: 2.0
-  localhost_mode: false
+  localhost_mode: true
   Cards:
   - card_id: 1
     enabled: true

@@ -10,3 +10,6 @@ pytest
 
 # Excel file handling
 openpyxl
+
+# Word document generation
+python-docx

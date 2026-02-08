@@ -1462,10 +1462,12 @@ class TestHandle:
                     pin_id_local = pin.Id
                     power_measured = f"{pin.Power_Measured:.2f}"
                     power_result = "Pass" if pin.Power_Result else "Fail"
-                    root.after(0, lambda pid=pin_id_local, pm=power_measured, pr=power_result: 
+                    power_reason = power_message
+                    root.after(0, lambda pid=pin_id_local, pm=power_measured, pr=power_result, r=power_reason: 
                         pin_table.update_row(pid, {
                             "Power_Measured": pm,
-                            "Power_Result": pr
+                            "Power_Result": pr,
+                            "Power_Result_Reason": r
                         }))
                 
                 if run_pullup_test:
@@ -1485,10 +1487,12 @@ class TestHandle:
                         pin_id_local = pin.Id
                         pullup_measured = f"{pin.PullUp_Measured:.2f}"
                         pullup_result = "Pass" if pin.PullUp_Result else "Fail"
-                        root.after(0, lambda pid=pin_id_local, pum=pullup_measured, pur=pullup_result:
+                        pullup_reason = pullup_message
+                        root.after(0, lambda pid=pin_id_local, pum=pullup_measured, pur=pullup_result, r=pullup_reason:
                             pin_table.update_row(pid, {
                                 "PullUp_Measured": pum,
-                                "PullUp_Result": pur
+                                "PullUp_Result": pur,
+                                "PullUp_Result_Reason": r
                             }))
                     elif pin.Power_Result == True and pin.Power_Expected != 0.0:
                         self.log(
@@ -1513,9 +1517,11 @@ class TestHandle:
                         # Capture values to avoid lambda closure issues
                         pin_id_local = pin.Id
                         logic_result_str = "Pass" if pin.Logic_DI_Result else "Fail"
-                        root.after(0, lambda pid=pin_id_local, lr=logic_result_str:
+                        logic_reason = logic_test_message
+                        root.after(0, lambda pid=pin_id_local, lr=logic_result_str, r=logic_reason:
                             pin_table.update_row(pid, {
-                                "Logic_DI_Result": lr
+                                "Logic_DI_Result": lr,
+                                "Logic_DI_Result_Reason": r
                             }))
                     elif pin.Power_Result == True and pin.Power_Expected > 0.0:
                         self.log(

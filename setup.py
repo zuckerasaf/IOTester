@@ -15,6 +15,7 @@ setup(
         "pyyaml",
         "pandas",
         "openpyxl",
+        "python-docx",
     ],
     entry_points={
         "console_scripts": [

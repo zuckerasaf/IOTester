@@ -13,9 +13,9 @@ class PinTableView(tk.Frame):
     """
     
     COLUMNS = ("ID", "Connect", "Discrete_Name", "Signal_Name", "Plug", "Type", "Pin", 
-               "Power_Expected", "Power_Input", "Power_Measured", "Power_Result", 
-               "PullUp_Expected", "PullUp_Input", "PullUp_Measured", "PullUp_Result", 
-               "Logic_Pin_Input", "Logic_Command", "Logic_Expected", "Logic_DI_Result")
+               "Power_Expected", "Power_Input", "Power_Measured", "Power_Result", "Power_Result_Reason",
+               "PullUp_Expected", "PullUp_Input", "PullUp_Measured", "PullUp_Result", "PullUp_Result_Reason",
+               "Logic_Pin_Input", "Logic_Command", "Logic_Expected", "Logic_DI_Result", "Logic_DI_Result_Reason")
     
     def __init__(self, parent: tk.Widget):
         """
@@ -59,14 +59,20 @@ class PinTableView(tk.Frame):
                 self.tree.column(col, width=110, minwidth=90)
             elif col == "Power_Result":
                 self.tree.column(col, width=90, minwidth=70)
+            elif col == "Power_Result_Reason":
+                self.tree.column(col, width=160, minwidth=140)
             elif col in ("PullUp_Expected", "PullUp_Input", "PullUp_Measured"):
                 self.tree.column(col, width=110, minwidth=90)
             elif col == "PullUp_Result":
                 self.tree.column(col, width=90, minwidth=70)
+            elif col == "PullUp_Result_Reason":
+                self.tree.column(col, width=160, minwidth=140)
             elif col in ("Logic_Pin_Input", "Logic_Command", "Logic_Expected"):
                 self.tree.column(col, width=110, minwidth=90)
             elif col == "Logic_DI_Result":
                 self.tree.column(col, width=100, minwidth=80)
+            elif col == "Logic_DI_Result_Reason":
+                self.tree.column(col, width=160, minwidth=140)
         
         # Add vertical scrollbar
         v_scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
@@ -228,6 +234,10 @@ class PinTableView(tk.Frame):
     def clear_selection(self) -> None:
         """Clear current selection."""
         self.tree.selection_remove(*self.tree.selection())
+
+    def select_all(self) -> None:
+        """Select all rows in the table."""
+        self.tree.selection_set(*self.tree.get_children())
     
     def _sort_by_column(self, col: str) -> None:
         """Sort table by the specified column.
