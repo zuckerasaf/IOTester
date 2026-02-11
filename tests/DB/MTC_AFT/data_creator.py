@@ -88,7 +88,7 @@ def apply_autofill_rules(df: pd.DataFrame) -> pd.DataFrame:
         
         # Rule 2: If B (DISCRETE NAME) contains "DI"
         if 'DI_' in discrete_name or discrete_name.startswith('DI'):
-            df.at[idx, 'Power_Expected'] = 0
+            df.at[idx, 'Power_Expected'] = 3.5
             df.at[idx, 'logic_input'] = "?"
             discrete_clean = discrete_name.replace('_', '')
             df.at[idx, 'Logic_Expected'] = f"C{card_num}_{discrete_clean}_0"
