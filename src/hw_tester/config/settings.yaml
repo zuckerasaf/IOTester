@@ -31,7 +31,8 @@ scale:
   voltage_degredation: 1.5
   voltage_tolerance: 1.5
   zero_voltage_threshold: 0.5
-  Analog_voltage_threshold: 10.0
+  Analog_voltage_threshold: 11.0
+  logic_voltage_threshold: 4.0
 Paths:
   Path_1: C:/ArduinoProject/IO_Tester
   Path_2: src/hw_tester/config/pin_map.json

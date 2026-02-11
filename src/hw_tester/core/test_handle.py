@@ -449,7 +449,7 @@ class TestHandle:
         
         if is_simulation:
             measured_voltage = 0 + variation
-            self.log(f"the measure_Voltage is simulated (pin.PullUp_Expected + variation) + samll variation = {variation} ", "DEBUG")
+            self.log(f"the measure_Voltage is simulated {pin.PullUp_Expected + variation} + samll variation = {variation} ", "DEBUG")
         
         if self.settings.get('Debug', {}).get('mode', False):
                 self.wait_debug(223, "active")
@@ -675,6 +675,7 @@ class TestHandle:
         
         Overallsuccess = False 
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
+        text = ""
 
         
         if is_simulation:
@@ -696,13 +697,15 @@ class TestHandle:
         success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log)
         
         if not success:
-            self.log(f"Failed to set mux bits for pin {pin_number}", "ERROR")
-            return (0.0, False, "Error: Failed to set mux matrix")
+            text = f"Failed to set mux bits for pin {pin_number}"
+            self.log(text, "ERROR")
+            return (0.0, False, text)
         
         # Step 3: Read the pin number from Logic_Pin_Input (second pin)
         if not hasattr(pin, 'Logic_Pin_Input') or not pin.Logic_Pin_Input or pin.Logic_Pin_Input.strip().lower() == "none":
-            self.log(f"No Logic_Pin_Input specified for pin {pin_number} - skipping logic test", "INFO")
-            return (0.0, True, "Logic test skipped (no Logic_Pin_Input)")
+            text = f"No Logic_Pin_Input specified for pin {pin_number} - skipping logic test"
+            self.log(text, "INFO")
+            return (0.0, True, text)
         
         #this for loop is run on all the data in the Logic_Pin_Input field for each one of them make the test 
         for i in range(len(pin.Logic_Pin_Input.split(","))):
@@ -710,8 +713,9 @@ class TestHandle:
                 second_pin_number = int(pin.Logic_Pin_Input.split(",")[i].strip())
                 self.log(f"Second pin number from Logic_Pin_Input: {second_pin_number}", "DEBUG")
             except ValueError:
-                self.log(f"Invalid Logic_Pin_Input '{pin.Logic_Pin_Input}': Must be a pin number", "ERROR")
-                return (0.0, False, f"Error: Invalid Logic_Pin_Input format (expected pin number)")
+                text = f"Invalid Logic_Pin_Input '{pin.Logic_Pin_Input}': Must be a pin number"
+                self.log(text, "ERROR")
+                return (0.0, False, text)
             
             # Step 4: Create "second Pin" object from pin table
             second_pin_row = None
@@ -721,10 +725,11 @@ class TestHandle:
                     break
             
             if not second_pin_row:
-                self.log(f"Second pin {second_pin_number} not found in pin table", "ERROR")
-                return (0.0, False, f"Error: Second pin {second_pin_number} not found in table")
+                text = f"Second pin {second_pin_number} not found in pin table"
+                self.log(text, "ERROR")
+                return (0.0, False, text)
             
-            # Step 5: Check if second pin Power_Result is Pass and Power_Measured is ~0V
+            # Step 5: Check if second pin Power_Result is Pass and Power_Measured is <4V
             second_pin_power_result = second_pin_row.get("Power_Result", "No Result")
             second_pin_power_measured_str = second_pin_row.get("Power_Measured", "")
             
@@ -734,31 +739,59 @@ class TestHandle:
                 second_pin_power_measured = 0.0
 
             
+            if second_pin_power_result != "Pass" :
+                text = f"Second pin {second_pin_number} Power_Result is '{second_pin_power_result}' (expected 'Pass')"
+                self.log(text, "WARNING")
+                return (0.0, False, text)
+            
+            zero_voltage_threshold = self.settings.get('scale', {}).get('zero_voltage_threshold', 0.5)
+            logic_voltage_threshold = self.settings.get('scale', {}).get('logic_voltage_threshold', 4.0)
+            Analog_voltage_threshold = self.settings.get('scale', {}).get('Analog_voltage_threshold', 11.0)
+            # check we connected Digital Input to retrun line  
             if "DI" in pin.Logic_Expected:
                 self.log(f"we are connecting Digital input, the connection should be to RTN line ~0V")
-                zero_voltage_threshold = self.settings.get('scale', {}).get('zero_voltage_threshold', 0.5)
-                
-                if second_pin_power_measured > zero_voltage_threshold  and pin.Power_Measured > zero_voltage_threshold:
-                    self.log(f"Pin measured voltage is {pin.Power_Measured}.  and the Second pin {second_pin_number}  measured voltage is {second_pin_power_measured} one of them need to be ~0 - invalid Logic_Pin_Input", "WARNING")
-                    return (0.0, False, f"Wrong logic pin input: Second pin power test not passed")
+                if pin.Power_Measured > logic_voltage_threshold or second_pin_power_measured > logic_voltage_threshold :
+                    text = f"invalid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}V"
+                    self.log(text, "WARNING")
+                    return (0.0, False, text)
+                    
+                elif pin.Power_Measured > zero_voltage_threshold and second_pin_power_measured < zero_voltage_threshold :
+                    text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
+                    self.log(text, "info")
+                    
+                elif second_pin_power_measured > zero_voltage_threshold and pin.Power_Measured < zero_voltage_threshold :
+                    text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
+                    self.log(text, "info")
+                    
+                else:
+                    text = f"invalid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}V"
+                    self.log(text, "WARNING")
+                    return (0.0, False, text)
+            # check we connected Analog Input to return line  
             elif "AI" in pin.Logic_Expected:
-                self.log(f"we are connecting Analog input, the connection should be to RTN line ~0V or Power ~10V")
-                Analog_voltage_threshold = self.settings.get('scale', {}).get('Analog_voltage_threshold', 10)
+                self.log(f"we are connecting Analog input, the connection should be to RTN line ~10V")
+                if pin.Power_Measured > Analog_voltage_threshold or second_pin_power_measured > Analog_voltage_threshold :
+                    text = f"invalid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
+                    self.log(text, "WARNING")
+                    return (0.0, False, text)
                 
-                if abs(second_pin_power_measured)>  Analog_voltage_threshold +tolerance:
-                    self.log(f"Second pin {second_pin_number} Power_Result is above 10  (got '{second_pin_power_measured}') - invalid Logic_Pin_Input", "WARNING")
-                    return (0.0, False, f"Wrong logic pin input: Second pin power test not passed")
+                elif pin.Power_Measured > zero_voltage_threshold and second_pin_power_measured < zero_voltage_threshold :
+                    text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
+                    self.log(text, "info")
+                    
+                elif second_pin_power_measured > zero_voltage_threshold and pin.Power_Measured < zero_voltage_threshold :
+                    text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
+                    self.log(text, "info")
+                    
+                else:
+                    text = f"invalid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}V"
+                    self.log(text, "WARNING")
+                    return (0.0, False, text)
             else :
-                self.log(f"Second pin {second_pin_number} is not contain AI or DI  - invalid Logic_Pin_Input", "WARNING")
-                return (0.0, False, f"Wrong logic \ format  pin input: Second pin power test not passed")
+                text=f"Logic_Expected is {pin.Logic_Expected} which is not contain AI or DI - wrong logic pin input data"
+                self.log(text, "WARNING")
+                return (0.0, False, text)
 
-
-
-            if second_pin_power_result != "Pass":
-                self.log(f"Second pin {second_pin_number} Power_Result is not Pass (got '{second_pin_power_result}') - invalid Logic_Pin_Input", "WARNING")
-                return (0.0, False, f"Wrong logic pin input: Second pin power test not passed")
-            
-            self.log(f"Second pin {second_pin_number} validation passed (Power: Pass, Voltage: ~0V)", "SUCCESS")
             
             # Step 6: Convert second pin to bit pattern and set mux matrix (system B)
             second_pair_num, second_voltage_pin_key, second_voltage_pin_b_key, second_pullup_pin_key, second_card_enable_a_key, second_card_enable_b_key, second_relay_enable_a_key, second_relay_enable_b_key = get_pin_pair_info_controlino(second_pin_number)
@@ -768,12 +801,14 @@ class TestHandle:
                 success = set_mux_bits(second_bits, second_pin_number, self.pin_map, self.hardware, self.settings, self.log)
                 
                 if not success:
-                    self.log(f"Failed to set mux bits for second pin {second_pin_number}", "ERROR")
-                    return (0.0, False, "Error: Failed to set mux matrix for second pin")
+                    text = f"Failed to set mux bits for second pin {second_pin_number}"
+                    self.log(text, "ERROR")
+                    return (0.0, False, text)
                 
             except Exception as e:
-                self.log(f"Error in Logic test setting mux for second pin {second_pin_number}: {str(e)}", "ERROR")
-                return (0.0, False, f"Error: {str(e)}")
+                text = f"Error in Logic test setting mux for second pin {second_pin_number}: {str(e)}"  
+                self.log(text, "ERROR")
+                return (0.0, False, text)
             
             # Step 7: Activate the two proper relays for pin and second pin
             relay_ports = self.pin_map.get('R', {})
@@ -785,12 +820,14 @@ class TestHandle:
             relay_b_pin = relay_ports.get(relay_b_name)
             
             if relay_a_pin is None:
-                self.log(f"Relay A pin {relay_a_name} not found in pin map", "ERROR")
-                return (0.0, False, f"Error: Relay A pin {relay_a_name} not found")
+                text = f"Relay A pin {relay_a_name} not found in pin map"
+                self.log(text, "ERROR")
+                return (0.0, False, f"Error: {text}")
             
             if relay_b_pin is None:
-                self.log(f"Relay B pin {relay_b_name} not found in pin map", "ERROR")
-                return (0.0, False, f"Error: Relay B pin {relay_b_name} not found")
+                text = f"Relay B pin {relay_b_name} not found in pin map"
+                self.log(text, "ERROR")
+                return (0.0, False, f"Error: {text}")
             
             self.log(f"Activating relay A {relay_a_name} (pin {relay_a_pin}) for pin {pin_number}", "INFO")
             self.hardware.digital_write(relay_a_pin, True)
@@ -804,16 +841,17 @@ class TestHandle:
             
             # Step 8: Parse Logic_Expected data (format: "C2_DI13_1" -> Card=2, DI=13, ExpectedState=1)
             if not hasattr(pin, 'Logic_Expected') or not pin.Logic_Expected or pin.Logic_Expected.strip().lower() == "none":
-                self.log(f"No Logic_Expected specified for pin {pin_number} - skipping verification", "WARNING")
+                text = f"No Logic_Expected specified for pin {pin_number} - skipping verification"
+                self.log(text, "WARNING")
                 # Deactivate relays
                 self.hardware.digital_write(relay_a_pin, False)
                 self.hardware.digital_write(relay_b_pin, False)
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
-                return (0.0, False, "Logic test incomplete (no Logic_Expected)")
+                return (0.0, False, text)
             
 
             # Parse Logic_cpmmand  for DO if exsit and operate  (format: "C2_DO13_1" or similar)
-            if pin.Logic_Command is not "" and pin.Logic_Command is not None:
+            if "_DO" in pin.Logic_Command:
                 card, event_type, event_num, event_value = parse_event_string(pin.Logic_Command.split(",")[i])
                 success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=bool(event_value))
                 self.log(f"active: Set Card {card} DO{event_num} to {event_value}: {'Success' if success else 'Failed'}", "INFO")
@@ -830,18 +868,21 @@ class TestHandle:
                     self.hardware.digital_write(relay_a_pin, False)
                     self.hardware.digital_write(relay_b_pin, False)
                     clear_mux_bits(self.pin_map, self.hardware, self.log)
-                    return (0.0, False, f"Error: Invalid Logic_command operate - the output not set correctly: {verify_msg}")
+                    text = f"Error: Invalid Logic_command operate - the output card {card} DO{event_num}  value{event_value} not set correctly: {verify_msg}"
+                    self.log(text, "ERROR")
+                    return (0.0, False, text)
 
             # Parse Logic_Expected for DI control (format: "C2_DI13_1" or similar)
             card, event_type, event_num, event_value = parse_event_string(pin.Logic_Expected.split(",")[i])            
 
             if card is None or event_type is None :
-                self.log(f"Failed to parse Logic_Expected '{pin.Logic_Expected}': Expected format 'C#_DI##_#' or 'C#_AI##_#'", "ERROR")
+                text = f"Failed to parse Logic_Expected '{pin.Logic_Expected}': Expected format 'C#_DI##_#' or 'C#_AI##_#'"
+                self.log(text, "ERROR")
                 # Deactivate relays
                 self.hardware.digital_write(relay_a_pin, False)
                 self.hardware.digital_write(relay_b_pin, False)
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
-                return (0.0, False, f"Error: Invalid Logic_Expected format")
+                return (0.0, False, text)
             
             
             
@@ -858,13 +899,23 @@ class TestHandle:
                     self.log(f"Parsed Logic_Expected: Card={card}, AI={event_num}, Expected={event_value}", "INFO")
                     ai_status = self.card_manager.get_analog_input(card_id=card, ai_number=event_num)
                     self.log(f"measured -> Card {card} AI{event_num} Voltage : {ai_status}", "INFO")
+                else:
+                    text = f"Logic_Expected '{pin.Logic_Expected}' does not specify DI or AI type"
+                    self.log(text, "ERROR")
+                    # Deactivate relays
+                    self.hardware.digital_write(relay_a_pin, False)
+                    self.hardware.digital_write(relay_b_pin, False)
+                    clear_mux_bits(self.pin_map, self.hardware, self.log)
+                    return (0.0, False, text)
+                
             except Exception as e:
-                self.log(f"Error in Logic test reading DI{event_num} from card {card}: {str(e)}", "ERROR")
+                text = f"Error in Logic test reading DI{event_num} from card {card}: {str(e)}"
+                self.log(text, "ERROR")
                 # Deactivate relays before returning
                 self.hardware.digital_write(relay_a_pin, False)
                 self.hardware.digital_write(relay_b_pin, False)
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
-                return (0.0, False, f"Error reading DI status: {str(e)}")
+                return (0.0, False, text)
             
             if is_simulation:
                 self.log(f"workingin in simulation mode the tatus against Logic_Expected are good", "DEBUG")
@@ -910,7 +961,9 @@ class TestHandle:
                     self.hardware.digital_write(relay_a_pin, False)
                     self.hardware.digital_write(relay_b_pin, False)
                     clear_mux_bits(self.pin_map, self.hardware, self.log)
-                    return (0.0, False, f"Error: Invalid Logic_command operate - the output not set correctly: {verify_msg}")
+                    text = f"Error: Invalid Logic_command deactivate - the output card {card} DO{event_num} value {event_value} not deactivated correctly: {verify_msg}"
+                    self.log(text, "ERROR")
+                    return (0.0, False, text)
 
 
 
@@ -1504,34 +1557,23 @@ class TestHandle:
                         )
                 
                 if run_logic_test:
-                    if pin.Power_Result == True and pin.Power_Measured< 20.0: # the basic condition to run logic test is that power test passed and expected power is 0V
-                        self.log(f"Running Logic Test for {pin.Id} (Input: {pin.Logic_Pin_Input})", "INFO")
-                        logic_result = self.run_logic_test(pin, all_rows)
-                        Logic_test_voltage,Logic_test_result,logic_test_message = logic_result
-                        pin.Logic_DI_Result = Logic_test_result
-                        self.log(
+                    logic_result = self.run_logic_test(pin, all_rows)
+                    Logic_test_voltage,Logic_test_result,logic_test_message = logic_result
+                    pin.Logic_DI_Result = Logic_test_result
+                    self.log(
                             f"Logic Test: Result={'PASS' if pin.Logic_DI_Result else 'FAIL'} - {logic_test_message}",
                             "SUCCESS" if pin.Logic_DI_Result else "WARNING"
                         )
                         # Update table immediately after logic test
                         # Capture values to avoid lambda closure issues
-                        pin_id_local = pin.Id
-                        logic_result_str = "Pass" if pin.Logic_DI_Result else "Fail"
-                        logic_reason = logic_test_message
-                        root.after(0, lambda pid=pin_id_local, lr=logic_result_str, r=logic_reason:
+                    pin_id_local = pin.Id
+                    logic_result_str = "Pass" if pin.Logic_DI_Result else "Fail"
+                    logic_reason = logic_test_message
+                    root.after(0, lambda pid=pin_id_local, lr=logic_result_str, r=logic_reason:
                             pin_table.update_row(pid, {
                                 "Logic_DI_Result": lr,
                                 "Logic_DI_Result_Reason": r
                             }))
-                    elif pin.Power_Result == True and pin.Power_Expected > 0.0:
-                        self.log(
-                            f"Logic Test: in Pin ID {pin.Id} the defined Logic test condition not met (expected power > 0.0 V), so skip logic test","WARNING"
-                        )
-                    elif pin.Power_Result == False:
-                        self.log(
-                            f"Logic Test: Power test failed, so skip logic test","WARNING"
-                        )
-                
             except ValueError as e:
                 error_msg = f"running test - Pin data error for {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")

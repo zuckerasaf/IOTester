@@ -162,7 +162,7 @@ def _add_header_footer(doc: Document) -> None:
 		header_table.autofit = True
 		left_cell, right_cell = header_table.rows[0].cells
 
-		title_run = left_cell.paragraphs[0].add_run("IO Tester")
+		title_run = left_cell.paragraphs[0].add_run("IO Tester - Test Report")
 		_set_run_style(title_run, 12, (102, 153, 204))
 		left_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
 
