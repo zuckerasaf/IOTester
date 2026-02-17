@@ -17,8 +17,10 @@ from docx.oxml.ns import qn
 from tkinter import filedialog
 
 
-DEFAULT_OUTPUT_DIR = Path(r"C:\ArduinoProject\IO_Tester\tests\Results")
+DEFAULT_OUTPUT_DIR = Path(r"C:\ArduinoProject\IO_Tester\tests\Results\Base_Doc")
 DEFAULT_GENERAL_DATA_PATH = DEFAULT_OUTPUT_DIR / "general_data.docx"
+DEFAULT_GENERAL_OPEN_DATA_PATH = DEFAULT_OUTPUT_DIR / "open_general_data.docx"
+CONFIGURATION = DEFAULT_OUTPUT_DIR / "configuration.jpg"
 
 
 def _parse_filename_details(file_path: Path) -> Tuple[str, str]:
@@ -189,28 +191,74 @@ def _add_header_footer(doc: Document) -> None:
 
 def _append_document_body(target: Document, source: Document) -> None:
 	"""Append all body elements (paragraphs, tables) from source into target."""
+	element_count = 0
+	
+	# Get all existing content before any section properties
+	target_body = target.element.body
+	
+	# Find insertion point (before section properties if they exist)
+	insert_index = len(target_body)
+	for i, element in enumerate(target_body):
+		if element.tag == qn("w:sectPr"):
+			insert_index = i
+			break
+	
+	# Insert source elements at the correct position
 	for element in source.element.body:
 		if element.tag == qn("w:sectPr"):
 			continue
-		target.element.body.append(deepcopy(element))
+		target_body.insert(insert_index, deepcopy(element))
+		insert_index += 1
+		element_count += 1
+	
+	print(f"  → Appended {element_count} elements from source document")
+
+
+def _add_section_heading(doc: Document, text: str) -> None:
+	"""Add a blue section heading."""
+	heading = doc.add_paragraph(text)
+	heading.runs[0].font.size = Pt(14)
+	heading.runs[0].font.color.rgb = RGBColor(68, 114, 196)  # Blue color
+	heading.runs[0].bold = True
+	heading.space_after = Pt(6)
+
+
+def _add_title(doc: Document, text: str) -> None:
+	"""Add a large blue title."""
+	title = doc.add_paragraph(text)
+	title.runs[0].font.size = Pt(18)
+	title.runs[0].font.color.rgb = RGBColor(68, 114, 196)  # Blue color
+	title.runs[0].bold = True
+	title.space_after = Pt(12)
 
 
 def create_doc_report(report_files: List[Path], output_path: Path) -> Path:
 	"""Create a Word document report from selected Excel files."""
 	document = Document()
 	_add_header_footer(document)
-	if DEFAULT_GENERAL_DATA_PATH.exists():
-		general_doc = Document(DEFAULT_GENERAL_DATA_PATH)
-		_append_document_body(document, general_doc)
+	
+	print(f"Step 1: Creating document with header/footer")
+	
+	# 1. Open general data (if exists) - FIRST
+	if DEFAULT_GENERAL_OPEN_DATA_PATH.exists():
+		print(f"Step 2: Adding open_general_data.docx")
+		general_open_doc = Document(DEFAULT_GENERAL_OPEN_DATA_PATH)
+		_append_document_body(document, general_open_doc)
 	else:
-		document.add_paragraph("Section 1 text will be defined later.")
+		print(f"Step 2: Skipping open_general_data.docx (file not found)")
+	
+	# 2. Configuration image (if exists) - SECOND
+	if CONFIGURATION.exists():
+		print(f"Step 3: Adding configuration.jpg")
+		document.add_picture(str(CONFIGURATION), width=Inches(6.0))
+		document.add_paragraph()  # Spacing after image
+	else:
+		print(f"Step 3: Skipping configuration.jpg (file not found)")
+	
+	# 3. Result section - Summary table - THIRD
+	print(f"Step 4: Adding Result section and summary table")
+	_add_section_heading(document, "Result")
 
-	document.add_paragraph("-------- start section 2 -----")
-
-	document.add_paragraph("Section 2 text will be defined later.")
-	document.add_paragraph("-------- end section 2 -----")
-
-	document.add_paragraph("-------- start section 3 -----")
 
 	summary_table = document.add_table(rows=1, cols=8)
 	summary_table.style = "Table Grid"
@@ -237,8 +285,14 @@ def create_doc_report(report_files: List[Path], output_path: Path) -> Path:
 		"Not Tested",
 	]
 	for idx, header in enumerate(summary_headers):
-		summary_table.rows[0].cells[idx].text = header
-		summary_table.rows[0].cells[idx].width = summary_col_widths[idx]
+		cell = summary_table.rows[0].cells[idx]
+		cell.text = header
+		cell.width = summary_col_widths[idx]
+		# Make header bold
+		for paragraph in cell.paragraphs:
+			for run in paragraph.runs:
+				run.font.bold = True
+				run.font.size = Pt(10)
 
 	for idx, file_path in enumerate(report_files, start=1):
 		connector_name, test_datetime = _parse_filename_details(file_path)
@@ -254,11 +308,40 @@ def create_doc_report(report_files: List[Path], output_path: Path) -> Path:
 		row_cells[5].text = f"{counts['pullup'][0]}/{counts['pullup'][1]}"
 		row_cells[6].text = f"{counts['logic'][0]}/{counts['logic'][1]}"
 		row_cells[7].text = str(not_tested)
+		
+		# Format cell content and set column widths
 		for col_idx, width in enumerate(summary_col_widths):
 			row_cells[col_idx].width = width
+			# Set font size for all cells
+			for paragraph in row_cells[col_idx].paragraphs:
+				for run in paragraph.runs:
+					run.font.size = Pt(9)
+			
+			# Color code the Summary Result column
+			if col_idx == 3:  # Summary Result column
+				for paragraph in row_cells[col_idx].paragraphs:
+					for run in paragraph.runs:
+						if summary == "PASS":
+							run.font.color.rgb = RGBColor(0, 176, 80)  # Green
+							run.font.bold = True
+						elif summary == "FAIL":
+							run.font.color.rgb = RGBColor(255, 0, 0)  # Red
+							run.font.bold = True
+						elif summary == "PARTIAL":
+							run.font.color.rgb = RGBColor(255, 192, 0)  # Orange
+							run.font.bold = True
 
-	document.add_paragraph("-------- end section 3 -----")
-
+	document.add_paragraph()  # Spacing
+	
+	# 4. General data / Test procedures (if exists) - FOURTH (LAST)
+	if DEFAULT_GENERAL_DATA_PATH.exists():
+		print(f"Step 5: Adding general_data.docx")
+		general_doc = Document(DEFAULT_GENERAL_DATA_PATH)
+		_append_document_body(document, general_doc)
+	else:
+		print(f"Step 5: Skipping general_data.docx (file not found)")
+	
+	print(f"Step 6: Saving document to {output_path}")
 	output_path.parent.mkdir(parents=True, exist_ok=True)
 	document.save(output_path)
 	return output_path

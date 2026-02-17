@@ -4,6 +4,8 @@ IO_Tester:
   Description: A tool for testing and validating hardware pin configurations.
 Debug:
   mode: false
+UI:
+  UI_Type: Qt
 IO_Box:
   Type: MTC_AFT
   AvailableTypes:

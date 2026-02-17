@@ -17,19 +17,9 @@ class MainWindowQt(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("HW Tester (Qt)")
-        self.resize(1400, 800)
+        self.resize(1700, 800)
 
-                # Apply dark theme stylesheet
-        css_path = Path(__file__).resolve().parent.parent / "Styles" / "dark.css"
-        #print(f"CSS path: {css_path}")
-        #print(f"CSS exists: {css_path.exists()}")
-        if css_path.exists():
-            css_content = css_path.read_text(encoding="utf-8")
-            print(f"CSS loaded, length: {len(css_content)}")
-            self.setStyleSheet(css_content)
-        else:
-            print("WARNING: dark.css not found!")
-
+        # Stylesheet is loaded at app level in _main() for proper QMessageBox styling
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -68,20 +58,53 @@ class MainWindowQt(QMainWindow):
 
         # Group 2: run controls
         g2 = QGroupBox("Run Controls")
-        g2l = QGridLayout(g2)
-        g2l.setHorizontalSpacing(10)
-        g2l.setVerticalSpacing(8)
-
+        g2l = QVBoxLayout(g2)  # Changed to VBoxLayout for better control
+        
+        # Buttons row
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
         self.btn_test = QPushButton("Test")
         self.btn_test.setEnabled(False)  # Disabled until connector loaded
+        self.btn_test.setMinimumSize(200, 40)
+        buttons_layout.addWidget(self.btn_test)
+        buttons_layout.addStretch()
         self.btn_test_all = QPushButton("Test_All")
         self.btn_test_all.setEnabled(False)  # Disabled until connector loaded
+        self.btn_test_all.setMinimumSize(200, 40)
+        buttons_layout.addWidget(self.btn_test_all)
+        buttons_layout.addStretch()
         self.btn_stop = QPushButton("Stop")
         self.btn_stop.setEnabled(False)
-
-        g2l.addWidget(self.btn_test, 0, 1)
-        g2l.addWidget(self.btn_test_all, 0, 2)
-        g2l.addWidget(self.btn_stop, 0, 3)
+        self.btn_stop.setMinimumSize(200, 40)
+        buttons_layout.addWidget(self.btn_stop)
+        buttons_layout.addStretch()
+        g2l.addLayout(buttons_layout)
+        
+        # Add test status labels in a single horizontal line below buttons
+        status_layout = QHBoxLayout()
+        status_layout.addStretch()
+        status_layout.addWidget(QLabel("Testing Pin:"))
+        self.lbl_testing_pin = QLabel("---")
+        self.lbl_testing_pin.setStyleSheet("font-weight: bold; color: #58a6ff;")
+        status_layout.addWidget(self.lbl_testing_pin)
+        status_layout.addStretch()
+        
+        status_layout.addWidget(QLabel("Power:"))
+        self.lbl_power_result = QLabel("---")
+        status_layout.addWidget(self.lbl_power_result)
+        status_layout.addStretch()
+        
+        status_layout.addWidget(QLabel("Pullup:"))
+        self.lbl_pullup_result = QLabel("---")
+        status_layout.addWidget(self.lbl_pullup_result)
+        status_layout.addStretch()
+        
+        status_layout.addWidget(QLabel("Logic:"))
+        self.lbl_logic_result = QLabel("---")
+        status_layout.addWidget(self.lbl_logic_result)
+        status_layout.addStretch()
+        
+        g2l.addLayout(status_layout)
 
         controls_row.addWidget(g2, stretch=3)
 
@@ -242,6 +265,17 @@ class MainWindowQt(QMainWindow):
 
 def _main():
     app = QApplication([])
+    app.setStyle("Fusion")  # Use Fusion style for better cross-platform look
+    
+    # Load stylesheet at app level (required for QMessageBox styling)
+    css_path = Path(__file__).resolve().parent.parent / "Styles" / "dark.css"
+    if css_path.exists():
+        css_content = css_path.read_text(encoding="utf-8")
+        app.setStyleSheet(css_content)
+        print(f"Stylesheet loaded: {css_path} ({len(css_content)} chars)")
+    else:
+        print(f"WARNING: Stylesheet not found at {css_path}")
+    
     win = MainWindowQt()
     win.showMaximized()  # Open in full screen/maximized mode
     return app.exec()

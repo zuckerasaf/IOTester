@@ -18,7 +18,7 @@ class PinType(Enum):
 
 class TestResult(Enum):
     """Test result enumeration for pin test outcomes"""
-    NO_RESULT = "No Result"
+    NO_RESULT = ""
     PASS = "Pass"
     FAIL = "Fail"
 

@@ -131,7 +131,24 @@ class MainController:
         
         # Initialize UDP Card Manager
         self.card_manager = UDPCardManager(create_all=False)
-        self.card_manager.start_all()
+        binding_errors = self.card_manager.start_all()
+        
+        # Display binding errors if any
+        if binding_errors:
+            for error in binding_errors:
+                self.main_window.log.append(error, "ERROR")
+            
+            # Show error messagebox to notify user
+            error_summary = "\n".join(binding_errors)
+            self._show_message(
+                "UDP Binding Error",
+                f"Failed to bind to one or more UDP cards:\n\n{error_summary}\n\n"
+                f"The application will continue running, but affected cards will not function.\n"
+                f"Check if another application is using the same ports.\n"
+                f"---\n"
+                f"In case you wish to work with localhost run the switch_to_localhost.bat and restart the application.",
+                "critical"
+            )
         
         # Initialize TestHandle
         self.test_handler = TestHandle(
@@ -208,13 +225,66 @@ class MainController:
         # Enable text word wrapping
         msg_box.setTextFormat(Qt.PlainText)
         
-        # Set much larger dimensions for better readability
-        msg_box.setMinimumWidth(700)
-        msg_box.setMinimumHeight(300)
+        # Dimensions are controlled by CSS (dark.css QMessageBox styling)
         
         # Set appropriate standard button based on type
         msg_box.setStandardButtons(QMessageBox.Ok)
         msg_box.exec()
+    
+    def update_testing_pin(self, pin_id: str):
+        """
+        Update the testing pin label to show which pin is currently being tested.
+        
+        Args:
+            pin_id: Pin ID being tested (e.g., "J1-1")
+        """
+        self.main_window.lbl_testing_pin.setText(pin_id if pin_id else "---")
+    
+    def update_test_results(self, power_result: str = None, pullup_result: str = None, logic_result: str = None):
+        """
+        Update the test result labels in the Run Controls group.
+        
+        Args:
+            power_result: Power test result ("Pass", "Fail", or None to keep current)
+            pullup_result: Pullup test result ("Pass", "Fail", or None to keep current)
+            logic_result: Logic test result ("Pass", "Fail", or None to keep current)
+        """
+        if power_result is not None:
+            self.main_window.lbl_power_result.setText(power_result)
+            if power_result == "Pass":
+                self.main_window.lbl_power_result.setStyleSheet("color: #00FF00; font-weight: bold;")  # Bright green
+            elif power_result == "Fail":
+                self.main_window.lbl_power_result.setStyleSheet("color: #FF0000; font-weight: bold;")  # Bright red
+            else:
+                self.main_window.lbl_power_result.setStyleSheet("")  # Default style
+        
+        if pullup_result is not None:
+            self.main_window.lbl_pullup_result.setText(pullup_result)
+            if pullup_result == "Pass":
+                self.main_window.lbl_pullup_result.setStyleSheet("color: #00FF00; font-weight: bold;")
+            elif pullup_result == "Fail":
+                self.main_window.lbl_pullup_result.setStyleSheet("color: #FF0000; font-weight: bold;")
+            else:
+                self.main_window.lbl_pullup_result.setStyleSheet("")
+        
+        if logic_result is not None:
+            self.main_window.lbl_logic_result.setText(logic_result)
+            if logic_result == "Pass":
+                self.main_window.lbl_logic_result.setStyleSheet("color: #00FF00; font-weight: bold;")
+            elif logic_result == "Fail":
+                self.main_window.lbl_logic_result.setStyleSheet("color: #FF0000; font-weight: bold;")
+            else:
+                self.main_window.lbl_logic_result.setStyleSheet("")
+    
+    def clear_test_results(self):
+        """Clear all test result labels back to default state."""
+        self.update_testing_pin("")
+        self.main_window.lbl_power_result.setText("---")
+        self.main_window.lbl_power_result.setStyleSheet("")
+        self.main_window.lbl_pullup_result.setText("---")
+        self.main_window.lbl_pullup_result.setStyleSheet("")
+        self.main_window.lbl_logic_result.setText("---")
+        self.main_window.lbl_logic_result.setStyleSheet("")
     
     def on_load(self):
         """
@@ -986,11 +1056,14 @@ class MainController:
         self.main_window.btn_test.setEnabled(False)
         self.main_window.btn_test_all.setEnabled(False)
         
+        # Clear previous test results
+        self.clear_test_results()
+        
         # Clear selection to avoid visual conflicts with Pass/Fail row colors
         self.main_window.table.clear_selection()
         
         # Create Qt-compatible table adapter
-        qt_table_adapter = QtTableAdapter(self.main_window)
+        qt_table_adapter = QtTableAdapter(self.main_window, self)
         
         # Run test sequence in background thread
         threading.Thread(
@@ -1013,6 +1086,10 @@ class MainController:
         self.main_window.btn_stop.setEnabled(False)
         self.main_window.btn_test.setEnabled(True)
         self.main_window.btn_test_all.setEnabled(True)
+        
+        # Clear test result labels
+        self.clear_test_results()
+        
         self.main_window.log.append("Test sequence completed", "SUCCESS")
     
     def on_stop_t(self):
@@ -1090,8 +1167,10 @@ class QtTableAdapter:
     Provides thread-safe update methods.
     """
     
-    def __init__(self, main_window):
+    def __init__(self, main_window, controller):
         self.main_window = main_window
+        self.controller = controller
+        self.current_testing_pin = None
     
     def after(self, delay_ms, callback):
         """
@@ -1123,6 +1202,7 @@ class QtTableAdapter:
     def update_row(self, pin_id: str, values: Dict[str, str]):
         """
         Update a table row (Qt implementation) - thread-safe.
+        Also updates status labels when test results are available.
         
         Args:
             pin_id: Pin ID to update
@@ -1131,10 +1211,26 @@ class QtTableAdapter:
         # Debug logging to trace execution
         print(f"[QtTableAdapter] update_row called: pin_id={pin_id}, values={values}")
         
-        # Use lambda to ensure thread-safe execution on main thread
-        # This schedules the update on Qt's event loop
-        QTimer.singleShot(0, lambda: self.main_window.table.update_row(pin_id, values))
-        # This method might be called from background thread, so we use QTimer
+        # Check if we're testing a new pin
+        if pin_id != self.current_testing_pin:
+            self.current_testing_pin = pin_id
+            # Update "Testing Pin" status label
+            self.controller.update_testing_pin(pin_id)
+        
+        # Extract test results from values dict
+        power_result = values.get('Power_Result')
+        pullup_result = values.get('PullUp_Result')
+        logic_result = values.get('Logic_DI_Result')
+        
+        # Update test result labels if any results are present
+        if power_result or pullup_result or logic_result:
+            self.controller.update_test_results(
+                power_result=power_result,
+                pullup_result=pullup_result,
+                logic_result=logic_result
+            )
+        
+        # Update the table (thread-safe)
         QTimer.singleShot(0, lambda: self.main_window.table.update_row(pin_id, values))
     
     def select_all(self):

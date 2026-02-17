@@ -17,7 +17,7 @@ def main() -> int:
     app.setStyle("Fusion")
 
     # Reuse your existing QSS file
-    qss_path = Path(__file__).resolve().parents[1] / "Styles" / "dark.qss"
+    qss_path = Path(__file__).resolve().parents[1] / "Styles" / "dark.css"
     load_stylesheet(app, qss_path)
 
     w = MainWindowQt()

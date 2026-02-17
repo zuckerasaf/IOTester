@@ -256,14 +256,15 @@ QToolTip {
 /* Message Boxes and Dialogs */
 QMessageBox {
     background: #1f2328;
-    min-width: 400px;       /* Set minimum dialog width */
+    min-width: 700px;       /* Wide enough for error messages */
+    min-height: 1000px;      /* Sufficient height for multi-line messages */
 }
 
 QMessageBox QLabel {
     color: #e6edf3;
     font-size: 10pt;
-    min-width: 100px;       /* Reasonable minimum width */
-    max-width: 600px;       /* Allow text to take more space */
+    min-width: 700px;       /* Reasonable minimum width */
+    max-width: 1000px;       /* Allow text to take more space */
     margin: 0px;
     padding: 8px;
     
