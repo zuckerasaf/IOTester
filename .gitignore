@@ -224,3 +224,12 @@ tests/DB/Demo/JDemo.xlsx
 tests/Basic_Test.py
 tests/DB/Demo/JDemo.xlsx
 tests/DB/MTC_AFT/J17_Armant_1.xlsx
+tests/Results/IO_Tester_Report.docx
+tests/Results/~$neral_data.docx
+.gitignore
+tests/DB/MTC_AFT/debug_j16.py
+src/hw_tester/web/IO_Tester_logic_Power_test.xlsm
+src/hw_tester/web/IO_Tester_logic_Pullup_test.xlsm
+tests/DB/MTC_AFT/check_j16.py
+tests/DB/MTC_AFT/debug_from.py
+tests/DB/MTC_AFT/debug_raw.py

@@ -27,11 +27,11 @@ def trace_step(key, status="active"):
         # Notify SSE server via HTTP POST
         try:
             req = urllib.request.Request('http://localhost:8000/notify', method='POST')
-            urllib.request.urlopen(req, timeout=0.5)
+            urllib.request.urlopen(req, timeout=2.0)  # Increased timeout for reliability
             print(f"[TRACE] Notified SSE server")
-        except Exception:
-            # Server not running or not responding - that's OK, fail silently
-            pass
+        except Exception as notify_err:
+            # Server not running or not responding - show error for debugging
+            print(f"[TRACE WARNING] Could not notify SSE server: {notify_err}")
             
     except Exception as e:
         print(f"[TRACE ERROR] Failed to write: {e}")

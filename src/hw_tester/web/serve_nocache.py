@@ -10,6 +10,12 @@ from pathlib import Path
 
 PORT = 8000
 
+# Use ThreadingMixIn to handle multiple connections simultaneously
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    """Multi-threaded HTTP server that can handle SSE and POST requests simultaneously"""
+    daemon_threads = True  # Exit threads cleanly when main thread exits
+    allow_reuse_address = True  # Allow quick restarts
+
 # Global queue for SSE clients
 sse_clients = []
 sse_lock = threading.Lock()
@@ -44,11 +50,13 @@ class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         # Handle trace update notification
         if self.path == '/notify':
+            print(f"[NOTIFY] Received trace update notification (from trace_writer.py)")
             notify_trace_update()
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain')
             self.end_headers()
             self.wfile.write(b'OK')
+            print(f"[NOTIFY] Response sent")
         else:
             self.send_response(404)
             self.end_headers()
@@ -127,10 +135,16 @@ if __name__ == "__main__":
     import os
     os.chdir(web_dir)
     
-    with socketserver.TCPServer(("", PORT), NoCacheHTTPRequestHandler) as httpd:
-        print(f"Serving HTTP on port {PORT} from {web_dir}")
+    with ThreadedHTTPServer(("", PORT), NoCacheHTTPRequestHandler) as httpd:
+        print("=" * 60)
+        print(f"SSE HTTP Server Starting on port {PORT}")
+        print(f"Server mode: MULTI-THREADED (SSE + POST notifications)")
+        print(f"Serving from: {web_dir}")
+        print(f"trace.json caching: DISABLED")
         print(f"Open: http://localhost:{PORT}/IO_Tester_logic_Power_test.html")
-        print("trace.json will NOT be cached")
+        print("=" * 60)
+        print("Waiting for connections...")
+        print()
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

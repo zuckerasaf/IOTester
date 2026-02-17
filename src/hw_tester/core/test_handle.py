@@ -943,7 +943,7 @@ class TestHandle:
             clear_mux_bits(self.pin_map, self.hardware, self.log)
             
             # Parse Logic_cpmmand  for DO if exsit and Deactivate it   (format: "C2_DO13_1" or similar)
-            if pin.Logic_Command is not "" and pin.Logic_Command is not None:
+            if pin.Logic_Command:
                 card, event_type, event_num, event_value = parse_event_string(pin.Logic_Command.split(",")[i])
                 success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
                 event_value = False
@@ -1481,7 +1481,18 @@ class TestHandle:
                     Logic_DI_Result=TestResult.NO_RESULT
                 )
                 
+                print(f"★★★ DEBUG: Pin object created for ID={pin.Id}, Type={pin.Discrete_Name}")
                 self.log(f"Processing pin number {pin.Id} - Type: {pin.Discrete_Name}", "INFO")
+                print(f"★★★ DEBUG: About to check hasattr for set_testing_pin")
+                
+                # Highlight the row being tested (orange background)
+                if hasattr(pin_table, 'set_testing_pin'):
+                    self.log(f"Setting testing indicator for pin {pin.Id}", "DEBUG")
+                    pin_table.set_testing_pin(pin.Id)
+                    # Small delay to ensure orange is visible
+                    time.sleep(0.1)
+                else:
+                    self.log("pin_table does not have set_testing_pin method", "WARNING")
                 
                 # Step 3: Determine which tests to run based on whether values are provided (not empty)
                 # Empty values in Excel mean the test should be skipped
@@ -1498,8 +1509,9 @@ class TestHandle:
                 # Run tests
                 # Clear mux bits before setting new ones
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
+                print(f"★★★ DEBUG: About to run tests - power={run_power_test}, pullup={run_pullup_test}, logic={run_logic_test}")
                 if run_power_test:
-                    
+                    print(f"★★★ DEBUG: Starting power test for pin {pin.Id}")
                     self.log(f"Running Power Test for pin {pin.Id}", "INFO")
                     power_voltage, power_success, power_message = self.run_power_test(pin)
                     # Clear mux bits before setting new ones
@@ -1574,12 +1586,27 @@ class TestHandle:
                                 "Logic_DI_Result": lr,
                                 "Logic_DI_Result_Reason": r
                             }))
+                
+                # Keep indicator visible for a moment so user can see it
+                time.sleep(0.3)
+                
+                # Clear testing indicator after all tests for this pin complete
+                if hasattr(pin_table, 'set_testing_pin'):
+                    self.log(f"Clearing testing indicator for pin {pin.Id}", "DEBUG")
+                    pin_table.set_testing_pin(None)
+                    
             except ValueError as e:
                 error_msg = f"running test - Pin data error for {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")
+                # Clear testing indicator on error
+                if hasattr(pin_table, 'set_testing_pin'):
+                    pin_table.set_testing_pin(None)
             except Exception as e:
                 error_msg = f"running test - Unexpected error processing {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")
+                # Clear testing indicator on error
+                if hasattr(pin_table, 'set_testing_pin'):
+                    pin_table.set_testing_pin(None)
         
         root.after(0, on_test_complete)
  

@@ -67,7 +67,7 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
         'Power_Input': _column_letter_to_index(excel_cols.get('Power_Input', 'O')),
         'PullUp_Expected': _column_letter_to_index(excel_cols.get('PullUp_Expected', 'P')),
         'PullUp_Input': _column_letter_to_index(excel_cols.get('PullUp_Input', 'Q')),
-            'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'R')),
+        'Logic_Pin_Input': _column_letter_to_index(excel_cols.get('Logic_Pin_Input', 'R')),
         'Logic_Command': _column_letter_to_index(excel_cols.get('Logic_Command', 'S')),
         'Logic_Expected': _column_letter_to_index(excel_cols.get('Logic_Expected', 'T')),
         'Test_Result': _column_letter_to_index(excel_cols.get('Test_Result', 'T'))

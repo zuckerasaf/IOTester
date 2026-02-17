@@ -126,8 +126,10 @@ class Pin:
             "PullUp_Measured": self.PullUp_Measured,
             "PullUp_Result": self.PullUp_Result.value,
             "Power_Input": self.Power_Input,
+            "PullUp_Input": self.PullUp_Input,
             "Logic_Pin_Input": self.Logic_Pin_Input,
             "Logic_Command": self.Logic_Command,
+            "Logic_Expected": self.Logic_Expected,
             "Logic_DI_Result": self.Logic_DI_Result.value
         }
     

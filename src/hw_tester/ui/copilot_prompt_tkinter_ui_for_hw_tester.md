@@ -1,128 +1,128 @@
-# Copilot Prompt: Build Tkinter UI for HW Tester
+# Tkinter UI: HW Tester (Current Implementation)
 
-**Goal**: Generate production-ready Tkinter UI code for a desktop “HW Tester” app that controls routing/measurement of DUT pins via Controllino/Arduino. Follow the layout spec precisely. Create clean, testable code that separates UI from business logic.
+This document reflects the current Tkinter UI code in `src/hw_tester/ui/` and related views. It intentionally ignores `QT_Style.py` because that file is only a PySide6 UI experiment.
 
 ---
 
 ## Tech Stack & Conventions
 - Python 3.10+
-- Tkinter + ttk **only** (no third-party UI libs)
-- Use `ttk.Style` for theming, but keep defaults simple
-- Use `grid` everywhere with correct row/column weights for resizing
-- Type hints required, PEP8, docstrings, no wildcard imports
-- Put long-running actions in a **thread** or `after()` loop, never block the UI
+- Tkinter + ttk only (no third-party UI libraries)
+- Grid-based layout for the main window; view widgets are self-contained
+- Long-running work runs in background threads; UI updates happen via `after()`
 
 ---
 
-## File Structure (generate these files)
+## File Structure
 ```
-src/hw_tester/ui/main_window.py        # Main window class (Tk)
+src/hw_tester/ui/main_window.py        # Main window class (Tk), wiring to core/hardware
 src/hw_tester/ui/views/pin_table.py     # PinTableView (ttk.Treeview)
-src/hw_tester/ui/views/op_panel.py      # OperationalPanel (buttons & connector label)
+src/hw_tester/ui/views/op_panel.py      # OperationalPanel (controls and filters)
 src/hw_tester/ui/views/log_view.py      # LogView (ScrolledText)
 ```
 
-Provide a single runnable entry point for demonstration: `if __name__ == "__main__": MainWindow().run()` inside `main_window.py` with **mock callbacks**.
+---
+
+## Layout Summary
+The main window is divided into three stacked sections:
+1) Pin Table (top)
+2) Operational Panel (middle)
+3) Operational Log (bottom)
+
+The root window uses a 3-row grid with weights `(3, 0, 1)` and one stretching column.
 
 ---
 
-## Layout Spec (match the mockup)
-Main window is vertically divided into three sections:
-1) **Pin Table** (top): selectable grid with vertical scroll
-2) **Operational Panel** (middle): left = Connector label, right = action buttons
-3) **Operational Log** (bottom): multiline log with vertical scroll
+## Pin Table (PinTableView)
+Location: `src/hw_tester/ui/views/pin_table.py`
 
-Use a top-level `Frame` with 3 grid rows: `rowconfigure(0, weight=3)`, `rowconfigure(1, weight=0)`, `rowconfigure(2, weight=1)` and a single column `columnconfigure(0, weight=1)`.
+**Widget**: `ttk.Treeview` with vertical and horizontal scrollbars, multi-select enabled, header sorting, zebra striping, and pass/fail row coloring.
 
----
-
-## Widgets & IDs
-### Pin Table (PinTableView)
-- `ttk.Treeview` with columns: `ID`, `type`, `volt`, `Measure`, `destination`, `substance`, `card`
-- Show headings, zebra striping optional
-- Attach vertical `ttk.Scrollbar`
-- Enable **multiple selection**
-- Public API:
-  - `set_rows(rows: list[dict]) -> None`
-  - `get_selected_ids() -> list[str]`
-  - `update_row(id: str, values: dict) -> None`
-
-### Operational Panel (OperationalPanel)
-- Left: `ttk.Label` (id: `connector_label`) displaying active connector name
-- Right: buttons in a grid:
-  - `btn_connect`
-  - `btn_run`
-  - `btn_stop`
-  - `btn_report`
-  - `btn_clear_log`
-- Public API: `set_connector(name: str) -> None`
-- Buttons fire callbacks provided by MainWindow (functionality will be defined later)
-
-### Log View (LogView)
-- `tk.Text` inside `ScrolledText` with vertical scrollbar
-- Methods: `append(message: str, level: str="INFO")` (prefix timestamp + level), `clear()`
-
----
-
-## Callbacks (to be wired to core later)
-In `MainWindow`, create **mock** async-safe callbacks with signatures below; UI must call these, but they just simulate behavior now:
-- `on_connect(pin_ids: list[str]) -> None`
-- `on_run_profile() -> None`
-- `on_stop() -> None`
-- `on_generate_report() -> None`
-- `on_clear_log() -> None`
-
-Simulate outcomes by updating rows and appending to the log.
-
----
-
-## Styling
-- Use `ttk.Style` to define styles: `Primary.TButton` (green Run), `Danger.TButton` (orange Stop), `Secondary.TButton` (blue Connect), `Info.TButton` (gray Report), `Utility.TButton` (light ClearLog)
-- Ensure all widgets expand/shrink properly on window resize
-
----
-
-## Data Model (for demo)
-Provide sample rows to populate the table on startup:
-```python
-rows = [
-    {"ID": "J1-01", "type": "digital", "volt": "", "Measure": "", "destination": "", "substance": "", "card": "A"},
-    {"ID": "J1-02", "type": "analog",  "volt": "", "Measure": "", "destination": "", "substance": "", "card": "A"},
-]
+**Columns (current)**
+```
+ID, Connect, Discrete_Name, Signal_Name, Plug, Type, Pin,
+Power_Expected, Power_Input, Power_Measured, Power_Result, Power_Result_Reason,
+PullUp_Expected, PullUp_Input, PullUp_Measured, PullUp_Result, PullUp_Result_Reason,
+Logic_Pin_Input, Logic_Command, Logic_Expected, Logic_DI_Result, Logic_DI_Result_Reason
 ```
 
----
+**Editable columns**
+`Power_Expected`, `Power_Input`, `PullUp_Expected`, `PullUp_Input`, `Logic_Pin_Input`, `Logic_Command`, `Logic_Expected`
 
-## Behavior Requirements
-- Buttons disabled/enabled appropriately (e.g., `Stop` disabled when idle)
-- Log automatically scrolls to the latest line
-- No blocking calls in the main thread; use `after()` to simulate progress
-
----
-
-## Deliverables
-- Fully working UI with the files listed above
-- Running `python src/hw_tester/ui/main_window.py` opens the window with demo data and functioning interactions (no real hardware)
-- Clear placeholders marked `# TODO(core):` where integration with hardware/logic will happen
+**Public API**
+- `set_rows(rows: list[dict]) -> None`
+- `get_selected_ids() -> list[str]`
+- `update_row(pin_id: str, values: dict) -> None`
+- `clear_selection() -> None`
+- `select_all() -> None`
+- `get_all_rows() -> list[dict]`
 
 ---
 
-## Acceptance Criteria
-- Window layout matches the mockup (Pin Table / Operational Panel / Log)
-- Table supports multi-select and vertical scrolling
-- Operational panel shows connector label and five buttons: Connect, Run, Stop, Report, ClearLog
-- Log view scrolls, supports Save and Clear
-- Code is modular, typed, and passes `flake8` basics
+## Operational Panel (OperationalPanel)
+Location: `src/hw_tester/ui/views/op_panel.py`
+
+**Layout**
+- Left: connector label (sunk frame)
+- Right: control grid across 3 rows
+
+**Controls (current)**
+- Buttons: `Load`, `KeepAlive`, `I_Bit`, `Stop_IBIT`, `Test`, `Test_All`, `Stop_T`, `ClearLog`, `Report`, `DOC`, `Next`
+- Combos: `Simulation On/Off`, `Local Host/IO_box`, `Debug/Normal`, `HTML file selection`, `Hardware type`
+- Log Filter: checkbox group for `INFO`, `SUCCESS`, `WARNING`, `ERROR`, `DEBUG`
+
+**Behavior notes**
+- HTML file combo is enabled only in Debug mode.
+- Log filter checkboxes drive filtering in `LogView`.
+- `trace.json` is reset on startup to avoid stale web trace data.
+
+**Public API**
+- `set_connector(name: str) -> None`
+- `enable_stop_t(enabled: bool = True) -> None`
+- `enable_stop_ibit(enabled: bool = True) -> None`
+- `enable_test(enabled: bool = True) -> None`
+- `enable_test_all(enabled: bool = True) -> None`
+- `enable_i_bit(enabled: bool = True) -> None`
+- `enable_load(enabled: bool = True) -> None`
+- `enable_keep_alive(enabled: bool = True) -> None`
+- `get_hardware() -> str`, `set_hardware(hw: str) -> None`
+- `get_simulation_mode() -> str`, `set_simulation_mode(mode: str) -> None`
+- `get_localhost_mode() -> str`, `set_localhost_mode(mode: str) -> None`
+- `get_html_file() -> str`, `set_html_file(filename: str) -> None`, `enable_html_dropdown(enabled: bool = True) -> None`
+- `get_debug_mode() -> str`, `set_debug_mode(mode: str) -> None`
 
 ---
 
-## Starter Snippet (place in `main_window.py` for quick run)
-```python
-if __name__ == "__main__":
-    # Allow running this module directly for demo
-    win = MainWindow(title="HW Tester – Demo")
-    win.run()
+## Operational Log (LogView)
+Location: `src/hw_tester/ui/views/log_view.py`
+
+**Widget**: `ScrolledText` (read-only) with color tags per log level.
+
+**Public API**
+- `append(message: str, level: str = "INFO") -> None`
+- `clear() -> None`
+- `filter_by_level(levels: list | None) -> None`
+
+Logs are stored internally and re-rendered when filters change.
+
+---
+
+## Main Window Integration (MainWindow)
+Location: `src/hw_tester/ui/main_window.py`
+
+MainWindow wires the UI to real hardware/core logic:
+- Loads settings and board pin mappings before creating widgets.
+- Initializes hardware via `hardware_factory`, then creates `Measurer`, `PinPulser`, `UDPCardManager`, and `TestHandle`.
+- Uses background threads for long tasks (loading Excel, running tests).
+- Uses `after()` for UI updates and state changes.
+
+---
+
+## Run
 ```
+python src/hw_tester/ui/main_window.py
+```
+
+This runs the full application with live wiring to the core modules (not a mock UI).
+
 
 > IMPORTANT: Generate complete implementations for all classes/files with mock logic so the UI is interactive and demonstrates the full workflow without real hardware.
-
