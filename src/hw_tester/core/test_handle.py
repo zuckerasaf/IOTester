@@ -810,42 +810,42 @@ class TestHandle:
                 self.log(text, "ERROR")
                 return (0.0, False, text)
             
-            # Step 7: Activate the two proper relays for pin and second pin
-            relay_ports = self.pin_map.get('R', {})
+            # # Step 7: Activate the two proper relays for pin and second pin
+            # relay_ports = self.pin_map.get('R', {})
             
-            relay_a_name = self.board_config.get(relay_enable_a_key, 'R0')
-            relay_a_pin = relay_ports.get(relay_a_name)
+            # relay_a_name = self.board_config.get(relay_enable_a_key, 'R0')
+            # relay_a_pin = relay_ports.get(relay_a_name)
             
-            relay_b_name = self.board_config.get(second_relay_enable_b_key, 'R1')
-            relay_b_pin = relay_ports.get(relay_b_name)
+            # relay_b_name = self.board_config.get(second_relay_enable_b_key, 'R1')
+            # relay_b_pin = relay_ports.get(relay_b_name)
             
-            if relay_a_pin is None:
-                text = f"Relay A pin {relay_a_name} not found in pin map"
-                self.log(text, "ERROR")
-                return (0.0, False, f"Error: {text}")
+            # if relay_a_pin is None:
+            #     text = f"Relay A pin {relay_a_name} not found in pin map"
+            #     self.log(text, "ERROR")
+            #     return (0.0, False, f"Error: {text}")
             
-            if relay_b_pin is None:
-                text = f"Relay B pin {relay_b_name} not found in pin map"
-                self.log(text, "ERROR")
-                return (0.0, False, f"Error: {text}")
+            # if relay_b_pin is None:
+            #     text = f"Relay B pin {relay_b_name} not found in pin map"
+            #     self.log(text, "ERROR")
+            #     return (0.0, False, f"Error: {text}")
             
-            self.log(f"Activating relay A {relay_a_name} (pin {relay_a_pin}) for pin {pin_number}", "INFO")
-            self.hardware.digital_write(relay_a_pin, True)
+            # self.log(f"Activating relay A {relay_a_name} (pin {relay_a_pin}) for pin {pin_number}", "INFO")
+            # self.hardware.digital_write(relay_a_pin, True)
             
-            self.log(f"Activating relay B {relay_b_name} (pin {relay_b_pin}) for second pin {second_pin_number}", "INFO")
-            self.hardware.digital_write(relay_b_pin, True)
+            # self.log(f"Activating relay B {relay_b_name} (pin {relay_b_pin}) for second pin {second_pin_number}", "INFO")
+            # self.hardware.digital_write(relay_b_pin, True)
             
-            # Wait for relays to stabilize
-            stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
-            time.sleep(stabilize_delay)
+            # # Wait for relays to stabilize
+            # stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+            # time.sleep(stabilize_delay)
             
             # Step 8: Parse Logic_Expected data (format: "C2_DI13_1" -> Card=2, DI=13, ExpectedState=1)
             if not hasattr(pin, 'Logic_Expected') or not pin.Logic_Expected or pin.Logic_Expected.strip().lower() == "none":
                 text = f"No Logic_Expected specified for pin {pin_number} - skipping verification"
                 self.log(text, "WARNING")
                 # Deactivate relays
-                self.hardware.digital_write(relay_a_pin, False)
-                self.hardware.digital_write(relay_b_pin, False)
+                # self.hardware.digital_write(relay_a_pin, False)
+                # self.hardware.digital_write(relay_b_pin, False)
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
                 return (0.0, False, text)
             
@@ -865,8 +865,8 @@ class TestHandle:
                 )
                 if not verify_success:
                                     # Deactivate relays
-                    self.hardware.digital_write(relay_a_pin, False)
-                    self.hardware.digital_write(relay_b_pin, False)
+                    # self.hardware.digital_write(relay_a_pin, False)
+                    # self.hardware.digital_write(relay_b_pin, False)
                     clear_mux_bits(self.pin_map, self.hardware, self.log)
                     text = f"Error: Invalid Logic_command operate - the output card {card} DO{event_num}  value{event_value} not set correctly: {verify_msg}"
                     self.log(text, "ERROR")
@@ -879,8 +879,8 @@ class TestHandle:
                 text = f"Failed to parse Logic_Expected '{pin.Logic_Expected}': Expected format 'C#_DI##_#' or 'C#_AI##_#'"
                 self.log(text, "ERROR")
                 # Deactivate relays
-                self.hardware.digital_write(relay_a_pin, False)
-                self.hardware.digital_write(relay_b_pin, False)
+                # self.hardware.digital_write(relay_a_pin, False)
+                # self.hardware.digital_write(relay_b_pin, False)
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
                 return (0.0, False, text)
             
@@ -903,8 +903,8 @@ class TestHandle:
                     text = f"Logic_Expected '{pin.Logic_Expected}' does not specify DI or AI type"
                     self.log(text, "ERROR")
                     # Deactivate relays
-                    self.hardware.digital_write(relay_a_pin, False)
-                    self.hardware.digital_write(relay_b_pin, False)
+                    # self.hardware.digital_write(relay_a_pin, False)
+                    # self.hardware.digital_write(relay_b_pin, False)
                     clear_mux_bits(self.pin_map, self.hardware, self.log)
                     return (0.0, False, text)
                 
@@ -912,8 +912,8 @@ class TestHandle:
                 text = f"Error in Logic test reading DI{event_num} from card {card}: {str(e)}"
                 self.log(text, "ERROR")
                 # Deactivate relays before returning
-                self.hardware.digital_write(relay_a_pin, False)
-                self.hardware.digital_write(relay_b_pin, False)
+                # self.hardware.digital_write(relay_a_pin, False)
+                # self.hardware.digital_write(relay_b_pin, False)
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
                 return (0.0, False, text)
             
@@ -935,9 +935,9 @@ class TestHandle:
             
 
             # Step 11: Deactivate relay cards
-            self.hardware.digital_write(relay_a_pin, False)
-            self.hardware.digital_write(relay_b_pin, False)
-            self.log(f"Deactivated relays {relay_a_name} and {relay_b_name}", "DEBUG")
+            # self.hardware.digital_write(relay_a_pin, False)
+            # self.hardware.digital_write(relay_b_pin, False)
+            # self.log(f"Deactivated relays {relay_a_name} and {relay_b_name}", "DEBUG")
             
             # Clear mux bits
             clear_mux_bits(self.pin_map, self.hardware, self.log)
@@ -958,8 +958,8 @@ class TestHandle:
                 )
                 if not verify_success:
                                     # Deactivate relays
-                    self.hardware.digital_write(relay_a_pin, False)
-                    self.hardware.digital_write(relay_b_pin, False)
+                    # self.hardware.digital_write(relay_a_pin, False)
+                    # self.hardware.digital_write(relay_b_pin, False)
                     clear_mux_bits(self.pin_map, self.hardware, self.log)
                     text = f"Error: Invalid Logic_command deactivate - the output card {card} DO{event_num} value {event_value} not deactivated correctly: {verify_msg}"
                     self.log(text, "ERROR")

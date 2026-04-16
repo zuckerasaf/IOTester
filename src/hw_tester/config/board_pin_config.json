@@ -1,6 +1,7 @@
 {
   "ControllinoMega": {
     "mesure_gain" : 6.14,
+    "voltage_measure_general": "A0",
     "voltage_measure_pin_pair1": "A0",
     "voltage_measure_pin_pair2": "A1",
     "voltage_measure_pin_pair3": "A2",
@@ -9,6 +10,7 @@
     "voltage_measure_pin_pair2_B": "A5",
     "voltage_measure_pin_pair3_B": "A6",
     "voltage_measure_pin_pair4_B": "A7",
+    "pullup_pins_pin_general": "D23",
     "pullup_pins_pin_pair1": "D20",
     "pullup_pins_pin_pair2": "D21",
     "pullup_pins_pin_pair3": "D22",
