@@ -27,7 +27,7 @@ Timeouts:
   sample_interval: 0.1
   TestStep: 2.5
   Connection: 5.0
-  pins_to_stabilize: 0.1
+  pins_to_stabilize: 0.5
 scale:
   voltage: 6.14
   voltage_degredation: 1.5

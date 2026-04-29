@@ -173,6 +173,18 @@ QTableView::item:selected {
     color: #ffffff;
 }
 
+/* Inline cell editor in pin table: keep high contrast while editing values */
+QTableView#pinTable QLineEdit {
+    background: #f8fafc;
+    color: #0f172a;
+    border: 1px solid #2563eb;
+    border-radius: 7px;
+    padding: 2px 6px;
+    selection-background-color: #1d4ed8;
+    selection-color: #ffffff;
+    font-weight: 600;
+}
+
 /* Headers */
 QHeaderView::section {
     background: #1b222b;

@@ -13,6 +13,35 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QColor, QBrush, QFont
 
 
+class PinTableEditDelegate(QStyledItemDelegate):
+    """Custom editor delegate to ensure edited values are always readable."""
+
+    def createEditor(self, parent, option, index):
+        if not index.isValid():
+            return super().createEditor(parent, option, index)
+
+        # Only customize editors for editable cells.
+        if not (index.flags() & Qt.ItemIsEditable):
+            return super().createEditor(parent, option, index)
+
+        editor = QLineEdit(parent)
+        editor.setFrame(False)
+        editor.setStyleSheet(
+            "QLineEdit {"
+            "background: #f8fafc;"
+            "color: #0f172a;"
+            "border: 1px solid #2563eb;"
+            "border-radius: 7px;"
+            "padding: 2px 6px;"
+            "selection-background-color: #1d4ed8;"
+            "selection-color: #ffffff;"
+            "font-weight: 600;"
+            "}"
+        )
+        editor.selectAll()
+        return editor
+
+
 class PinTableModel(QAbstractTableModel):
     """
     Custom table model for pin data with sorting and color coding support.
@@ -365,6 +394,7 @@ class PinTableQt(QWidget):
         # Create and set model
         self.model = PinTableModel()
         self.table.setModel(self.model)
+        self.table.setItemDelegate(PinTableEditDelegate(self.table))
         
         # Configure table appearance
         self.table.setAlternatingRowColors(False)  # We handle colors in model

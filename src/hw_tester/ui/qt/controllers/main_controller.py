@@ -24,6 +24,7 @@ from hw_tester.core.measurer import Measurer
 from hw_tester.core.pin_pulser import PinPulser
 from hw_tester.core.udp_card_manager import UDPCardManager
 from hw_tester.hardware.hardware_factory import initialize_hardware
+# from hw_tester.core.test_handle import run_i_bit_test
 
 
 class MainController:
@@ -149,7 +150,8 @@ class MainController:
                 f"In case you wish to work with localhost run the switch_to_localhost.bat and restart the application.",
                 "critical"
             )
-        
+        else :
+            self.main_window.log.append("no binding errors in the UDP connections", "SUCCESS")
         # Initialize TestHandle
         self.test_handler = TestHandle(
             hardware=self.hardware,
@@ -800,7 +802,7 @@ class MainController:
     
     def on_ibit(self):
         """
-        Handle IBIT button click - Run short circuit test on all pins.
+        Handle IBIT button click - Run Ibit test on all pins.
         
         Runs relay fuse tests on 4 pin pairs followed by comprehensive short circuit test.
         All tests execute in background thread with thread-safe logging and UI updates.
@@ -813,55 +815,10 @@ class MainController:
         self.main_window.btn_stop_ibit.setEnabled(True)
         self.main_window.btn_ibit.setEnabled(False)
         
-        # Run short circuit test in background thread using TestHandle
+        # Run Ibit test in background thread using TestHandle
         def run_i_bit_test():
-            try:
-                # Run relay fuse tests on all 4 pin pairs
-                pair1_test_results, pair1_test_status = self.test_handler.relay_fuse_test(
-                    "enable_Relay_pin_1_A", "enable_Relay_pin_1_B", 
-                    "pullup_pins_pin_pair1", "voltage_measure_pin_pair1", "voltage_measure_pin_pair1_B"
-                )
-                pair2_test_results, pair2_test_status = self.test_handler.relay_fuse_test(
-                    "enable_Relay_pin_2_A", "enable_Relay_pin_2_B", 
-                    "pullup_pins_pin_pair2", "voltage_measure_pin_pair2", "voltage_measure_pin_pair2_B"
-                )
-                pair3_test_results, pair3_test_status = self.test_handler.relay_fuse_test(
-                    "enable_Relay_pin_3_A", "enable_Relay_pin_3_B", 
-                    "pullup_pins_pin_pair3", "voltage_measure_pin_pair3", "voltage_measure_pin_pair3_B"
-                )
-                pair4_test_results, pair4_test_status = self.test_handler.relay_fuse_test(
-                    "enable_Relay_pin_4_A", "enable_Relay_pin_4_B", 
-                    "pullup_pins_pin_pair4", "voltage_measure_pin_pair4", "voltage_measure_pin_pair4_B"
-                )
-                
-                # Check if all relay pairs passed
-                if pair1_test_status and pair2_test_status and pair3_test_status and pair4_test_status:
-                    self._log_callback(
-                        "I_Bit test complete: All relay pairs PASSED",
-                        "SUCCESS"
-                    )
-                else:
-                    self._log_callback(
-                        "I_Bit test complete: Some relay pairs FAILED",
-                        "WARNING"
-                    )
-                
-                # Run comprehensive short circuit test
-                test_results = self.test_handler.short_circuit_test()
-                passed_count = sum(1 for _, passed, _ in test_results if passed)
-                total_count = len(test_results)
-                
-                self._log_callback(
-                    f"I_Bit test complete: {passed_count}/{total_count} pins PASSED",
-                    "SUCCESS" if passed_count == total_count else "WARNING"
-                )
-                
-            except Exception as e:
-                error_msg = f"Error during I_Bit test: {str(e)}"
-                self._log_callback(error_msg, "ERROR")
-            finally:
-                self._on_ibit_complete_threadsafe()
-        
+            if self.test_handler:
+                self.test_handler.run_i_bit_test()
         threading.Thread(target=run_i_bit_test, daemon=True).start()
     
     def on_stop_ibit(self):
@@ -877,6 +834,17 @@ class MainController:
         
         self.main_window.btn_stop_ibit.setEnabled(False)
         self.main_window.btn_ibit.setEnabled(True)
+
+        # Wait 2 seconds, then clear mux bits to ensure all pins are shut down
+        import time
+        time.sleep(2.0)
+        try:
+            from hw_tester.utils.general import clear_mux_bits
+            clear_mux_bits(self.pin_map, self.hardware, self.main_window.log.append)
+            self.main_window.log.append("All mux matrix pins cleared after stop.", "DEBUG")
+        except Exception as e:
+            self.main_window.log.append(f"Error clearing mux bits after stop: {e}", "ERROR")
+
     
     def _on_ibit_complete_threadsafe(self):
         """Thread-safe callback when IBIT test completes - schedules UI update."""
@@ -1065,9 +1033,14 @@ class MainController:
         # Create Qt-compatible table adapter
         qt_table_adapter = QtTableAdapter(self.main_window, self)
         
-        # Run test sequence in background thread
+
+        def run_test(selected_ids, all_rows, qt_table_adapter1, qt_table_adapter2, callback):
+            if self.running:
+                self.test_handler.run_tests(selected_ids, all_rows, qt_table_adapter1, qt_table_adapter2, callback)
+
+        # Run test sequence in background thread, passing all required arguments
         threading.Thread(
-            target=self.test_handler.run_tests,
+            target=run_test,
             args=(selected_ids, all_rows, qt_table_adapter, qt_table_adapter, self._on_test_complete_threadsafe),
             daemon=True
         ).start()
@@ -1098,10 +1071,11 @@ class MainController:
         self.running = False
         if self.test_handler:
             self.test_handler.running = False
-        
+
         self.main_window.btn_stop.setEnabled(False)
         self.main_window.btn_test.setEnabled(True)
         self.main_window.btn_test_all.setEnabled(True)
+        
     
     def _get_selected_pin_ids(self) -> List[str]:
         """

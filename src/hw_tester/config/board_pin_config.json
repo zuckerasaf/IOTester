@@ -23,6 +23,7 @@
     "enable_card_3_B_pin": "D13",
     "enable_card_4_A_pin": "D14",
     "enable_card_4_B_pin": "D15",
+    "enable_Relay_general" : "R15",
     "enable_Relay_pin_1_A" : "R0",
     "enable_Relay_pin_1_B" : "R1",
     "enable_Relay_pin_2_A" : "R2",

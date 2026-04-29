@@ -137,14 +137,15 @@ class TestHandle:
         
         
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
-        
+        debug = self.settings.get('Debug', {}).get('Power_Test', False)
+
         if is_simulation:
             # Simulation mode - return fixed value based on expected
             time.sleep(0.2)  # Simulate measurement delay
             import random
             variation = random.uniform(-0.1, 0.1)
   
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(100, "active")
 
         # Real hardware mode
@@ -163,19 +164,17 @@ class TestHandle:
         bits = connector_pin_to_bits(pin_number, "a")
         success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log)
         
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             #self.wait_debug(100, "done")
             self.wait_debug(110, "active")
 
         if not success:
             self.log(f"in Power test -Failed to set mux bits for pin {pin_number}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 #self.wait_debug(110, "done")
                 self.wait_debug(120, "active")
             return (0.0, False, "Error: Failed to set mux matrix")
         
-
-       
         # Get physical analog port from pin map
         analog_ports = self.pin_map.get('A', {})
         analog_port = analog_ports.get(voltage_pin_name)
@@ -192,19 +191,19 @@ class TestHandle:
         try:
             measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
             self.log(f"Initial measurement: {measured_voltage:.3f}V", "DEBUG")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 #self.wait_debug(110, "done")
                 self.wait_debug(121, "active")
         except Exception as e:
             self.log(f"in Power test - Measurement error: {str(e)}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 #self.wait_debug(110, "done")
                 self.wait_debug(122, "active")
             return (0.0, False, f"Error: Measurement failed - {str(e)}")
         
         # Step 2: Check if Power_Input is "none" or empty
         # in case it is in simulation mode the mesured volateg will be as the expected voltage or zero ....
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(123, "active")
         if not pin.Power_Input or pin.Power_Input.strip().lower() == "none" or pin.Power_Input.strip() == "P" or pin.Power_Input.strip() == "Power":
             if is_simulation:
@@ -215,12 +214,12 @@ class TestHandle:
             voltage_diff = abs(measured_voltage* voltage_scale - pin.Power_Expected)
             if voltage_diff <= tolerance:
                 self.log(f"Measurement {measured_voltage* voltage_scale:.3f}V is within tolerance of {pin.Power_Expected:.3f}V", "SUCCESS")
-                if self.settings.get('Debug', {}).get('mode', False):
+                if debug:
                     self.wait_debug(124, "active")
                 return (measured_voltage* voltage_scale, True, "Measurement is in tolerance")
             else:
                 self.log(f"Measurement {measured_voltage* voltage_scale:.3f}V is NOT within tolerance of {pin.Power_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
-                if self.settings.get('Debug', {}).get('mode', False):
+                if debug:
                     self.wait_debug(124, "active")
                 return (measured_voltage* voltage_scale, False, f"Measurement not in tolerance (diff: {voltage_diff:.3f}V)")
         
@@ -233,7 +232,7 @@ class TestHandle:
             
         if abs(measured_voltage* voltage_scale) > tolerance:
             self.log(f"Initial voltage {measured_voltage* voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V) - test failed", "WARNING")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                     self.wait_debug(124, "active")
             return (measured_voltage* voltage_scale, False, f"Initial voltage {measured_voltage:.3f}V is not ~0V")
         
@@ -249,22 +248,22 @@ class TestHandle:
         if event_type == "AO":
             success = self.card_manager.set_analog_output(card_id=card, ao_number=event_num, voltage=event_value)
             self.log(f"active: Set Card {card} AO{event_num} to {event_value}V: {'Success' if success else 'Failed'}", "INFO")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(130, "active")
         elif event_type == "DO":
             success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=bool(event_value))
             self.log(f"active: Set Card {card} DO{event_num} to {event_value}: {'Success' if success else 'Failed'}", "INFO")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(130, "active")
         else:
             self.log(f"in Power test - Unknown event type: {event_type}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(131, "active")
             return (measured_voltage, False, f"Unknown event type: {event_type}")
         
         if not success:
             self.log(f"in Power test - Failed to activate card {card}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(131, "active")
             return (measured_voltage, False, f"Failed to activate card {card}")
         
@@ -276,10 +275,10 @@ class TestHandle:
             self.card_manager, card, event_type, event_num, event_value, 
             tolerance, self.log
         )
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(140, "active")
         if not verify_success:
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(141, "active")
             return (measured_voltage, False, verify_msg)
         
@@ -291,15 +290,15 @@ class TestHandle:
         try:
             measured_voltage = self.measurer.measure_voltage(analog_port)
             self.log(f"Measurement after activation: {measured_voltage* voltage_scale:.3f}V", "DEBUG")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(150, "active")
 
         except Exception as e:
             self.log(f"in Power test - Measurement error after activation: {str(e)}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(151, "active")
             return (0.0, False, f"Error: Measurement failed after activation - {str(e)}")
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
                 self.wait_debug(160, "active")
         # Set analog or digital output  buck to zero 
         if event_type == "AO":
@@ -312,7 +311,7 @@ class TestHandle:
             self.log(f"DeActive: Set Card {card} DO{event_num} to False: {'Success' if success else 'Failed'}", "INFO")
         else:
             self.log(f"in Power test - Unknown event type: {event_type}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(161, "active")
             return (measured_voltage, False, f"Unknown event type: {event_type}")
         
@@ -325,10 +324,10 @@ class TestHandle:
             self.card_manager, card, event_type, event_num, event_value, 
             tolerance, self.log
         )
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(170, "active")
         if not verify_success:
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(180, "active")
             return (measured_voltage, False, verify_msg)
         
@@ -340,12 +339,12 @@ class TestHandle:
         voltage_diff = abs(measured_voltage* voltage_scale - pin.Power_Expected)
         if voltage_diff <= tolerance:
             self.log(f"Measurement {measured_voltage* voltage_scale:.3f}V is within tolerance of {pin.Power_Expected:.3f}V", "SUCCESS")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(180, "active")
             return (measured_voltage* voltage_scale* voltage_scale, True, "Measurement is in tolerance")
         else:
             self.log(f"Measurement {measured_voltage* voltage_scale:.3f}V is NOT within tolerance of {pin.Power_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(180, "active")
             return (measured_voltage* voltage_scale, False, f"Measurement not in tolerance (diff: {voltage_diff:.3f}V)")
     
@@ -388,7 +387,7 @@ class TestHandle:
         
         
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
-
+        debug = self.settings.get('Debug', {}).get('Power_Test', False)
         
         if is_simulation:
             # Simulation mode - return fixed value based on expected
@@ -396,7 +395,7 @@ class TestHandle:
             import random
             variation = random.uniform(-0.1, 0.1)
             
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(200, "active")
         # Real hardware mode
         # Get tolerance from settings (default 0.5V)
@@ -414,12 +413,28 @@ class TestHandle:
         bits = connector_pin_to_bits(pin_number, "a")
         success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log)
         
-        if self.settings.get('Debug', {}).get('mode', False):
+
+        # Step 0: Activate pullup pin (set HIGH)
+        digital_ports = self.pin_map.get('D', {})
+        pullup_physical_pin = digital_ports.get(pullup_pin_name)
+        
+        if pullup_physical_pin is None:
+            self.log(f"in pullup test - Pullup pin {pullup_pin_name} not found in pin map", "ERROR")
+            return (0.0, False, f"Error: Pullup pin {pullup_pin_name} not found")
+        
+        self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "INFO")
+        self.hardware.digital_write(pullup_physical_pin, True)
+        
+        # Wait for signal to stabilize
+        stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+        time.sleep(stabilize_delay)
+
+        if debug:
             self.wait_debug(210, "active")
 
         if not success:
             self.log(f"in pullup test - Failed to set mux bits for pin {pin_number}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(220, "active")
             return (0.0, False, "Error: Failed to set mux matrix")
         
@@ -439,11 +454,11 @@ class TestHandle:
         try:
             measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
             self.log(f"Initial measurement: {measured_voltage:.3f}V", "DEBUG")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(221, "active")
         except Exception as e:
             self.log(f"in pullup test - Measurement error: {str(e)}", "ERROR")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(222, "active")
             return (0.0, False, f"Error: Measurement failed - {str(e)}")
         
@@ -451,44 +466,52 @@ class TestHandle:
             measured_voltage = 0 + variation
             self.log(f"the measure_Voltage is simulated {pin.PullUp_Expected + variation} + samll variation = {variation} ", "DEBUG")
         
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
                 self.wait_debug(223, "active")
         # Step 2: Verify initial measurement is ~0V
         if abs(measured_voltage * voltage_scale) > tolerance:
             self.log(f"Initial voltage {measured_voltage * voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V) - test failed", "WARNING")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(224, "active")
             return (measured_voltage * voltage_scale, False, f"Initial voltage {measured_voltage:.3f}V is not ~0V")
         
         self.log(f"Initial voltage {measured_voltage * voltage_scale:.3f}V is ~0V - proceeding to activate hardware pullup", "DEBUG")
         
-        # Step 4: Activate pullup pin (set HIGH)
-        digital_ports = self.pin_map.get('D', {})
-        pullup_physical_pin = digital_ports.get(pullup_pin_name)
+        # # Step 4: Activate pullup pin (set HIGH)
+        # digital_ports = self.pin_map.get('D', {})
+        # pullup_physical_pin = digital_ports.get(pullup_pin_name)
         
-        if pullup_physical_pin is None:
-            self.log(f"in pullup test - Pullup pin {pullup_pin_name} not found in pin map", "ERROR")
-            return (0.0, False, f"Error: Pullup pin {pullup_pin_name} not found")
+        # if pullup_physical_pin is None:
+        #     self.log(f"in pullup test - Pullup pin {pullup_pin_name} not found in pin map", "ERROR")
+        #     return (0.0, False, f"Error: Pullup pin {pullup_pin_name} not found")
         
-        self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "INFO")
-        self.hardware.digital_write(pullup_physical_pin, True)
+        # self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "INFO")
+        # self.hardware.digital_write(pullup_physical_pin, True)
         
-        # Wait for signal to stabilize
-        stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
-        time.sleep(stabilize_delay)
-        if self.settings.get('Debug', {}).get('mode', False):
+        # # Wait for signal to stabilize
+        # stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+        # time.sleep(stabilize_delay)
+
+        # Step 4: close Relay 15
+        relay_connect = self.relay_general_operate(True)
+        if relay_connect == False:
+            return (0, False, f"therelay logic didnt operate")
+        
+
+        if debug:
                 self.wait_debug(230, "active")
         # Step 5: Measure voltage after pullup activation
         try:
             measured_voltage = self.measurer.measure_voltage(analog_port)
             self.log(f"Measurement after pullup activation: {measured_voltage * voltage_scale:.3f}V", "DEBUG")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(231, "active")
         except Exception as e:
             self.log(f"in pullup test - Measurement error after pullup activation: {str(e)}", "ERROR")
             # Ensure pullup pin is deactivated even on error
             self.hardware.digital_write(pullup_physical_pin, False)
-            if self.settings.get('Debug', {}).get('mode', False):
+            relay_connect = self.relay_general_operate(False)
+            if debug:
                 self.wait_debug(240, "active")
             return (0.0, False, f"Error: Measurement failed after pullup activation - {str(e)}")
         
@@ -497,13 +520,15 @@ class TestHandle:
             measured_voltage = pin.PullUp_Expected + variation
             self.log(f"the measure_Voltage is simulated {pin.PullUp_Expected + variation} + samll variation = {variation} ", "DEBUG")
         voltage_diff = abs(measured_voltage * voltage_scale - pin.PullUp_Expected)
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(250, "active")
         if voltage_diff > tolerance:
             self.log(f"Pullup voltage {measured_voltage * voltage_scale:.3f}V does NOT match expected {pin.PullUp_Expected:.3f}V (diff: {voltage_diff:.3f}V)", "WARNING")
             # Deactivate pullup and return with warning
             self.hardware.digital_write(pullup_physical_pin, False)
-            if self.settings.get('Debug', {}).get('mode', False):
+            relay_connect = self.relay_general_operate(False)
+            
+            if debug:
                 self.wait_debug(251, "active")
             return (measured_voltage * voltage_scale, False, f"Pullup voltage not in tolerance (diff: {voltage_diff:.3f}V)")
         
@@ -517,8 +542,9 @@ class TestHandle:
             self.log(f"PullUp_Input is 'G' - deactivating pullup and completing test", "INFO")
             # Deactivate pullup pin (set LOW)
             self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
             self.log(f"Deactivating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) LOW", "INFO")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(252, "active")
             return (measured_voltage * voltage_scale, True, "Pullup test passed (ground test)")
         
@@ -527,13 +553,14 @@ class TestHandle:
         
         # Parse PullUp_Input for DO control (format: "C2_DO13V1" or similar)
         card, event_type, event_num, event_value = parse_event_string(pin.PullUp_Input)
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(260, "active")
         if card is None or event_type is None or event_type != "DO":
             self.log(f"in pullup test - Failed to parse PullUp_Input or not DO type: {pullup_input_value}", "ERROR")
             # Deactivate pullup and return with error
             self.hardware.digital_write(pullup_physical_pin, False)
-            if self.settings.get('Debug', {}).get('mode', False):
+            relay_connect = self.relay_general_operate(False)
+            if debug:
                 self.wait_debug(261, "active")
             return (measured_voltage, False, f"Failed to parse PullUp_Input: {pullup_input_value}")
         
@@ -541,13 +568,14 @@ class TestHandle:
         do_state = bool(event_value)
         success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=do_state)
         self.log(f"Active: Set Card {card} DO{event_num} to {do_state}: {'Success' if success else 'Failed'}", "INFO")
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
                 self.wait_debug(270, "active")
        
         if not success:
             self.log(f"Failed to activate DO on card {card}", "WARNING")
             # Deactivate pullup and return with warning
             self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
 
             return (measured_voltage * voltage_scale, False, f"Failed to activate DO on card {card}")
         
@@ -559,14 +587,15 @@ class TestHandle:
         if is_simulation:
             actual_do_state = do_state  # Simulate correct setting in simulation mode
             self.log(f"the DO state is simulated to be {actual_do_state} ", "DEBUG")
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(280, "active")
         if actual_do_state != do_state:
             self.log(f"DO verification failed: Expected {do_state}, got {actual_do_state}", "WARNING")
             # Deactivate pullup and DO, then return with warning
             self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
             self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(281, "active")
             return (measured_voltage * voltage_scale, False, f"DO not set correctly: expected {do_state}, got {actual_do_state}")
         
@@ -578,14 +607,15 @@ class TestHandle:
         try:
             measured_voltage_after_do = self.measurer.measure_voltage(analog_port)
             self.log(f"Measurement after DO activation: {measured_voltage_after_do * voltage_scale:.3f}V", "DEBUG")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(290, "active")
         except Exception as e:
             self.log(f"in pullup test - Measurement error after DO activation: {str(e)}", "ERROR")
             # Ensure cleanup
             self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
             self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(291, "active")
             return (0.0, False, f"Error: Measurement failed after DO activation - {str(e)}")
         
@@ -593,14 +623,15 @@ class TestHandle:
         if is_simulation:
             measured_voltage_after_do = 0 + variation
             self.log(f"the measure_Voltage is simulated to be ~0V + samll variation = {variation} ", "DEBUG")
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
                 self.wait_debug(300, "active")
         if abs(measured_voltage_after_do * voltage_scale) > tolerance:
             self.log(f"Voltage after DO activation {measured_voltage_after_do * voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V)", "WARNING")
             # Cleanup and return with warning
             self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
             self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(301, "active")
             return (measured_voltage_after_do * voltage_scale, False, f"Voltage after DO not ~0V: {measured_voltage_after_do * voltage_scale:.3f}V")
         
@@ -608,8 +639,9 @@ class TestHandle:
         
         # Step 14: Deactivate pullup pin (set LOW)
         self.hardware.digital_write(pullup_physical_pin, False)
+        relay_connect = self.relay_general_operate(False)
         self.log(f"Deactivating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) LOW", "INFO")
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(310, "active")
         # Step 15: Deactivate the DO (set to False)
         success = self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
@@ -624,7 +656,7 @@ class TestHandle:
         
         # Step 16: Read DO status to verify it was deactivated
         actual_do_state_after = self.card_manager.get_digital_output(card_id=card, do_number=event_num)
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(320, "active")
         
         if is_simulation:
@@ -632,14 +664,14 @@ class TestHandle:
             self.log(f"the DO state after deactivation is simulated to be {actual_do_state_after} ", "DEBUG")
         if actual_do_state_after != False:
             self.log(f"DO deactivation verification failed: Expected False, got {actual_do_state_after}", "WARNING")
-            if self.settings.get('Debug', {}).get('mode', False):
+            if debug:
                 self.wait_debug(321, "active")
             return (measured_voltage * voltage_scale, False, f"DO not deactivated correctly: got {actual_do_state_after}")
         
         self.log(f"DO deactivation verified: {actual_do_state_after}", "DEBUG")
         
 
-        if self.settings.get('Debug', {}).get('mode', False):
+        if debug:
             self.wait_debug(330, "active")
         # All steps completed successfully
         return (measured_voltage * voltage_scale, True, "Pullup test passed")
@@ -675,6 +707,7 @@ class TestHandle:
         
         Overallsuccess = False 
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
+        debug = self.settings.get('Debug', {}).get('Power_Test', False)
         text = ""
 
         
@@ -769,17 +802,17 @@ class TestHandle:
                     return (0.0, False, text)
             # check we connected Analog Input to return line  
             elif "AI" in pin.Logic_Expected:
-                self.log(f"we are connecting Analog input, the connection should be to RTN line ~10V")
+                self.log(f"we are connecting Analog input, the connection should be to  line ~10V")
                 if pin.Power_Measured > Analog_voltage_threshold or second_pin_power_measured > Analog_voltage_threshold :
                     text = f"invalid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
                     self.log(text, "WARNING")
                     return (0.0, False, text)
                 
-                elif pin.Power_Measured > zero_voltage_threshold and second_pin_power_measured < zero_voltage_threshold :
+                elif pin.Power_Measured > zero_voltage_threshold and second_pin_power_measured < Analog_voltage_threshold :
                     text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
                     self.log(text, "info")
                     
-                elif second_pin_power_measured > zero_voltage_threshold and pin.Power_Measured < zero_voltage_threshold :
+                elif second_pin_power_measured > zero_voltage_threshold and pin.Power_Measured < Analog_voltage_threshold :
                     text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
                     self.log(text, "info")
                     
@@ -989,6 +1022,26 @@ class TestHandle:
         else:
             return (0.0, False, "Logic test FAILED")
     
+    def relay_general_operate(self, operate:bool) -> bool:
+         
+        relay_ports = self.pin_map.get('R', {})
+        Relay_general = self.board_config.get("enable_Relay_general", None)
+        pin_Relay_general = relay_ports.get(Relay_general)
+
+        if pin_Relay_general is None:
+            error_msg = f"Relay pins not found in pin map: {pin_Relay_general}"
+            self.log(error_msg, "ERROR")
+            return (False)
+
+        self.log(f"Activating relay pins: {pin_Relay_general} to {operate} ", "DEBUG")
+        self.hardware.digital_write(pin_Relay_general, operate)
+
+        # Step 4: Wait for relay stabilization
+        stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+        time.sleep(stabilize_delay)
+        return (True)
+
+    
     def relay_fuse_test(self, first_relay: str, second_relay: str, pullup_pin: str, voltage_measure_pin1: str, voltage_measure_pin2: str) -> tuple[str, bool]:
         """
         Relay fuse test.
@@ -1159,39 +1212,47 @@ class TestHandle:
         Run I_Bit test (relay fuse tests + short circuit test).
         This function is intended to be run in a separate thread.
         """
-        try:
-            pair1_test_results, pair1_test_status = self.relay_fuse_test(
-                "enable_Relay_pin_1_A", "enable_Relay_pin_1_B", 
-                "pullup_pins_pin_pair1", "voltage_measure_pin_pair1", "voltage_measure_pin_pair1_B"
-            )
-            pair2_test_results, pair2_test_status = self.relay_fuse_test(
-                "enable_Relay_pin_2_A", "enable_Relay_pin_2_B", 
-                "pullup_pins_pin_pair2", "voltage_measure_pin_pair2", "voltage_measure_pin_pair2_B"
-            )
-            pair3_test_results, pair3_test_status = self.relay_fuse_test(
-                "enable_Relay_pin_3_A", "enable_Relay_pin_3_B", 
-                "pullup_pins_pin_pair3", "voltage_measure_pin_pair3", "voltage_measure_pin_pair3_B"
-            )
-            pair4_test_results, pair4_test_status = self.relay_fuse_test(
-                "enable_Relay_pin_4_A", "enable_Relay_pin_4_B", 
-                "pullup_pins_pin_pair4", "voltage_measure_pin_pair4", "voltage_measure_pin_pair4_B"
-            )
+        is_simulation = self.settings.get('Board', {}).get('simulation', True)
+        debug = self.settings.get('Debug', {}).get('Power_Test', False)
 
-            if pair1_test_status and pair2_test_status and pair3_test_status and pair4_test_status:
-                self.log(f"I_Bit test complete: All relay pairs PASSED", "SUCCESS")
-            else:
-                self.log(f"I_Bit test complete: Some relay pairs FAILED", "WARNING")
+        ibit_A = self.measure_all_pins_system("a",4.0, is_simulation)
+        ibit_B = self.measure_all_pins_system("b",4.0, is_simulation)
+        passed_count = len(ibit_A[0]) + len(ibit_B[0])
+        total_count = 100
+        self.log(f"Ibit  Circuit Test complete: {passed_count}/{total_count} pins PASSED", "SUCCESS" if passed_count == total_count else "WARNING")
+        # try:
+        #     pair1_test_results, pair1_test_status = self.relay_fuse_test(
+        #         "enable_Relay_pin_1_A", "enable_Relay_pin_1_B", 
+        #         "pullup_pins_pin_pair1", "voltage_measure_pin_pair1", "voltage_measure_pin_pair1_B"
+        #     )
+        #     pair2_test_results, pair2_test_status = self.relay_fuse_test(
+        #         "enable_Relay_pin_2_A", "enable_Relay_pin_2_B", 
+        #         "pullup_pins_pin_pair2", "voltage_measure_pin_pair2", "voltage_measure_pin_pair2_B"
+        #     )
+        #     pair3_test_results, pair3_test_status = self.relay_fuse_test(
+        #         "enable_Relay_pin_3_A", "enable_Relay_pin_3_B", 
+        #         "pullup_pins_pin_pair3", "voltage_measure_pin_pair3", "voltage_measure_pin_pair3_B"
+        #     )
+        #     pair4_test_results, pair4_test_status = self.relay_fuse_test(
+        #         "enable_Relay_pin_4_A", "enable_Relay_pin_4_B", 
+        #         "pullup_pins_pin_pair4", "voltage_measure_pin_pair4", "voltage_measure_pin_pair4_B"
+        #     )
+
+        #     if pair1_test_status and pair2_test_status and pair3_test_status and pair4_test_status:
+        #         self.log(f"I_Bit test complete: All relay pairs PASSED", "SUCCESS")
+        #     else:
+        #         self.log(f"I_Bit test complete: Some relay pairs FAILED", "WARNING")
             
-            test_results = self.short_circuit_test()
-            passed_count = sum(1 for _, passed, _ in test_results if passed)
-            total_count = len(test_results)
-            self.log(
-                f"I_Bit test complete: {passed_count}/{total_count} pins PASSED",
-                "SUCCESS" if passed_count == total_count else "WARNING"
-            )
-        except Exception as e:
-            error_msg = f"Error during I_Bit test: {str(e)}"
-            self.log(error_msg, "ERROR")
+        #     test_results = self.short_circuit_test()
+        #     passed_count = sum(1 for _, passed, _ in test_results if passed)
+        #     total_count = len(test_results)
+        #     self.log(
+        #         f"I_Bit test complete: {passed_count}/{total_count} pins PASSED",
+        #         "SUCCESS" if passed_count == total_count else "WARNING"
+        #     )
+        # except Exception as e:
+        #     error_msg = f"Error during I_Bit test: {str(e)}"
+        #     self.log(error_msg, "ERROR")
     
     def short_circuit_test(self) -> list[tuple[list[float], bool, list[dict]]]:
         """
@@ -1304,6 +1365,126 @@ class TestHandle:
         self.log(f"Short Circuit Test complete: {passed_count}/{total_count} pins PASSED", "SUCCESS" if passed_count == total_count else "WARNING")
         
         return test_results
+    
+    def measure_all_pins_system(self, system: str, voltage: float, isSimulate: bool) -> tuple[list[float], bool, list[dict]]:
+        """
+        System measurement - loop run with validation.
+        Test Procedure:
+        1. For each pin 1-50 in system "System": Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
+        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - select the pin
+        3. Measure voltage on pair-specific analog pin
+        4. Validate measurements - pins should measure ~0V (within tolerance)
+        5. Write result to log: "Pin (number) on system 'System' (mux address) Volt measurement (voltage) - pass/fail"
+        6. Pullup activate
+        7. Wait 1 sec
+        8. Validate measurements - pins should measure input "Expected voltage" (within tolerance)
+        9. Write result to log: "Pin (number) on system 'System' (mux address) Volt measurement (voltage) - pass/fail"
+        10. Wait 1 sec - pullup deactivate, deselect the pin
+        11. Return result (array of 50 voltage measurement values + pass/fail status + failed pins list)
+        Args:
+            system: "A" or "B"
+            voltage: Expected voltage value on the specified pin
+            isSimulate: If True, simulate measurements
+        Returns:
+            tuple[list[float], bool, list[dict]]: 
+                - Array of 50 final voltage readings in volts
+                - True if all measurements pass validation, False otherwise
+                - List of failed pins with format: [{'pin': int, 'measured': float, 'expected': float}, ...]
+        """
+        voltage_measurements = []
+        failed_pins = []
+        voltage_scale = 1
+        tolerance = self.settings.get('Test', {}).get('voltage_degredation', 3.0)
+        pins_to_stabilize = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.5)
+        all_tests_passed = True
+        for current_pin in range(1, 51):
+            if not self.running_ibit:
+                self.log("I_Bit test stopped by user", "WARNING")
+                break
+            
+            try:
+                # Step 0: Clear mux bits before next pin
+                clear_max= clear_mux_bits(self.pin_map, self.hardware, self.log)
+                if not clear_max:
+                    self.log(f"Failed to clear mux bits before testing pin {current_pin} on system {system}", "WARNING")
+                    break
+
+                # Step 1: Get pair info
+                pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(current_pin)
+                voltage_pin_name = self.board_config.get(voltage_pin_key if system.upper() == "A" else voltage_pin_b_key, 'A0')
+                pullup_pin_name = self.board_config.get(pullup_pin_key, 'D23')
+                # Step 2: Set mux for this system
+                bits = connector_pin_to_bits(current_pin, system.lower())
+                success = set_mux_bits(bits, current_pin, self.pin_map, self.hardware, self.settings, self.log)
+                if not success:
+                    self.log(f"Failed to set mux bits for pin {current_pin}", "WARNING")
+                    voltage_measurements.append(0.0)
+                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
+                    all_tests_passed = False
+                    continue
+                analog_ports = self.pin_map.get('A', {})
+                analog_port = analog_ports.get(voltage_pin_name)
+                mux_addr = f"{system.upper()}:{current_pin}"  # Example mux address
+                if analog_port is None:
+                    self.log(f"Analog pin {voltage_pin_name} not found in pin map for pin {current_pin}", "WARNING")
+                    voltage_measurements.append(0.0)
+                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
+                    all_tests_passed = False
+                    continue
+                # Step 3: Measure voltage (before pullup)
+                if isSimulate:
+                    import random, time
+                    time.sleep(0.1)
+                    measured_voltage = random.uniform(-0.05, 0.05)
+                else:
+                    measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
+                # Step 4: Validate ~0V
+                if abs(measured_voltage) <= tolerance:
+                    self.log(f"Pin {current_pin} on system {system} ({bits}) Volt measurement {measured_voltage:.3f}V - PASS (expected ~0V)", "SUCCESS")
+                else:
+                    self.log(f"Pin {current_pin} on system {system} ({bits}) Volt measurement {measured_voltage:.3f}V - FAIL (expected ~0V)", "WARNING")
+                    failed_pins.append({'pin': current_pin, 'measured': measured_voltage, 'expected': 0.0})
+                    all_tests_passed = False
+                voltage_measurements.append(measured_voltage)
+                # Step 6: Pullup activate
+                digital_ports = self.pin_map.get('D', {})
+                pullup_physical_pin = digital_ports.get(pullup_pin_name)
+                if pullup_physical_pin is None:
+                    self.log(f"Pullup pin {pullup_pin_name} not found in pin map for pin {current_pin}", "WARNING")
+                    all_tests_passed = False
+                    continue
+                self.hardware.digital_write(pullup_physical_pin, True)
+                # Step 7: Wait 1 sec
+                import time
+                time.sleep(pins_to_stabilize)
+                # Step 8: Measure voltage (after pullup)
+                if isSimulate:
+                    measured_voltage_pullup = voltage + random.uniform(-0.1, 0.1)
+                else:
+                    measured_voltage_pullup = self.measurer.measure_voltage(analog_port) * voltage_scale
+                # Step 9: Validate expected voltage
+                voltage_diff = abs(measured_voltage_pullup - voltage)
+                if voltage_diff <= tolerance:
+                    self.log(f"Pin {current_pin} on system {system} ({mux_addr}) Volt measurement {measured_voltage_pullup:.3f}V - PASS (expected {voltage}V)", "SUCCESS")
+                else:
+                    self.log(f"Pin {current_pin} on system {system} ({mux_addr}) Volt measurement {measured_voltage_pullup:.3f}V - FAIL (expected {voltage}V, diff: {voltage_diff:.3f}V)", "WARNING")
+                    failed_pins.append({'pin': current_pin, 'measured': measured_voltage_pullup, 'expected': voltage})
+                    all_tests_passed = False
+                # Step 10: Wait 1 sec, pullup deactivate, deselect pin
+                time.sleep(pins_to_stabilize)
+                self.hardware.digital_write(pullup_physical_pin, False)
+                time.sleep(pins_to_stabilize)
+                #clear_bits(bits, self.pin_map, self.hardware, self.log)
+            except Exception as e:
+                self.log(f"Error processing pin {current_pin} on system {system}: {str(e)}", "ERROR")
+                voltage_measurements.append(0.0)
+                failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
+                all_tests_passed = False
+
+        result_msg = "SUCCESS" if all_tests_passed else "FAILED"
+        clear_bits(bits, self.pin_map, self.hardware, self.log)
+        self.log(f"System {system} measurement complete: {len(voltage_measurements)} pins measured - {result_msg} - {len(failed_pins)} failures", "SUCCESS" if all_tests_passed else "WARNING")
+        return voltage_measurements, all_tests_passed, failed_pins
     
     def measure_all_pins_system_b(self, pin_number: int, voltage: float) -> tuple[list[float], bool, list[dict]]:
         """
@@ -1432,12 +1613,15 @@ class TestHandle:
         """
         from hw_tester.hardware.pin import Pin
         
-        
-        if self.settings.get('Debug', {}).get('mode', False):
+        debug = self.settings.get('Debug', {}).get('Test_Sequence', False)
+        if debug:
             self.wait_debug(10, "active")
         
         for idx, pin_id in enumerate(selected_ids):
             if not self.running:
+                self.log("running test stopped by user", "WARNING")
+                # Clear mux bits before setting new ones
+                clear_mux_bits(self.pin_map, self.hardware, self.log)
                 break
             
             try:
