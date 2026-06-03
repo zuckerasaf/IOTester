@@ -11,6 +11,7 @@ setup(
     package_dir={"": "src"},
     python_requires=">=3.8",
     install_requires=[
+        "PySide6",
         "pyserial",
         "pyyaml",
         "pandas",

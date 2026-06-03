@@ -14,13 +14,22 @@ from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from tkinter import filedialog
+from PySide6.QtWidgets import QApplication, QFileDialog
 
 
-DEFAULT_OUTPUT_DIR = Path(r"C:\ArduinoProject\IO_Tester\tests\Results\Base_Doc")
+DEFAULT_OUTPUT_DIR = Path(r"C:\ArduinoProject\IO_Tester\tests\Results\Base_Doc\template_docs")
 DEFAULT_GENERAL_DATA_PATH = DEFAULT_OUTPUT_DIR / "general_data.docx"
 DEFAULT_GENERAL_OPEN_DATA_PATH = DEFAULT_OUTPUT_DIR / "open_general_data.docx"
 CONFIGURATION = DEFAULT_OUTPUT_DIR / "configuration.jpg"
+
+
+def _get_or_create_qt_app() -> tuple[QApplication, bool]:
+	"""Return QApplication instance and whether it was created here."""
+	app = QApplication.instance()
+	if app is None:
+		app = QApplication([])
+		return app, True
+	return app, False
 
 
 def _parse_filename_details(file_path: Path) -> Tuple[str, str]:
@@ -223,13 +232,13 @@ def _add_section_heading(doc: Document, text: str) -> None:
 	heading.space_after = Pt(6)
 
 
-def _add_title(doc: Document, text: str) -> None:
-	"""Add a large blue title."""
-	title = doc.add_paragraph(text)
-	title.runs[0].font.size = Pt(18)
-	title.runs[0].font.color.rgb = RGBColor(68, 114, 196)  # Blue color
-	title.runs[0].bold = True
-	title.space_after = Pt(12)
+# def _add_title(doc: Document, text: str) -> None:
+# 	"""Add a large blue title."""
+# 	title = doc.add_paragraph(text)
+# 	title.runs[0].font.size = Pt(18)
+# 	title.runs[0].font.color.rgb = RGBColor(68, 114, 196)  # Blue color
+# 	title.runs[0].bold = True
+# 	title.space_after = Pt(12)
 
 
 def create_doc_report(report_files: List[Path], output_path: Path) -> Path:
@@ -350,24 +359,30 @@ def create_doc_report(report_files: List[Path], output_path: Path) -> Path:
 def select_report_files(initial_dir: Optional[Path] = None) -> List[Path]:
 	"""Open file dialog to select Excel report files."""
 	initial = initial_dir or DEFAULT_OUTPUT_DIR
-	file_paths = filedialog.askopenfilenames(
-		title="Select Report Excel Files",
-		initialdir=str(initial),
-		filetypes=[("Excel files", "*.xlsx")]
+	app, created_here = _get_or_create_qt_app()
+	file_paths, _ = QFileDialog.getOpenFileNames(
+		None,
+		"Select Report Excel Files",
+		str(initial),
+		"Excel files (*.xlsx)"
 	)
+	if created_here:
+		app.quit()
 	return [Path(path) for path in file_paths]
 
 
 def prompt_output_path(default_dir: Optional[Path] = None) -> Optional[Path]:
 	"""Prompt user for Word report output path."""
 	initial = default_dir or DEFAULT_OUTPUT_DIR
-	output_path = filedialog.asksaveasfilename(
-		title="Save Word Report",
-		initialdir=str(initial),
-		defaultextension=".docx",
-		filetypes=[("Word Document", "*.docx")],
-		initialfile="IO_Tester_Report.docx"
+	app, created_here = _get_or_create_qt_app()
+	output_path, _ = QFileDialog.getSaveFileName(
+		None,
+		"Save Word Report",
+		str(initial / "IO_Tester_Report.docx"),
+		"Word Document (*.docx)"
 	)
+	if created_here:
+		app.quit()
 	return Path(output_path) if output_path else None
 
 

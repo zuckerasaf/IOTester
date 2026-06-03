@@ -21,7 +21,7 @@ Board:
   - none
   Port: COM5
   BaudRate: 115200
-  simulation: true
+  simulation: false
 Timeouts:
   duration: 0.5
   sample_interval: 0.1
@@ -33,7 +33,7 @@ scale:
   voltage_degredation: 1.5
   voltage_tolerance: 1.5
   zero_voltage_threshold: 0.5
-  Analog_voltage_threshold: 11.0
+  Analog_voltage_threshold: 13.0
   logic_voltage_threshold: 4.0
 Paths:
   Path_1: C:/ArduinoProject/IO_Tester
@@ -77,49 +77,49 @@ Test_trshhold:
 UDP_Settings:
   Frequency_Hz: 20.0
   Communication_Timeout: 2.0
-  localhost_mode: true
+  localhost_mode: false
   Cards:
   - card_id: 1
     enabled: true
     send_ip: 192.168.195.11
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1011
   - card_id: 2
     enabled: true
     send_ip: 192.168.195.12
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1012
   - card_id: 3
     enabled: true
     send_ip: 192.168.195.13
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1013
   - card_id: 4
     enabled: true
     send_ip: 192.168.195.14
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1014
   - card_id: 5
     enabled: true
     send_ip: 192.168.195.15
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1015
   - card_id: 6
     enabled: true
     send_ip: 192.168.195.16
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1016
   - card_id: 7
     enabled: true
     send_ip: 192.168.195.17
     send_port: 2880
-    receive_ip: 192.168.195.10
+    receive_ip: 192.168.195.101
     receive_port: 1017
   Cards_localhost:
   - card_id: 1

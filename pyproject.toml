@@ -10,6 +10,7 @@ authors = [{name = "IOTester Team"}]
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
+    "PySide6",
     "pyserial",
     "pyyaml",
     "pandas",

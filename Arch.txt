@@ -29,8 +29,6 @@ IO_Tester/
 │     │  └─ udp_sender.py               # UDP packet transmission
 │     ├─ ui/                            # UI layer - Tkinter/Qt
 │     │  ├─ __init__.py
-│     │  ├─ main_window.py              # main GUI window
-│     │  ├─ copilot_prompt_tkinter_ui_for_hw_tester.md  # UI dev guide
 │     │  ├─ qt/                         # Qt-based UI components
 │     │  ├─ Styles/                     # UI styling resources
 │     │  └─ views/                      # dialogs, widgets, panels

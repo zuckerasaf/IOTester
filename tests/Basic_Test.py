@@ -134,6 +134,9 @@ def main():
     
     print("[Basic_Test] Hardware initialized successfully")
 
+    # check the abilikty to read digital pin status
+
+
     # Initialize UDP card manager
     print("[Basic_Test] Initializing UDP card manager...")
     card_manager = UDPCardManager(create_all=False)  # Only create enabled cards
@@ -145,78 +148,121 @@ def main():
     enabled_cards = card_manager.get_enabled_cards()
     print(f"[Basic_Test] Enabled cards: {[card.card_id for card in enabled_cards]}")
     
-    # Check if card 2 exists
-    card_2 = card_manager.get_card(2)
-    if card_2:
-        print(f"[Basic_Test] Card 2 found - Send to: {card_2.send_ip}:{card_2.send_port}, Receive from: {card_2.receive_ip}:{card_2.receive_port}, Enabled: {card_2.enabled}")
-    else:
-        print("[Basic_Test] WARNING: Card 2 not found in card manager!")
+    # # Check if card 2 exists
+    # card_2 = card_manager.get_card(2)
+    # if card_2:
+    #     print(f"[Basic_Test] Card 2 found - Send to: {card_2.send_ip}:{card_2.send_port}, Receive from: {card_2.receive_ip}:{card_2.receive_port}, Enabled: {card_2.enabled}")
+    # else:
+    #     print("[Basic_Test] WARNING: Card 2 not found in card manager!")
     
-    print("[Basic_Test] UDP card manager initialized successfully")
+    # print("[Basic_Test] UDP card manager initialized successfully")
     
-    # Give cards a moment to initialize communication
-    print("[Basic_Test] Waiting for card communication to initialize...")
-    time.sleep(0.5)
+    # # Give cards a moment to initialize communication
+    # print("[Basic_Test] Waiting for card communication to initialize...")
+    # time.sleep(0.5)
+
+    success = card_manager.set_matrix_dimensions(card_id=3,rows= 4,columns=7)
+
 
     clear_mux_bits(board_pin_map, hardware)
+    
     #input("\n[Basic_Test] Press ENTER to continue to next step...")
-    pin_number = 17
-    pullup_pin_number = "D21"
-    mesure_pin_number = "A1"
-    # Step 2: Convert connector pin to bit representation using system A and set mux matrix
-    bits = connector_pin_to_bits(pin_number, "a")
-    success = set_mux_bits(bits, pin_number, board_pin_map, hardware, settings)
-    print(f"\n[Basic_Test] pin {pin_number} is up")
+    pin_number_a = 4
+    pin_number_b = 15
+    bits = connector_pin_to_bits(pin_number_a, "a")
+    success = set_mux_bits(bits, pin_number_a, board_pin_map, hardware, settings)
+    bits = connector_pin_to_bits(pin_number_b, "b")
+    success = set_mux_bits(bits, pin_number_b, board_pin_map, hardware, settings)
+    set_digital_pins(hardware, relay_pin_map, {"R0": True,})  # HIG
+    set_digital_pins(hardware, relay_pin_map, {"R1": True,})  # HIG
+    # for i in range(4):
 
-    #state = hardware.digital_read(digital_pin_map.get(pullup_pin_number))
-    set_digital_pins(hardware, digital_pin_map, {
-        pullup_pin_number: True,})  # HIG
-    #state = hardware.digital_read(digital_pin_map.get(pullup_pin_number))
-    
-    print(f"\n[Basic_Test] pin {pin_number} is up")
-    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+    #     time.sleep(1)
+    #     pin_number_b = 15+i
+    #     if pin_number_b > 16 :
+    #         relay= "R3"
+    #     else:
+    #         relay= "R1"
+    #     bits = connector_pin_to_bits(pin_number_b, "b")
+    #     success = set_mux_bits(bits, pin_number_b, board_pin_map, hardware, settings)
+    #     set_digital_pins(hardware, relay_pin_map, {
+    #         "R0": True,})  # HIG
+    #     set_digital_pins(hardware, relay_pin_map, {
+    #         relay: True,})  # HIG
+    #     time.sleep(1)
+    #     matrix= card_manager.get_Matrix_rows(card_id=3)
+    #     print(f"pin_number_a: {pin_number_a}  with pin_number_b: {pin_number_b}  -> matrix rows:{matrix}")
+    #     set_digital_pins(hardware, relay_pin_map, {
+    #         "R0": False,})  # HIG
+    #     set_digital_pins(hardware, relay_pin_map, {
+    #         relay: False,})
+        
+    # i=1
+    # while True:
+    #     i+=1
+    #     if(i%100==0):
+    #         print(i)
+    # pullup_pin_number = "D20"
+    # mesure_pin_number = "A1"
+    # # Step 2: Convert connector pin to bit representation using system A and set mux matrix
+    # bits = connector_pin_to_bits(pin_number, "a")
+    # success = set_mux_bits(bits, pin_number, board_pin_map, hardware, settings)
+    # print(f"\n[Basic_Test] pin {pin_number} is up")
 
-    print("\n[Basic_Test] Sending UDP commands to card 2...")
-    success = card_manager.set_digital_output(card_id=2, do_number=13, state=bool(1))
-    print(f"[Basic_Test] Card 2 DO13 set to 1: {'Success' if success else 'FAILED'}")
-    
-    success2 = card_manager.set_analog_output(card_id=2, ao_number=1, voltage=10)
-    print(f"[Basic_Test] Card 2 AO1 set to 10V: {'Success' if success2 else 'FAILED'}")
-    
-    # Wait for outputs to stabilize
-    print("[Basic_Test] Waiting for outputs to stabilize...")
-    time.sleep(0.2)
+    # test=measure_analog_pins(hardware, analog_pin_map, ["A0", "A1", "A2", "A3"])
+    # state = hardware.analog_read(digital_pin_map.get(mesure_pin_number))
+    # # set_digital_pins(hardware, digital_pin_map, {
+    # #     pullup_pin_number: True,})  # HIG
+    # state = hardware.digital_read(digital_pin_map.get(pullup_pin_number))
 
-    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
-
-    # Step 2: Convert connector pin to bit representation using system A and set mux matrix
-    bits = connector_pin_to_bits(pin_number, "b")
-    success = set_mux_bits(bits, pin_number, board_pin_map, hardware, settings)
-    print(f"\n[Basic_Test] pin {pin_number} is up")
+    # pullup_pin_number = "D21"
     # set_digital_pins(hardware, digital_pin_map, {
     #     pullup_pin_number: True,})  # HIG
+    
     # print(f"\n[Basic_Test] pin {pin_number} is up")
-    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+    # measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
+    # print("\n[Basic_Test] Sending UDP commands to card 2...")
+    # success = card_manager.set_digital_output(card_id=2, do_number=13, state=bool(1))
+    # print(f"[Basic_Test] Card 2 DO13 set to 1: {'Success' if success else 'FAILED'}")
+    
+    # success2 = card_manager.set_analog_output(card_id=2, ao_number=1, voltage=10)
+    # print(f"[Basic_Test] Card 2 AO1 set to 10V: {'Success' if success2 else 'FAILED'}")
+    
+    # # Wait for outputs to stabilize
+    # print("[Basic_Test] Waiting for outputs to stabilize...")
+    # time.sleep(0.2)
+
+    # measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+
+    # # Step 2: Convert connector pin to bit representation using system A and set mux matrix
+    # bits = connector_pin_to_bits(pin_number, "b")
+    # success = set_mux_bits(bits, pin_number, board_pin_map, hardware, settings)
+    # print(f"\n[Basic_Test] pin {pin_number} is up")
+    # # set_digital_pins(hardware, digital_pin_map, {
+    # #     pullup_pin_number: True,})  # HIG
+    # # print(f"\n[Basic_Test] pin {pin_number} is up")
+    # measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
 
    
-    set_digital_pins(hardware, relay_pin_map, {
-        "R6": True,})  # HIG
-    set_digital_pins(hardware, relay_pin_map, {
-        "R7": True,})  # HIG
+    # set_digital_pins(hardware, relay_pin_map, {
+    #     "R6": True,})  # HIG
+    # set_digital_pins(hardware, relay_pin_map, {
+    #     "R7": True,})  # HIG
     
-    mesure_pin_number = "A3"
-    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+    # mesure_pin_number = "A3"
+    # measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
 
-    mesure_pin_number = "A7"
-    measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
+    # mesure_pin_number = "A7"
+    # measure_analog_pins(hardware, analog_pin_map, [mesure_pin_number])
 
 
-    # Wait for user confirmation before proceeding
-    #input("\n[Basic_Test] Press ENTER to continue...")
-    print(f"\n[Basic_Test] pin 20 is up")
-    set_digital_pins(hardware, digital_pin_map, {
-        "D20": False,   # HIGh
-    })
+    # # Wait for user confirmation before proceeding
+    # #input("\n[Basic_Test] Press ENTER to continue...")
+    # print(f"\n[Basic_Test] pin 20 is up")
+    # set_digital_pins(hardware, digital_pin_map, {
+    #     "D20": False,   # HIGh
+    # })
     # print(f"\n[Basic_Test]   set relay pin to high")
     # set_digital_pins(hardware, relay_pin_map, {
     #     "R0": True,   # HIGH

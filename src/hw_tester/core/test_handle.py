@@ -205,7 +205,7 @@ class TestHandle:
         # in case it is in simulation mode the mesured volateg will be as the expected voltage or zero ....
         if debug:
             self.wait_debug(123, "active")
-        if not pin.Power_Input or pin.Power_Input.strip().lower() == "none" or pin.Power_Input.strip() == "P" or pin.Power_Input.strip() == "Power":
+        if not pin.Power_Input or pin.Power_Input.strip().lower() == "none" or pin.Power_Input.strip() == "P" or pin.Power_Input.strip() == "p" or pin.Power_Input.strip() == "Power":
             if is_simulation:
                 measured_voltage = pin.Power_Expected + variation
                 self.log(f"the measure_Voltage is simulated (pin.Power_Expected + variation) + samll variation = {variation} ", "DEBUG")
@@ -779,7 +779,7 @@ class TestHandle:
             
             zero_voltage_threshold = self.settings.get('scale', {}).get('zero_voltage_threshold', 0.5)
             logic_voltage_threshold = self.settings.get('scale', {}).get('logic_voltage_threshold', 4.0)
-            Analog_voltage_threshold = self.settings.get('scale', {}).get('Analog_voltage_threshold', 11.0)
+            Analog_voltage_threshold = self.settings.get('scale', {}).get('Analog_voltage_threshold', 13.0)
             # check we connected Digital Input to retrun line  
             if "DI" in pin.Logic_Expected:
                 self.log(f"we are connecting Digital input, the connection should be to RTN line ~0V")
@@ -808,11 +808,11 @@ class TestHandle:
                     self.log(text, "WARNING")
                     return (0.0, False, text)
                 
-                elif pin.Power_Measured > zero_voltage_threshold and second_pin_power_measured < Analog_voltage_threshold :
+                elif pin.Power_Measured > 0 and second_pin_power_measured < Analog_voltage_threshold :
                     text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
                     self.log(text, "info")
                     
-                elif second_pin_power_measured > zero_voltage_threshold and pin.Power_Measured < Analog_voltage_threshold :
+                elif second_pin_power_measured > 0 and pin.Power_Measured < Analog_voltage_threshold :
                     text = f"valid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}'V"
                     self.log(text, "info")
                     
@@ -1042,170 +1042,170 @@ class TestHandle:
         return (True)
 
     
-    def relay_fuse_test(self, first_relay: str, second_relay: str, pullup_pin: str, voltage_measure_pin1: str, voltage_measure_pin2: str) -> tuple[str, bool]:
-        """
-        Relay fuse test.
+    # def relay_fuse_test(self, first_relay: str, second_relay: str, pullup_pin: str, voltage_measure_pin1: str, voltage_measure_pin2: str) -> tuple[str, bool]:
+    #     """
+    #     Relay fuse test.
         
-        Test Procedure:
-        1. Disable all cards - use the enable_cards() with no input
-        2. Activate first_relay and second_relay
-        3. Activate pullup_pin
-        4. Wait for signal stabilization
-        5. Measure voltage on voltage_measure_pin1, voltage_measure_pin2
-        6. Status check that the voltage_measure_pin1, voltage_measure_pin2 are the same
-        7. Deactivate pullup_pin (set LOW) and deactivate first_relay, second_relay
-        8. Clear mux bits
-        9. Return status of the compare
+    #     Test Procedure:
+    #     1. Disable all cards - use the enable_cards() with no input
+    #     2. Activate first_relay and second_relay
+    #     3. Activate pullup_pin
+    #     4. Wait for signal stabilization
+    #     5. Measure voltage on voltage_measure_pin1, voltage_measure_pin2
+    #     6. Status check that the voltage_measure_pin1, voltage_measure_pin2 are the same
+    #     7. Deactivate pullup_pin (set LOW) and deactivate first_relay, second_relay
+    #     8. Clear mux bits
+    #     9. Return status of the compare
         
-        Args:
-            first_relay: Name of first relay pin (e.g., 'enable_Relay_pin_1_A')
-            second_relay: Name of second relay pin (e.g., 'enable_Relay_pin_1_B')
-            pullup_pin: Name of pullup pin (e.g., 'pullup_pins_pin_pair1')
-            voltage_measure_pin1: Name of first voltage measurement pin (e.g., 'voltage_measure_pin_pair1')
-            voltage_measure_pin2: Name of second voltage measurement pin (e.g., 'voltage_measure_pin_pair2')
+    #     Args:
+    #         first_relay: Name of first relay pin (e.g., 'enable_Relay_pin_1_A')
+    #         second_relay: Name of second relay pin (e.g., 'enable_Relay_pin_1_B')
+    #         pullup_pin: Name of pullup pin (e.g., 'pullup_pins_pin_pair1')
+    #         voltage_measure_pin1: Name of first voltage measurement pin (e.g., 'voltage_measure_pin_pair1')
+    #         voltage_measure_pin2: Name of second voltage measurement pin (e.g., 'voltage_measure_pin_pair2')
             
-        Returns:
-            Tuple of (message, status):
-                - message: Result message string
-                - status: True if test passed, False otherwise
-        """
+    #     Returns:
+    #         Tuple of (message, status):
+    #             - message: Result message string
+    #             - status: True if test passed, False otherwise
+    #     """
         
         
-        self.log("Starting Relay Fuse Test...", "INFO")
+    #     self.log("Starting Relay Fuse Test...", "INFO")
         
-        # Get tolerance from settings (default 0.5V)
-        tolerance = self.settings.get('Test', {}).get('voltage_tolerance', 0.5)
+    #     # Get tolerance from settings (default 0.5V)
+    #     tolerance = self.settings.get('Test', {}).get('voltage_tolerance', 0.5)
         
-        try:
-            # Step 1: Disable all cards
-            enable_cards([], self.board_config, self.pin_map, self.hardware, self.log)
-            self.log("All cards disabled", "DEBUG")
+    #     try:
+    #         # Step 1: Disable all cards
+    #         enable_cards([], self.board_config, self.pin_map, self.hardware, self.log)
+    #         self.log("All cards disabled", "DEBUG")
             
-            # Step 2: Activate relay pins
-            digital_ports = self.pin_map.get('D', {})
-            relay_ports = self.pin_map.get('R', {})
+    #         # Step 2: Activate relay pins
+    #         digital_ports = self.pin_map.get('D', {})
+    #         relay_ports = self.pin_map.get('R', {})
 
-            relay_1a_name = self.board_config.get(first_relay, None)
-            relay_1b_name = self.board_config.get(second_relay, None)
+    #         relay_1a_name = self.board_config.get(first_relay, None)
+    #         relay_1b_name = self.board_config.get(second_relay, None)
             
-            if not relay_1a_name or not relay_1b_name:
-                error_msg = f"Relay pins not found in board configuration: {first_relay}, {second_relay}"
-                self.log(error_msg, "ERROR")
-                return (f"FAIL: {error_msg}", False)
+    #         if not relay_1a_name or not relay_1b_name:
+    #             error_msg = f"Relay pins not found in board configuration: {first_relay}, {second_relay}"
+    #             self.log(error_msg, "ERROR")
+    #             return (f"FAIL: {error_msg}", False)
             
-            relay_1a_pin = relay_ports.get(relay_1a_name)
-            relay_1b_pin = relay_ports.get(relay_1b_name)
+    #         relay_1a_pin = relay_ports.get(relay_1a_name)
+    #         relay_1b_pin = relay_ports.get(relay_1b_name)
             
-            if relay_1a_pin is None or relay_1b_pin is None:
-                error_msg = f"Relay pins not found in pin map: {relay_1a_name}, {relay_1b_name}"
-                self.log(error_msg, "ERROR")
-                return (f"FAIL: {error_msg}", False)
+    #         if relay_1a_pin is None or relay_1b_pin is None:
+    #             error_msg = f"Relay pins not found in pin map: {relay_1a_name}, {relay_1b_name}"
+    #             self.log(error_msg, "ERROR")
+    #             return (f"FAIL: {error_msg}", False)
             
-            self.log(f"Activating relay pins: {relay_1a_name} (pin {relay_1a_pin}), {relay_1b_name} (pin {relay_1b_pin})", "DEBUG")
-            self.hardware.digital_write(relay_1a_pin, True)
-            self.hardware.digital_write(relay_1b_pin, True)
+    #         self.log(f"Activating relay pins: {relay_1a_name} (pin {relay_1a_pin}), {relay_1b_name} (pin {relay_1b_pin})", "DEBUG")
+    #         self.hardware.digital_write(relay_1a_pin, True)
+    #         self.hardware.digital_write(relay_1b_pin, True)
             
-            # Step 3: Activate pullup pin
-            pullup_pin_name = self.board_config.get(pullup_pin, None)
+    #         # Step 3: Activate pullup pin
+    #         pullup_pin_name = self.board_config.get(pullup_pin, None)
             
-            if not pullup_pin_name:
-                error_msg = f"Pullup pin not found in board configuration: {pullup_pin}"
-                self.log(error_msg, "ERROR")
-                # Cleanup
-                self.hardware.digital_write(relay_1a_pin, False)
-                self.hardware.digital_write(relay_1b_pin, False)
-                return (f"FAIL: {error_msg}", False)
+    #         if not pullup_pin_name:
+    #             error_msg = f"Pullup pin not found in board configuration: {pullup_pin}"
+    #             self.log(error_msg, "ERROR")
+    #             # Cleanup
+    #             self.hardware.digital_write(relay_1a_pin, False)
+    #             self.hardware.digital_write(relay_1b_pin, False)
+    #             return (f"FAIL: {error_msg}", False)
             
-            pullup_pin_physical = digital_ports.get(pullup_pin_name)
+    #         pullup_pin_physical = digital_ports.get(pullup_pin_name)
             
-            if pullup_pin_physical is None:
-                error_msg = f"Pullup pin not found in pin map: {pullup_pin_name}"
-                self.log(error_msg, "ERROR")
-                # Cleanup
-                self.hardware.digital_write(relay_1a_pin, False)
-                self.hardware.digital_write(relay_1b_pin, False)
-                return (f"FAIL: {error_msg}", False)
+    #         if pullup_pin_physical is None:
+    #             error_msg = f"Pullup pin not found in pin map: {pullup_pin_name}"
+    #             self.log(error_msg, "ERROR")
+    #             # Cleanup
+    #             self.hardware.digital_write(relay_1a_pin, False)
+    #             self.hardware.digital_write(relay_1b_pin, False)
+    #             return (f"FAIL: {error_msg}", False)
             
-            self.log(f"Activating pullup pin: {pullup_pin_name} (pin {pullup_pin_physical})", "DEBUG")
-            self.hardware.digital_write(pullup_pin_physical, True)
+    #         self.log(f"Activating pullup pin: {pullup_pin_name} (pin {pullup_pin_physical})", "DEBUG")
+    #         self.hardware.digital_write(pullup_pin_physical, True)
             
-            # Step 4: Wait for signal stabilization
-            stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
-            time.sleep(stabilize_delay)
+    #         # Step 4: Wait for signal stabilization
+    #         stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+    #         time.sleep(stabilize_delay)
             
-            # Step 5: Measure voltages on both pairs
-            analog_ports = self.pin_map.get('A', {})
+    #         # Step 5: Measure voltages on both pairs
+    #         analog_ports = self.pin_map.get('A', {})
             
-            voltage_pin_1_name = self.board_config.get(voltage_measure_pin1, None)
-            voltage_pin_2_name = self.board_config.get(voltage_measure_pin2, None)
+    #         voltage_pin_1_name = self.board_config.get(voltage_measure_pin1, None)
+    #         voltage_pin_2_name = self.board_config.get(voltage_measure_pin2, None)
             
-            if not voltage_pin_1_name or not voltage_pin_2_name:
-                error_msg = f"Voltage measurement pins not found in board configuration: {voltage_measure_pin1}, {voltage_measure_pin2}"
-                self.log(error_msg, "ERROR")
-                # Cleanup
-                self.hardware.digital_write(pullup_pin_physical, False)
-                self.hardware.digital_write(relay_1a_pin, False)
-                self.hardware.digital_write(relay_1b_pin, False)
-                return (f"FAIL: {error_msg}", False)
+    #         if not voltage_pin_1_name or not voltage_pin_2_name:
+    #             error_msg = f"Voltage measurement pins not found in board configuration: {voltage_measure_pin1}, {voltage_measure_pin2}"
+    #             self.log(error_msg, "ERROR")
+    #             # Cleanup
+    #             self.hardware.digital_write(pullup_pin_physical, False)
+    #             self.hardware.digital_write(relay_1a_pin, False)
+    #             self.hardware.digital_write(relay_1b_pin, False)
+    #             return (f"FAIL: {error_msg}", False)
             
-            voltage_pin_1 = analog_ports.get(voltage_pin_1_name)
-            voltage_pin_2 = analog_ports.get(voltage_pin_2_name)
+    #         voltage_pin_1 = analog_ports.get(voltage_pin_1_name)
+    #         voltage_pin_2 = analog_ports.get(voltage_pin_2_name)
             
-            if voltage_pin_1 is None or voltage_pin_2 is None:
-                error_msg = f"Voltage pins not found in pin map: {voltage_pin_1_name}, {voltage_pin_2_name}"
-                self.log(error_msg, "ERROR")
-                # Cleanup
-                self.hardware.digital_write(pullup_pin_physical, False)
-                self.hardware.digital_write(relay_1a_pin, False)
-                self.hardware.digital_write(relay_1b_pin, False)
-                return (f"FAIL: {error_msg}", False)
+    #         if voltage_pin_1 is None or voltage_pin_2 is None:
+    #             error_msg = f"Voltage pins not found in pin map: {voltage_pin_1_name}, {voltage_pin_2_name}"
+    #             self.log(error_msg, "ERROR")
+    #             # Cleanup
+    #             self.hardware.digital_write(pullup_pin_physical, False)
+    #             self.hardware.digital_write(relay_1a_pin, False)
+    #             self.hardware.digital_write(relay_1b_pin, False)
+    #             return (f"FAIL: {error_msg}", False)
             
-            self.log(f"Measuring voltage on {voltage_pin_1_name} (pin {voltage_pin_1})", "DEBUG")
-            voltage_1 = self.measurer.measure_voltage(voltage_pin_1)
+    #         self.log(f"Measuring voltage on {voltage_pin_1_name} (pin {voltage_pin_1})", "DEBUG")
+    #         voltage_1 = self.measurer.measure_voltage(voltage_pin_1)
             
-            self.log(f"Measuring voltage on {voltage_pin_2_name} (pin {voltage_pin_2})", "DEBUG")
-            voltage_2 = self.measurer.measure_voltage(voltage_pin_2)
+    #         self.log(f"Measuring voltage on {voltage_pin_2_name} (pin {voltage_pin_2})", "DEBUG")
+    #         voltage_2 = self.measurer.measure_voltage(voltage_pin_2)
             
-            self.log(f"Measured voltages: {voltage_pin_1_name}={voltage_1:.3f}V, {voltage_pin_2_name}={voltage_2:.3f}V", "INFO")
+    #         self.log(f"Measured voltages: {voltage_pin_1_name}={voltage_1:.3f}V, {voltage_pin_2_name}={voltage_2:.3f}V", "INFO")
             
-            # Step 6: Compare voltages
-            voltage_diff = abs(voltage_1 - voltage_2)
-            voltages_match = voltage_diff <= tolerance
+    #         # Step 6: Compare voltages
+    #         voltage_diff = abs(voltage_1 - voltage_2)
+    #         voltages_match = voltage_diff <= tolerance
             
-            status_msg = f"Voltage difference: {voltage_diff:.3f}V (tolerance: {tolerance}V)"
-            self.log(status_msg, "INFO")
+    #         status_msg = f"Voltage difference: {voltage_diff:.3f}V (tolerance: {tolerance}V)"
+    #         self.log(status_msg, "INFO")
             
-            # Step 7: Deactivate all pins
-            self.log("Deactivating pullup and relay pins", "DEBUG")
-            self.hardware.digital_write(pullup_pin_physical, False)
-            self.hardware.digital_write(relay_1a_pin, False)
-            self.hardware.digital_write(relay_1b_pin, False)
-            time.sleep(stabilize_delay)
+    #         # Step 7: Deactivate all pins
+    #         self.log("Deactivating pullup and relay pins", "DEBUG")
+    #         self.hardware.digital_write(pullup_pin_physical, False)
+    #         self.hardware.digital_write(relay_1a_pin, False)
+    #         self.hardware.digital_write(relay_1b_pin, False)
+    #         time.sleep(stabilize_delay)
             
-            # Step 8: Clear mux bits
-            clear_mux_bits(self.pin_map, self.hardware, self.log)
+    #         # Step 8: Clear mux bits
+    #         clear_mux_bits(self.pin_map, self.hardware, self.log)
             
-            # Step 9: Return status
-            if voltages_match:
-                result = f"PASS: Relay fuse test successful.fuse is intact,relays  {relay_1a_name} and {relay_1a_name} are operational, analogs {voltage_pin_1_name}, {voltage_pin_2_name} are operational, pullup {pullup_pin_name} is operational."
-                self.log(result, "SUCCESS")
-                status = True
-            else:
-                result = f"FAIL: Relay fuse test failed. {status_msg} some thing in the configuration of {relay_1a_pin, relay_1b_pin, voltage_pin_1_name, voltage_pin_2_name, pullup_pin_name} is not operational."
-                self.log(result, "WARNING")
-                status = False
+    #         # Step 9: Return status
+    #         if voltages_match:
+    #             result = f"PASS: Relay fuse test successful.fuse is intact,relays  {relay_1a_name} and {relay_1a_name} are operational, analogs {voltage_pin_1_name}, {voltage_pin_2_name} are operational, pullup {pullup_pin_name} is operational."
+    #             self.log(result, "SUCCESS")
+    #             status = True
+    #         else:
+    #             result = f"FAIL: Relay fuse test failed. {status_msg} some thing in the configuration of {relay_1a_pin, relay_1b_pin, voltage_pin_1_name, voltage_pin_2_name, pullup_pin_name} is not operational."
+    #             self.log(result, "WARNING")
+    #             status = False
             
-            return (result, status)
+    #         return (result, status)
             
-        except Exception as e:
-            error_msg = f"Error during relay fuse test: {str(e)}"
-            self.log(error_msg, "ERROR")
-            # Attempt cleanup
-            try:
-                clear_mux_bits(self.pin_map, self.hardware, self.log)
-            except:
-                pass
-            return (f"FAIL: {error_msg}", False)
+    #     except Exception as e:
+    #         error_msg = f"Error during relay fuse test: {str(e)}"
+    #         self.log(error_msg, "ERROR")
+    #         # Attempt cleanup
+    #         try:
+    #             clear_mux_bits(self.pin_map, self.hardware, self.log)
+    #         except:
+    #             pass
+    #         return (f"FAIL: {error_msg}", False)
     
     def run_i_bit_test(self) -> None:
         """
@@ -1254,117 +1254,117 @@ class TestHandle:
         #     error_msg = f"Error during I_Bit test: {str(e)}"
         #     self.log(error_msg, "ERROR")
     
-    def short_circuit_test(self) -> list[tuple[list[float], bool, list[dict]]]:
-        """
-        Short circuit test for all pins.
+    # def short_circuit_test(self) -> list[tuple[list[float], bool, list[dict]]]:
+    #     """
+    #     Short circuit test for all pins.
         
-        Test Procedure:
-        1. For each pin 1-50: Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
-        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - system A
-        3. Activate pullup_pin_key (set HIGH)
-        4. Wait for signal stabilization
-        5. Measure voltage
-        6. Run measure_all_pins_system_b(pin_number, measured_voltage) to verify routing
-        7. Deactivate pullup_pin_key (set LOW)
-        8. Clear mux bits
-        9. Return result (array of test results from measure_all_pins_system_b)
+    #     Test Procedure:
+    #     1. For each pin 1-50: Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
+    #     2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - system A
+    #     3. Activate pullup_pin_key (set HIGH)
+    #     4. Wait for signal stabilization
+    #     5. Measure voltage
+    #     6. Run measure_all_pins_system_b(pin_number, measured_voltage) to verify routing
+    #     7. Deactivate pullup_pin_key (set LOW)
+    #     8. Clear mux bits
+    #     9. Return result (array of test results from measure_all_pins_system_b)
         
-        Returns:
-            list[tuple[list[float], bool, list[dict]]]: Array of 50 test results, each containing:
-                - list[float]: Voltage measurements for all 50 pins
-                - bool: Pass/fail status for that test iteration
-                - list[dict]: Failed pins with details {'pin': N, 'measured': V, 'expected': V}
-        """
+    #     Returns:
+    #         list[tuple[list[float], bool, list[dict]]]: Array of 50 test results, each containing:
+    #             - list[float]: Voltage measurements for all 50 pins
+    #             - bool: Pass/fail status for that test iteration
+    #             - list[dict]: Failed pins with details {'pin': N, 'measured': V, 'expected': V}
+    #     """
         
         
         
-        test_results = []
-        voltage_scale = 1
+    #     test_results = []
+    #     voltage_scale = 1
         
-        self.log("Starting Short Circuit Test for all pins (1-50)...", "INFO")
+    #     self.log("Starting Short Circuit Test for all pins (1-50)...", "INFO")
         
-        for pin_number in range(1, 51):
-            if not self.running_ibit:
-                self.log("I_Bit test stopped by user", "WARNING")
-                break
+    #     for pin_number in range(1, 51):
+    #         if not self.running_ibit:
+    #             self.log("I_Bit test stopped by user", "WARNING")
+    #             break
             
-            try:
-                self.log(f"Testing pin {pin_number} for short circuits...", "INFO")
+    #         try:
+    #             self.log(f"Testing pin {pin_number} for short circuits...", "INFO")
                 
-                # Step 1: Get pair info
-                pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
+    #             # Step 1: Get pair info
+    #             pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
                 
-                # Get actual pin names from board config
-                voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
-                pullup_pin_name = self.board_config.get(pullup_pin_key, 'D20')
+    #             # Get actual pin names from board config
+    #             voltage_pin_name = self.board_config.get(voltage_pin_key, 'A0')
+    #             pullup_pin_name = self.board_config.get(pullup_pin_key, 'D20')
                 
-                # Step 2: Convert connector pin to bit representation using system A and set mux matrix
-                bits = connector_pin_to_bits(pin_number, "a")
-                success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log)
+    #             # Step 2: Convert connector pin to bit representation using system A and set mux matrix
+    #             bits = connector_pin_to_bits(pin_number, "a")
+    #             success = set_mux_bits(bits, pin_number, self.pin_map, self.hardware, self.settings, self.log)
                 
-                if not success:
-                    self.log(f"on short circut test  - Failed to set mux bits for pin {pin_number}", "ERROR")
-                    test_results.append(([], False, []))
-                    continue
+    #             if not success:
+    #                 self.log(f"on short circut test  - Failed to set mux bits for pin {pin_number}", "ERROR")
+    #                 test_results.append(([], False, []))
+    #                 continue
                 
-                # Step 3: Activate pullup pin (set HIGH)
-                digital_ports = self.pin_map.get('D', {})
-                pullup_physical_pin = digital_ports.get(pullup_pin_name)
+    #             # Step 3: Activate pullup pin (set HIGH)
+    #             digital_ports = self.pin_map.get('D', {})
+    #             pullup_physical_pin = digital_ports.get(pullup_pin_name)
                 
-                if pullup_physical_pin is None:
-                    self.log(f"on short circut test - Pullup pin {pullup_pin_name} not found in pin map for pin {pin_number}", "ERROR")
-                    test_results.append(([], False, []))
-                    continue
+    #             if pullup_physical_pin is None:
+    #                 self.log(f"on short circut test - Pullup pin {pullup_pin_name} not found in pin map for pin {pin_number}", "ERROR")
+    #                 test_results.append(([], False, []))
+    #                 continue
                 
-                self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "DEBUG")
-                self.hardware.digital_write(pullup_physical_pin, True)
+    #             self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "DEBUG")
+    #             self.hardware.digital_write(pullup_physical_pin, True)
                 
-                # Step 4: Wait for signal stabilization
-                stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
-                time.sleep(stabilize_delay)
+    #             # Step 4: Wait for signal stabilization
+    #             stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
+    #             time.sleep(stabilize_delay)
                 
-                # Step 5: Measure voltage
-                analog_ports = self.pin_map.get('A', {})
-                analog_port = analog_ports.get(voltage_pin_name)
+    #             # Step 5: Measure voltage
+    #             analog_ports = self.pin_map.get('A', {})
+    #             analog_port = analog_ports.get(voltage_pin_name)
                 
-                if analog_port is None:
-                    self.log(f"in short circuit test - Analog pin {voltage_pin_name} not found in pin map for pin {pin_number}", "ERROR")
-                    self.hardware.digital_write(pullup_physical_pin, False)
-                    test_results.append(([], False, []))
-                    continue
+    #             if analog_port is None:
+    #                 self.log(f"in short circuit test - Analog pin {voltage_pin_name} not found in pin map for pin {pin_number}", "ERROR")
+    #                 self.hardware.digital_write(pullup_physical_pin, False)
+    #                 test_results.append(([], False, []))
+    #                 continue
                 
-                try:
-                    voltage_degredation = self.settings.get('scale', {}).get('voltage_degredation', 3.0)
-                    measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale - voltage_degredation
-                    self.log(f"in card  A at Pin {pin_number} voltage with pullup: {measured_voltage:.3f}V", "DEBUG")
-                except Exception as e:
-                    self.log(f"in short circut test  - Measurement error on pin {pin_number}: {str(e)}", "ERROR")
-                    self.hardware.digital_write(pullup_physical_pin, False)
-                    test_results.append(([], False, []))
-                    continue
+    #             try:
+    #                 voltage_degredation = self.settings.get('scale', {}).get('voltage_degredation', 3.0)
+    #                 measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale - voltage_degredation
+    #                 self.log(f"in card  A at Pin {pin_number} voltage with pullup: {measured_voltage:.3f}V", "DEBUG")
+    #             except Exception as e:
+    #                 self.log(f"in short circut test  - Measurement error on pin {pin_number}: {str(e)}", "ERROR")
+    #                 self.hardware.digital_write(pullup_physical_pin, False)
+    #                 test_results.append(([], False, []))
+    #                 continue
                 
-                # Step 6: Run measure_all_pins_system_b to verify routing
+    #             # Step 6: Run measure_all_pins_system_b to verify routing
 
-                voltage_measurements, test_passed, failed_pins = self.measure_all_pins_system_b(pin_number, measured_voltage)
-                test_results.append((voltage_measurements, test_passed, failed_pins))
+    #             voltage_measurements, test_passed, failed_pins = self.measure_all_pins_system_b(pin_number, measured_voltage)
+    #             test_results.append((voltage_measurements, test_passed, failed_pins))
                 
-                # Step 7: Deactivate pullup pin (set LOW)
-                self.hardware.digital_write(pullup_physical_pin, False)
-                self.log(f"Deactivating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) LOW", "DEBUG")
+    #             # Step 7: Deactivate pullup pin (set LOW)
+    #             self.hardware.digital_write(pullup_physical_pin, False)
+    #             self.log(f"Deactivating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) LOW", "DEBUG")
                 
-                # Step 8: Clear mux bits before next pin
-                clear_mux_bits(self.pin_map, self.hardware, self.log)
+    #             # Step 8: Clear mux bits before next pin
+    #             clear_mux_bits(self.pin_map, self.hardware, self.log)
                 
-            except Exception as e:
-                self.log(f"Error in short circuit test processing pin {pin_number}: {str(e)}", "ERROR")
-                test_results.append(([], False, []))
+    #         except Exception as e:
+    #             self.log(f"Error in short circuit test processing pin {pin_number}: {str(e)}", "ERROR")
+    #             test_results.append(([], False, []))
         
-        # Summary
-        passed_count = sum(1 for _, passed, _ in test_results if passed)
-        total_count = len(test_results)
-        self.log(f"Short Circuit Test complete: {passed_count}/{total_count} pins PASSED", "SUCCESS" if passed_count == total_count else "WARNING")
+    #     # Summary
+    #     passed_count = sum(1 for _, passed, _ in test_results if passed)
+    #     total_count = len(test_results)
+    #     self.log(f"Short Circuit Test complete: {passed_count}/{total_count} pins PASSED", "SUCCESS" if passed_count == total_count else "WARNING")
         
-        return test_results
+    #     return test_results
     
     def measure_all_pins_system(self, system: str, voltage: float, isSimulate: bool) -> tuple[list[float], bool, list[dict]]:
         """

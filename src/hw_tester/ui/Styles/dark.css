@@ -18,6 +18,16 @@ QWidget {
     font-size: 10pt;
 }
 
+/* Run Controls status row: 150% font size for readability */
+QLabel#runStatusCaption,
+QLabel#runStatusValue {
+    font-size: 15pt;
+}
+
+QLabel#runStatusValue {
+    font-weight: 700;
+}
+
 /* Group boxes look like cards */
 QGroupBox {
     background: #23272e;

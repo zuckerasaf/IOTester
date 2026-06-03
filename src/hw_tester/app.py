@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-import yaml
 
 # -----------------------------------------------------
 # Make project imports work no matter where app runs
@@ -17,7 +16,7 @@ if str(SRC_PATH) not in sys.path:
 # -----------------------------------------------------
 #  Import project modules
 # -----------------------------------------------------
-from hw_tester.utils.config_loader import get_board_config_and_pins, load_settings
+from hw_tester.utils.config_loader import load_settings
 
 
 # -----------------------------------------------------
@@ -26,64 +25,21 @@ from hw_tester.utils.config_loader import get_board_config_and_pins, load_settin
 def main():
     """
     Main entry point for HW Tester application.
-    Reads UI_Type from settings and launches appropriate UI (Qt or Tkinter).
+    Launches the Qt UI.
     """
-    # Load settings to determine which UI to launch
+    # Load settings for logging only.
     settings = load_settings()
-    ui_type = settings.get('UI', {}).get('UI_Type', 'Tkinter')
+    ui_type = settings.get('UI', {}).get('UI_Type', 'Qt')
     
-    print(f"UI Type: {ui_type}")
+    print(f"UI Type (configured): {ui_type}")
     print(f"Project root: {PROJECT_ROOT}")
-    
-    if ui_type == "Qt":
-        # Launch Qt UI
-        print("Launching Qt UI...")
-        from hw_tester.ui.qt.app import main as qt_main
-        return qt_main()
-    
-    elif ui_type == "Tkinter":
-        # Launch Tkinter UI
-        print("Launching Tkinter UI...")
-        from hw_tester.ui.main_window import MainWindow
-        
-        # Load settings for display
-        settings_path = "src/hw_tester/config/settings.yaml"
-        pin_map_path = "src/hw_tester/config/pin_map.json"
-        settings, pin_map = get_board_config_and_pins(settings_path, pin_map_path)
-        
-        board_cfg = settings["Board"]
-        board_type = board_cfg["Type"]
-        port = board_cfg.get("Port", "COM5")
-        baud = board_cfg.get("BaudRate", 57600)
-        simulation = board_cfg.get("simulation", True)
-        
-        # Launch the main window
-        app = MainWindow(title=f"HW Tester - {board_type}")
-        
-        # Log startup info to the application log
-        app.log_view.append("=== HW Tester Startup Info ===", "INFO")
-        app.log_view.append(f"Project root: {PROJECT_ROOT}", "INFO")
-        app.log_view.append(f"Using board: {board_type}", "INFO")
-        app.log_view.append(f"Port: {port}, Baud: {baud}", "INFO")
-        app.log_view.append(f"Simulation mode: {simulation}", "SUCCESS" if simulation else "WARNING")
-        app.log_view.append(f"Pin map groups: {list(pin_map.keys())}", "INFO")
-        app.log_view.append("==============================", "INFO")
-        
-        # Also print to console
-        print(f"Using board: {board_type}")
-        print(f"Port: {port}, Baud: {baud}")
-        print(f"Simulation mode: {simulation}")
-        print(f"Pin map groups: {list(pin_map.keys())}")
-        print("\nStarting HW Tester GUI...\n")
-        
-        try:
-            app.run()
-        except KeyboardInterrupt:
-            print("\nApplication closed by user.")
-    
-    else:
-        print(f"ERROR: Unknown UI_Type '{ui_type}'. Please set UI_Type to 'Qt' or 'Tkinter' in settings.yaml")
-        return 1
+
+    if ui_type != "Qt":
+        print(f"UI_Type '{ui_type}' is deprecated. Forcing Qt mode for EXE compatibility.")
+
+    print("Launching Qt UI...")
+    from hw_tester.ui.qt.app import main as qt_main
+    return qt_main()
 
 
 # -----------------------------------------------------

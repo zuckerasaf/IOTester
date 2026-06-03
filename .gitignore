@@ -209,6 +209,9 @@ src/hw_tester/web/~$IO_Tester_logic_Power_test.xlsm
 
 # Generated web visualization files (from Web_Presentation.py)
 *.dot
+*.png
+*.doc
+*.docx
 *.svg
 *.html
 *.xlsx
@@ -233,3 +236,6 @@ src/hw_tester/web/IO_Tester_logic_Pullup_test.xlsm
 tests/DB/MTC_AFT/check_j16.py
 tests/DB/MTC_AFT/debug_from.py
 tests/DB/MTC_AFT/debug_raw.py
+tests/DB/Demo/JDemo.xlsx
+tests/Results/Base_Doc/template_docs/configuration.jpg
+

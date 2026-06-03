@@ -304,25 +304,25 @@ class LocalhostSimulatorManager:
         
         print("=" * 70 + "\n")
     
-    def start_card(self, card_id: int) -> bool:
-        """Start specific card simulator."""
-        sim = self.simulators.get(card_id)
-        if sim:
-            sim.start()
-            return True
-        return False
+    # def start_card(self, card_id: int) -> bool:
+    #     """Start specific card simulator."""
+    #     sim = self.simulators.get(card_id)
+    #     if sim:
+    #         sim.start()
+    #         return True
+    #     return False
     
-    def stop_card(self, card_id: int) -> bool:
-        """Stop specific card simulator."""
-        sim = self.simulators.get(card_id)
-        if sim:
-            sim.stop()
-            return True
-        return False
+    # def stop_card(self, card_id: int) -> bool:
+    #     """Stop specific card simulator."""
+    #     sim = self.simulators.get(card_id)
+    #     if sim:
+    #         sim.stop()
+    #         return True
+    #     return False
     
-    def get_simulator(self, card_id: int) -> Optional[LocalhostCardSimulator]:
-        """Get specific card simulator."""
-        return self.simulators.get(card_id)
+    # def get_simulator(self, card_id: int) -> Optional[LocalhostCardSimulator]:
+    #     """Get specific card simulator."""
+    #     return self.simulators.get(card_id)
     
     def get_all_statistics(self) -> Dict[int, Dict]:
         """Get statistics for all simulators."""

@@ -63,9 +63,9 @@ class UDPCardManager:
         """
         return self.cards.get(card_id)
     
-    def get_all_cards(self) -> List[UDPSender]:
-        """Get list of all card instances."""
-        return list(self.cards.values())
+    # def get_all_cards(self) -> List[UDPSender]:
+    #     """Get list of all card instances."""
+    #     return list(self.cards.values())
     
     def get_enabled_cards(self) -> List[UDPSender]:
         """Get list of enabled card instances."""
@@ -92,21 +92,21 @@ class UDPCardManager:
         for card in self.cards.values():
             card.stop()
     
-    def start_card(self, card_id: int) -> bool:
-        """
-        Start specific card.
+    # def start_card(self, card_id: int) -> bool:
+    #     """
+    #     Start specific card.
         
-        Args:
-            card_id: Card identifier
+    #     Args:
+    #         card_id: Card identifier
         
-        Returns:
-            True if successful, False if card not found
-        """
-        card = self.get_card(card_id)
-        if card:
-            card.start()
-            return True
-        return False
+    #     Returns:
+    #         True if successful, False if card not found
+    #     """
+    #     card = self.get_card(card_id)
+    #     if card:
+    #         card.start()
+    #         return True
+    #     return False
     
     def stop_card(self, card_id: int) -> bool:
         """
