@@ -347,6 +347,16 @@ class UDPSender:
         """Get analog input voltage (AI 1-16)."""
         with self._data_lock:
             return self._receive_data.get_analog_input(ai_number)
+
+    def get_encoder_words(self, encoder_id: int) -> tuple[int, int]:
+        """Get the two 16-bit words for the specified encoder."""
+        with self._data_lock:
+            return self._receive_data.get_encoder_words(encoder_id)
+
+    def get_encoder_word(self, encoder_id: int, word_index: int) -> int:
+        """Get a specific 16-bit encoder word."""
+        with self._data_lock:
+            return self._receive_data.get_encoder_word(encoder_id, word_index)
     
     def get_Matrix_rows(self, row_number: int = None) -> Optional[Union[int, List[int]]]:
         """

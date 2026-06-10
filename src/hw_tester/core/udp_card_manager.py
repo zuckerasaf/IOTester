@@ -383,9 +383,41 @@ class UDPCardManager:
         if card:
             return card.get_analog_input(ai_number)
         return None
+
+    def get_encoder_words(self, card_id: int, encoder_id: int) -> Optional[tuple[int, int]]:
+        """
+        Get the two 16-bit encoder words for the specified encoder on a card.
+        
+        Args:
+            card_id: Card identifier (1-7)
+            encoder_id: Encoder identifier (1 or 2)
+        
+        Returns:
+            Tuple of two 16-bit words, or None if card not found
+        """
+        card = self.get_card(card_id)
+        if card:
+            return card.get_encoder_words(encoder_id)
+        return None
+
+    def get_encoder_word(self, card_id: int, encoder_id: int, word_index: int) -> Optional[int]:
+        """
+        Get a specific encoder word for the specified encoder on a card.
+        
+        Args:
+            card_id: Card identifier (1-7)
+            encoder_id: Encoder identifier (1 or 2)
+            word_index: Word index (1 or 2)
+        
+        Returns:
+            16-bit encoder word, or None if card not found
+        """
+        card = self.get_card(card_id)
+        if card:
+            return card.get_encoder_word(encoder_id, word_index)
+        return None
     
-    # ===== Matrix Row Methods =====
-    
+    # ===== Matrix Row Methods =====n    
     def get_Matrix_rows(self, card_id: int, row_number: int = None) -> Optional[Union[int, List[int]]]:
         """
         Get matrix row data from specific card.

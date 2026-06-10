@@ -838,6 +838,7 @@ class TestHandle:
                     self.log(text, "ERROR")
                     return (0.0, False, text)
                 
+            
             except Exception as e:
                 text = f"Error in Logic test setting mux for second pin {second_pin_number}: {str(e)}"  
                 self.log(text, "ERROR")
@@ -920,6 +921,7 @@ class TestHandle:
             
             
             # Step 9: Read  status from card
+            temp=self.card_manager.get_encoder_word(card_id=3, encoder_id=1, word_index=1)
             try:
                 if "DI" in pin.Logic_Expected:
                     expected_state_bool = bool(event_value)

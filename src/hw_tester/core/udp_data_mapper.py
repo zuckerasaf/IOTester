@@ -450,6 +450,40 @@ class ReceiveData:
         
         return self.analog_inputs.get(ai_number)
     
+    def get_encoder_words(self, encoder_id: int) -> tuple[int, int]:
+        """
+        Get encoder word data for the specified incremental encoder.
+        
+        Args:
+            encoder_id: Encoder identifier (1 or 2)
+        
+        Returns:
+            Tuple of two 16-bit words for the requested encoder.
+        """
+        if encoder_id not in (1, 2):
+            raise ValueError(f"Encoder ID {encoder_id} out of range (1-2)")
+
+        # Bytes 52-59 hold the encoder data for two incremental encoders.
+        start_index = 52 + (encoder_id - 1) * 4
+        word1 = self.data[start_index] | (self.data[start_index + 1] << 8)
+        word2 = self.data[start_index + 2] | (self.data[start_index + 3] << 8)
+        return (word1, word2)
+
+    def get_encoder_word(self, encoder_id: int, word_index: int) -> int:
+        """
+        Get a specific encoder word.
+        
+        Args:
+            encoder_id: Encoder identifier (1 or 2)
+            word_index: Word index (1 or 2)
+        
+        Returns:
+            Single 16-bit encoder word.
+        """
+        if word_index not in (1, 2):
+            raise ValueError(f"Encoder word index {word_index} out of range (1-2)")
+        return self.get_encoder_words(encoder_id)[word_index - 1]
+
     def get_Matrix_rows(self, card_id: int) -> List[int]:
         """
         Get matrix rows data for a card.
