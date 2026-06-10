@@ -781,7 +781,7 @@ class TestHandle:
             logic_voltage_threshold = self.settings.get('scale', {}).get('logic_voltage_threshold', 4.0)
             Analog_voltage_threshold = self.settings.get('scale', {}).get('Analog_voltage_threshold', 13.0)
             # check we connected Digital Input to retrun line  
-            if "DI" in pin.Logic_Expected:
+            if "DI" in pin.Logic_Expected or "IE" in pin.Logic_Expected:
                 self.log(f"we are connecting Digital input, the connection should be to RTN line ~0V")
                 if pin.Power_Measured > logic_voltage_threshold or second_pin_power_measured > logic_voltage_threshold :
                     text = f"invalid combination :Pin {pin_number} Power_Measured is '{pin.Power_Measured}'V  Second pin {second_pin_number} Power_Measured is '{second_pin_power_measured}V"
@@ -934,6 +934,12 @@ class TestHandle:
                     self.log(f"Parsed Logic_Expected: Card={card}, AI={event_num}, Expected={event_value}", "INFO")
                     ai_status = self.card_manager.get_analog_input(card_id=card, ai_number=event_num)
                     self.log(f"measured -> Card {card} AI{event_num} Voltage : {ai_status}", "INFO")
+                
+                elif "IE" in pin.Logic_Expected:
+                    self.log(f"Parsed Logic_Expected: Card={card}, IE={event_num}, Expected={event_value}", "INFO")
+                    ie_status = self.card_manager.get_encoder_word(card_id=card, encoder_id=event_num, word_index=1)
+                    self.log(f"measured -> Card {card} IE{event_num} Value : {ie_status}", "INFO")
+
                 else:
                     text = f"Logic_Expected '{pin.Logic_Expected}' does not specify DI or AI type"
                     self.log(text, "ERROR")
@@ -967,7 +973,12 @@ class TestHandle:
                     ai_status = event_value
                 
                 status_match = (abs(ai_status - event_value)<tolerance)
-            
+
+            else:
+                if is_simulation:
+                    ie_status = event_value
+                
+                status_match = (ie_status == event_value)   
 
             # Step 11: Deactivate relay cards
             # self.hardware.digital_write(relay_a_pin, False)
@@ -1015,7 +1026,14 @@ class TestHandle:
                     self.log(f"Logic test PASSED: AI{event_num} is {ai_status}, expected {event_value}", "SUCCESS")
                     Overallsuccess = True
                 else:
-                    self.log(f"Logic test FAILED: DI{event_num} is {ai_status}, expected {event_value}", "WARNING")
+                    self.log(f"Logic test FAILED: AI{event_num} is {ai_status}, expected {event_value}", "WARNING")
+                    Overallsuccess = False
+            else:
+                if status_match:
+                    self.log(f"Logic test PASSED: IE{event_num} is {ie_status}, expected {event_value}", "SUCCESS")
+                    Overallsuccess = True
+                else:
+                    self.log(f"Logic test FAILED: IE{event_num} is {ie_status}, expected {event_value}", "WARNING")
                     Overallsuccess = False
 
                 
