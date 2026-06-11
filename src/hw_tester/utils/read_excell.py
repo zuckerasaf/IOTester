@@ -26,8 +26,8 @@ def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, 
         Dictionary mapping property names to 0-based column indices
     """
     if settings_path is None:
-        project_root = Path(__file__).resolve().parents[3]
-        settings_path = project_root / "src" / "hw_tester" / "config" / "settings.yaml"
+        from hw_tester.utils.config_loader import resolve_config_path
+        settings_path = resolve_config_path("settings.yaml")
     else:
         settings_path = Path(settings_path)
     

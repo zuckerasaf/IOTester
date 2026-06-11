@@ -16,9 +16,15 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # Reuse your existing QSS file
-    qss_path = Path(__file__).resolve().parents[1] / "Styles" / "dark.css"
-    load_stylesheet(app, qss_path)
+    # Prefer external config folder next to the EXE
+    exe_dir = Path(sys.argv[0]).resolve().parent
+    external_qss = exe_dir / "config" / "dark.css"
+    if external_qss.exists():
+        load_stylesheet(app, external_qss)
+    else:
+        # Fall back to bundled or source QSS path
+        qss_path = Path(__file__).resolve().parents[1] / "Styles" / "dark.css"
+        load_stylesheet(app, qss_path)
 
     w = MainWindowQt()
     w.show()

@@ -43,8 +43,9 @@ class Measurer:
     
     def _load_settings(self) -> dict:
         """Load settings from settings.yaml"""
-        project_root = Path(__file__).resolve().parents[3]
-        settings_path = project_root / "src" / "hw_tester" / "config" / "settings.yaml"
+        from hw_tester.utils.config_loader import resolve_config_path
+
+        settings_path = resolve_config_path("settings.yaml")
         
         if not settings_path.exists():
             # Return defaults if settings file not found

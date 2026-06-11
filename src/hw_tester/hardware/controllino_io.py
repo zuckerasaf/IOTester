@@ -33,17 +33,18 @@ def _load_connector_mapping(type = "a"):
         # Fallback to default if board-specific path not found
         #if map_path is None:
         if type == "a":
-            map_path = settings.get('Paths', {}).get('ConnectorAddressMap_A', 'src/hw_tester/config/connector_Address_map_A.xlsx')
+            map_path = settings.get('Paths', {}).get('ConnectorAddressMap_A', 'connector_Address_A_map.xlsx')
         elif type == "b":
-            map_path = settings.get('Paths', {}).get('ConnectorAddressMap_B', 'src/hw_tester/config/connector_Address_map_B.xlsx')
+            map_path = settings.get('Paths', {}).get('ConnectorAddressMap_B', 'connector_Address_B_map.xlsx')
         else:
-            map_path = settings.get('Paths', {}).get('ConnectorAddressMap', 'src/hw_tester/config/connector_Address_map.xlsx')
+            map_path = settings.get('Paths', {}).get('ConnectorAddressMap', 'connector_Address_map.xlsx')
             print(f"[ControllinoIO] No board-specific mapping for {board_type}, using default")
         #else:
         #print(f"[ControllinoIO] Using board-specific mapping for {board_type}")
         
-        # Resolve relative to project root (same as pin_map.json)
-        full_path = get_project_root() / map_path
+        # Resolve relative to the deployed config location or external config folder
+        from hw_tester.utils.config_loader import resolve_config_path
+        full_path = resolve_config_path(map_path)
         
         if not full_path.exists():
             print(f"[ControllinoIO WARNING] Connector mapping file not found: {full_path}")
@@ -303,10 +304,10 @@ if __name__ == "__main__":
     sys.path.insert(0, str(project_root / "src"))
     
     # Reload the mapping with correct path
-    from hw_tester.utils.config_loader import load_settings, get_project_root
+    from hw_tester.utils.config_loader import load_settings, resolve_config_path
     settings = load_settings()
-    map_path = settings.get('Paths', {}).get('ConnectorAddressMap', 'src/hw_tester/config/connector_Address_map.xlsx')
-    full_path = get_project_root() / map_path
+    map_path = settings.get('Paths', {}).get('ConnectorAddressMap', 'connector_Address_map.xlsx')
+    full_path = resolve_config_path(map_path)
     
     if full_path.exists():
         df = pd.read_excel(full_path)

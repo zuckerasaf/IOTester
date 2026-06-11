@@ -1,3 +1,4 @@
+import sys
 import yaml
 import json
 from pathlib import Path
@@ -12,16 +13,84 @@ except ImportError:
 def get_project_root() -> Path:
     """
     Return the absolute path to the project root (where 'src' folder lives).
+
+    When running under PyInstaller in onefile mode, use the internal extracted path.
+    When running normally, use the repo root above src/hw_tester/utils.
     """
+    if getattr(sys, 'frozen', False):
+        return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[3]  # 3 levels up from utils/
 
 
-def load_settings(path: str = "src/hw_tester/config/settings.yaml") -> dict:
+def get_config_root() -> Path:
     """
-    Load YAML configuration into a dictionary, using a path relative to project root.
+    Return the folder containing the deployed config files.
+
+    Prefer an external `config` folder located next to the running executable/script.
+    Fall back to the PyInstaller `_MEIPASS/config` folder if present.
+    Otherwise return the normal source config folder.
+    """
+    exe_dir = Path(sys.argv[0]).resolve().parent
+    external_config = exe_dir / "config"
+    if external_config.exists():
+        return external_config
+
+    if getattr(sys, '_MEIPASS', None):
+        internal_config = Path(sys._MEIPASS) / "config"
+        if internal_config.exists():
+            return internal_config
+
+    if getattr(sys, 'frozen', False):
+        return exe_dir
+
+    return get_project_root() / "src" / "hw_tester" / "config"
+
+
+def resolve_config_path(path: str) -> Path:
+    """
+    Resolve a relative config asset path to the actual filesystem location.
+
+    This supports:
+    - normal source mode: src/hw_tester/config/...
+    - PyInstaller frozen mode with external config/ next to EXE
+    - PyInstaller internal bundled config under _MEIPASS/config
+    """
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate
+
+    if getattr(sys, 'frozen', False):
+        config_root = get_config_root()
+
+        # Most deployed config files are in a flat config folder next to the EXE.
+        flat_path = config_root / candidate.name
+        if flat_path.exists():
+            return flat_path
+
+        # If the internal bundle keeps relative folders, preserve the nested path.
+        nested_path = config_root / candidate
+        if nested_path.exists():
+            return nested_path
+
+        # If the path was provided as src/hw_tester/config/..., try the filename alone.
+        if candidate.parts[-1]:
+            return config_root / candidate.name
+
+        return nested_path
+
+    if candidate.parts[:4] == ('src', 'hw_tester', 'config'):
+        return get_project_root() / candidate
+    if candidate.parts[0] == 'config':
+        return get_project_root() / "src" / "hw_tester" / Path(*candidate.parts[1:])
+    return get_project_root() / "src" / "hw_tester" / "config" / candidate
+
+
+def load_settings(path: str = "settings.yaml") -> dict:
+    """
+    Load YAML configuration into a dictionary, using a path relative to the config directory.
     Uses ruamel.yaml if available to preserve comments for later saving.
     """
-    full_path = get_project_root() / path
+    full_path = resolve_config_path(path)
     if not full_path.exists():
         raise FileNotFoundError(f"Settings file not found: {full_path}")
 
@@ -36,7 +105,7 @@ def load_settings(path: str = "src/hw_tester/config/settings.yaml") -> dict:
             return yaml.safe_load(f) or {}
 
 
-def save_settings(settings: dict, path: str = "src/hw_tester/config/settings.yaml") -> None:
+def save_settings(settings: dict, path: str = "settings.yaml") -> None:
     """
     Save settings dictionary back to YAML file while preserving comments.
     Uses ruamel.yaml if available to preserve comments, otherwise falls back to yaml.safe_dump.
@@ -47,7 +116,7 @@ def save_settings(settings: dict, path: str = "src/hw_tester/config/settings.yam
         settings: Settings dictionary to save (must be loaded with ruamel.yaml)
         path: Relative path to settings file from project root
     """
-    full_path = get_project_root() / path
+    full_path = resolve_config_path(path)
     
     if HAS_RUAMEL:
         # Use ruamel.yaml to preserve comments and formatting
@@ -64,11 +133,11 @@ def save_settings(settings: dict, path: str = "src/hw_tester/config/settings.yam
             yaml.safe_dump(settings, f, default_flow_style=False, sort_keys=False)
 
 
-def load_pin_map(path: str = "src/hw_tester/config/pin_map.json") -> dict:
+def load_pin_map(path: str = "pin_map.json") -> dict:
     """
     Load the full pin map JSON (relative path).
     """
-    full_path = get_project_root() / path
+    full_path = resolve_config_path(path)
     if not full_path.exists():
         raise FileNotFoundError(f"Pin map file not found: {full_path}")
 
@@ -80,7 +149,7 @@ def load_pin_map(path: str = "src/hw_tester/config/pin_map.json") -> dict:
     return data["Boards"]
 
 
-def get_board_pin_map(settings: dict, pin_map_path="src/hw_tester/config/pin_map.json") -> dict:
+def get_board_pin_map(settings: dict, pin_map_path="pin_map.json") -> dict:
     """
     Return pin map for the board specified in settings.yaml.
     """
@@ -92,8 +161,8 @@ def get_board_pin_map(settings: dict, pin_map_path="src/hw_tester/config/pin_map
 
 
 def get_board_config_and_pins(
-    settings_path="src/hw_tester/config/settings.yaml",
-    pin_map_path="src/hw_tester/config/pin_map.json",
+    settings_path="settings.yaml",
+    pin_map_path="pin_map.json",
 ) -> tuple[dict, dict]:
     """
     Convenience helper: loads both settings and board pin map.
@@ -115,7 +184,7 @@ def get_board_pin_config(settings: dict) -> dict:
     """
     board_type = settings.get('Board', {}).get('Type', 'ArduinoUno')
     
-    config_path = get_project_root() / "src/hw_tester/config/board_pin_config.json"
+    config_path = resolve_config_path("board_pin_config.json")
     
     try:
         with open(config_path, 'r') as f:

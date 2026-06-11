@@ -239,3 +239,6 @@ tests/DB/MTC_AFT/debug_raw.py
 tests/DB/Demo/JDemo.xlsx
 tests/Results/Base_Doc/template_docs/configuration.jpg
 
+tests/Results/IO_Tester_FRS_V1.txt
+tests/Results/P (127.0.0.1c$FileServerMasada) (P) - Shortcut.lnk
+tests/DB/Demo/JDemo.xlsx

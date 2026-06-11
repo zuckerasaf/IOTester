@@ -9,7 +9,10 @@ import threading
 import time
 from typing import Optional, Callable, List, Dict, Union
 import yaml
+import sys
 from pathlib import Path
+
+from hw_tester.utils.config_loader import resolve_config_path
 
 # Import handling for both direct execution and package import
 try:
@@ -44,9 +47,7 @@ class UDPSender:
             Dictionary with UDP settings
         """
         if settings_path is None:
-            # Try to find settings.yaml relative to this file
-            current_file = Path(__file__)
-            settings_path = current_file.parent.parent / "config" / "settings.yaml"
+            settings_path = resolve_config_path("settings.yaml")
         
         try:
             with open(settings_path, 'r') as f:
@@ -77,7 +78,7 @@ class UDPSender:
         
         if not cards:
             if settings_path is None:
-                settings_path = Path(__file__).parent.parent / "config" / "settings.yaml"
+                settings_path = resolve_config_path("settings.yaml")
             raise FileNotFoundError(
                 f"ERROR: No cards found in settings.yaml!\n"
                 f"Please check: {settings_path}\n"

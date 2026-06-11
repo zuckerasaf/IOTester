@@ -21,7 +21,7 @@ Board:
   - none
   Port: COM5
   BaudRate: 115200
-  simulation: false
+  simulation: true
 Timeouts:
   duration: 0.5
   sample_interval: 0.1
@@ -36,15 +36,15 @@ scale:
   Analog_voltage_threshold: 13.0
   logic_voltage_threshold: 4.0
 Paths:
-  Path_1: C:/ArduinoProject/IO_Tester
-  Path_2: src/hw_tester/config/pin_map.json
+  Path_1: .
+  Path_2: pin_map.json
   reports: C:\ArduinoProject\IO_Tester\tests\Results
-  ConnectorAddressMap: src/hw_tester/config/connector_Address_map.xlsx
-  ConnectorAddressMap_A: src/hw_tester/config/connector_Address_A_map.xlsx
-  ConnectorAddressMap_B: src/hw_tester/config/connector_Address_B_map.xlsx
-  ConnectorAddressMap_ControllinoMega: src/hw_tester/config/connector_Address_map.xlsx
-  ConnectorAddressMap_ArduinoMega: src/hw_tester/config/connector_Address_map.xlsx
-  ConnectorAddressMap_ArduinoUno: src/hw_tester/config/connector_Address_map.xlsx
+  ConnectorAddressMap: connector_Address_map.xlsx
+  ConnectorAddressMap_A: connector_Address_A_map.xlsx
+  ConnectorAddressMap_B: connector_Address_B_map.xlsx
+  ConnectorAddressMap_ControllinoMega: connector_Address_map.xlsx
+  ConnectorAddressMap_ArduinoMega: connector_Address_map.xlsx
+  ConnectorAddressMap_ArduinoUno: connector_Address_map.xlsx
   powerup_MTC_FWD: tests/DB/MTC_FWD/powerup_MTC_FWD.json
   powerdown_MTC_FWD: tests/DB/MTC_FWD/powerdown_MTC_FWD.json
   powerup_MTC_AFT: tests/DB/MTC_AFT/powerup_MTC_AFT.json
@@ -77,7 +77,7 @@ Test_trshhold:
 UDP_Settings:
   Frequency_Hz: 20.0
   Communication_Timeout: 2.0
-  localhost_mode: false
+  localhost_mode: true
   Cards:
   - card_id: 1
     enabled: true
