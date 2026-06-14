@@ -5,8 +5,8 @@ import time
 import threading
 from typing import Optional
 from pathlib import Path
-import yaml
 from hw_tester.hardware.hardware_factory import initialize_hardware
+from hw_tester.utils.config_loader import load_settings
 
 
 class PinPulser:
@@ -45,21 +45,15 @@ class PinPulser:
         self._active_timers = {}
     
     def _load_settings(self) -> dict:
-        """Load settings from settings.yaml"""
-        from hw_tester.utils.config_loader import resolve_config_path
-
-        settings_path = resolve_config_path("settings.yaml")
-        
-        if not settings_path.exists():
-            # Return defaults if settings file not found
+        """Load settings from merged configuration files."""
+        settings = load_settings("settings.yaml", "Comm_settings.yaml")
+        if not settings:
             return {
                 'Timeouts': {
                     'pins_to_stabilize': 2.5
                 }
             }
-        
-        with open(settings_path, 'r') as f:
-            return yaml.safe_load(f)
+        return settings
     
     def pulse(self, digital_port: int, timeout: Optional[float] = None) -> None:
         """

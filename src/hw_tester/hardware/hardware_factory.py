@@ -56,7 +56,7 @@ def initialize_hardware(settings: dict, log_callback=None):
                 # Save updated settings
                 try:
                     from hw_tester.utils.config_loader import save_settings
-                    save_settings(settings)
+                    save_settings(settings, "settings.yaml", "Comm_settings.yaml")
                     print(f"[HardwareFactory] Simulation mode enabled in settings.yaml")
                 except Exception as save_error:
                     print(f"[HardwareFactory WARNING] Failed to save settings: {save_error}")

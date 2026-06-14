@@ -85,52 +85,68 @@ def resolve_config_path(path: str) -> Path:
     return get_project_root() / "src" / "hw_tester" / "config" / candidate
 
 
-def load_settings(path: str = "settings.yaml") -> dict:
-    """
-    Load YAML configuration into a dictionary, using a path relative to the config directory.
-    Uses ruamel.yaml if available to preserve comments for later saving.
-    """
+def _load_yaml(path: str) -> dict:
+    """Load YAML from a resolved path, returning an empty dict if missing."""
     full_path = resolve_config_path(path)
     if not full_path.exists():
-        raise FileNotFoundError(f"Settings file not found: {full_path}")
+        return {}
 
     if HAS_RUAMEL:
-        # Use ruamel.yaml to load and preserve comments
         yaml_handler = YAML()
         with open(full_path, "r", encoding="utf-8") as f:
-            return yaml_handler.load(f)
+            return yaml_handler.load(f) or {}
     else:
-        # Fallback to standard yaml (loses comments)
         with open(full_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
 
 
-def save_settings(settings: dict, path: str = "settings.yaml") -> None:
-    """
-    Save settings dictionary back to YAML file while preserving comments.
-    Uses ruamel.yaml if available to preserve comments, otherwise falls back to yaml.safe_dump.
-    
-    Note: The settings dict must be the same object loaded by load_settings() to preserve comments.
-    
-    Args:
-        settings: Settings dictionary to save (must be loaded with ruamel.yaml)
-        path: Relative path to settings file from project root
-    """
+def _write_yaml(data: dict, path: str) -> None:
+    """Write YAML to a resolved path."""
     full_path = resolve_config_path(path)
-    
+    # Ensure target directory exists
+    full_path.parent.mkdir(parents=True, exist_ok=True)
+
     if HAS_RUAMEL:
-        # Use ruamel.yaml to preserve comments and formatting
         yaml_handler = YAML()
         yaml_handler.preserve_quotes = True
         yaml_handler.default_flow_style = False
-        
-        # Write back with preserved comments (settings dict already has comment metadata)
         with open(full_path, "w", encoding="utf-8") as f:
-            yaml_handler.dump(settings, f)
+            yaml_handler.dump(data, f)
     else:
-        # Fallback to standard yaml (loses comments)
         with open(full_path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(settings, f, default_flow_style=False, sort_keys=False)
+            yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+
+
+def load_settings(path: str = "settings.yaml", comm_path: str = "Comm_settings.yaml") -> dict:
+    """
+    Load configuration from settings.yaml and split communication settings from Comm_settings.yaml.
+
+    The returned dictionary contains merged values from both files. The Board and
+    UDP_Settings sections are loaded from Comm_settings.yaml, while all other
+    settings come from settings.yaml.
+    """
+    settings = _load_yaml(path)
+    comm_settings = _load_yaml(comm_path)
+    if comm_settings:
+        settings.update({
+            k: v for k, v in comm_settings.items()
+            if k in {"Board", "UDP_Settings"}
+        })
+    return settings
+
+
+def save_settings(settings: dict, path: str = "settings.yaml", comm_path: str = "Comm_settings.yaml") -> None:
+    """
+    Save settings to split YAML files.
+
+    Non-communication settings are saved to settings.yaml, while Board and
+    UDP_Settings are saved to Comm_settings.yaml.
+    """
+    base_settings = {k: v for k, v in settings.items() if k not in {"Board", "UDP_Settings"}}
+    comm_settings = {k: v for k, v in settings.items() if k in {"Board", "UDP_Settings"}}
+
+    _write_yaml(base_settings, path)
+    _write_yaml(comm_settings, comm_path)
 
 
 def load_pin_map(path: str = "pin_map.json") -> dict:

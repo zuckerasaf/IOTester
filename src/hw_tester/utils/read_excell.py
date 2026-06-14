@@ -4,9 +4,9 @@ Utility functions for reading Excel files and creating connector/pin objects.
 from pathlib import Path
 from typing import Optional, Dict
 import openpyxl
-import yaml
 
 from ..hardware.pin import Pin, Connector, TestResult
+from .config_loader import load_settings
 
 
 def _column_letter_to_index(column_letter: str) -> int:
@@ -20,40 +20,35 @@ def _column_letter_to_index(column_letter: str) -> int:
 
 def _load_excel_column_config(settings_path: Optional[str] = None) -> Dict[str, int]:
     """
-    Load Excel column configuration from settings.yaml.
+    Load Excel column configuration from merged settings.
     
     Returns:
         Dictionary mapping property names to 0-based column indices
     """
     if settings_path is None:
-        from hw_tester.utils.config_loader import resolve_config_path
-        settings_path = resolve_config_path("settings.yaml")
+        settings = load_settings()
     else:
-        settings_path = Path(settings_path)
-    
-    if not settings_path.exists():
-        # Return default column mapping if settings not found
-        return {
-            'Id': 7,                    # H
-            'Connect': 1,               # A
-            'Discrete_Name': 2,         # B
-            'Signal_Name': 3,           # C
-            'Plug': 9,                  # J
-            'Type': 3,                  # D
-            'Pin': 10,                  # K
-            'Power_Expected': 13,       # N
-            'Power_Input': 14,          # O
-            'PullUp_Expected': 15,      # P
-            'PullUp_Input': 16,         # Q
-            'Logic_Pin_Input': 17,      # R
-            'Logic_Expected': 18,       # S
-            'Test_Result': 19           # T
-        }
-    
-    with open(settings_path, 'r') as f:
-        settings = yaml.safe_load(f)
-    
+        settings = load_settings(path=settings_path, comm_path="Comm_settings.yaml")
+
     excel_cols = settings.get('ExcelColumns', {})
+    
+    return {
+        'Id': 7,                    # H
+        'Connect': 1,               # A
+        'Discrete_Name': 2,         # B
+        'Signal_Name': 3,           # C
+        'Plug': 9,                  # J
+        'Type': 3,                  # D
+        'Pin': 10,                  # K
+        'Power_Expected': 13,       # N
+        'Power_Input': 14,          # O
+        'PullUp_Expected': 15,      # P
+        'PullUp_Input': 16,         # Q
+        'Logic_Pin_Input': 17,      # R
+        'Logic_Command': 18,        # S
+        'Logic_Expected': 19,       # T
+        'Test_Result': 19           # T
+    }
     
     return {
         'Id': _column_letter_to_index(excel_cols.get('ID', 'H')),

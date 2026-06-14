@@ -5,8 +5,8 @@ import time
 from typing import Optional, List
 from pathlib import Path
 from statistics import mean
-import yaml
 from hw_tester.hardware.hardware_factory import initialize_hardware
+from hw_tester.utils.config_loader import load_settings
 
 
 class Measurer:
@@ -42,22 +42,16 @@ class Measurer:
         self.default_sample_interval = timeouts.get('sample_interval', 0.1)
     
     def _load_settings(self) -> dict:
-        """Load settings from settings.yaml"""
-        from hw_tester.utils.config_loader import resolve_config_path
-
-        settings_path = resolve_config_path("settings.yaml")
-        
-        if not settings_path.exists():
-            # Return defaults if settings file not found
+        """Load settings from merged configuration files."""
+        settings = load_settings("settings.yaml", "Comm_settings.yaml")
+        if not settings:
             return {
                 'Timeouts': {
                     'duration': 3.0,
                     'sample_interval': 0.1
                 }
             }
-        
-        with open(settings_path, 'r') as f:
-            return yaml.safe_load(f)
+        return settings
     
     def measure_voltage(
         self, 

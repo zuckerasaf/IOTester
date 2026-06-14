@@ -12,18 +12,21 @@ import webbrowser
 from typing import Optional, List, Dict
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, QTimer, QMetaObject, Q_ARG
-from PySide6.QtWidgets import QFileDialog, QMessageBox
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox
 
 import openpyxl
+import yaml
 
 from hw_tester.utils.read_excell import load_connector_from_excel
 from hw_tester.hardware.pin import Connector, Pin, TestResult
-from hw_tester.utils.config_loader import load_settings, save_settings, get_board_pin_map, get_board_pin_config
+from hw_tester.utils.config_loader import load_settings, save_settings, get_board_pin_map, get_board_pin_config, resolve_config_path
 from hw_tester.core.test_handle import TestHandle
 from hw_tester.core.measurer import Measurer
 from hw_tester.core.pin_pulser import PinPulser
 from hw_tester.core.udp_card_manager import UDPCardManager
 from hw_tester.hardware.hardware_factory import initialize_hardware
+from hw_tester.ui.qt.widgets.pin_table_qt import CommSettingsTable
 # from hw_tester.core.test_handle import run_i_bit_test
 
 
@@ -182,6 +185,7 @@ class MainController:
     def _wire_signals(self):
         """Connect all UI signals (button clicks) to controller methods."""
         # Group 1: Connector/File buttons
+        self.main_window.btn_settings.clicked.connect(self.on_settings)
         self.main_window.btn_load.clicked.connect(self.on_load)
         self.main_window.btn_report.clicked.connect(self.on_report)
         self.main_window.btn_doc.clicked.connect(self.on_doc)
@@ -528,6 +532,113 @@ class MainController:
         self.main_window.log.clear()
         self.main_window.log.append("Log cleared", "INFO")
     
+    def on_settings(self):
+        """Handle Settings button click - open editor for Comm_settings.yaml."""
+        comm_path = resolve_config_path("Comm_settings.yaml")
+        try:
+            if comm_path.exists():
+                content = comm_path.read_text(encoding="utf-8")
+            else:
+                content = yaml.safe_dump({"Board": self.settings.get("Board", {}), "UDP_Settings": self.settings.get("UDP_Settings", {})}, sort_keys=False)
+        except Exception as e:
+            self.main_window.log.append(f"Failed to open Comm_settings.yaml: {e}", "ERROR")
+            self._show_message(
+                "Settings Error",
+                f"Could not open Comm_settings.yaml:\n{e}",
+                "critical"
+            )
+            return
+
+        dialog = QDialog(self.main_window)
+        dialog.setWindowTitle("Edit Comm_settings.yaml")
+        dialog.setModal(True)
+        dialog.setMinimumSize(900, 600)
+
+        layout = QVBoxLayout(dialog)
+
+        self.comm_table = CommSettingsTable(dialog)
+        self._populate_comm_table(content)
+
+        board_group = QGroupBox("Board Settings", dialog)
+        board_layout = QFormLayout(board_group)
+        self.board_port_input = QLineEdit(board_group)
+        board_layout.addRow("COM Port:", self.board_port_input)
+
+        layout.addWidget(board_group)
+        layout.addWidget(self.comm_table)
+
+        self._populate_comm_board_fields(content)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=dialog)
+        buttons.accepted.connect(lambda: self._save_comm_settings(dialog, comm_path))
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.exec()
+
+    def _populate_comm_table(self, content: str):
+        """Load YAML content into the comm settings table."""
+        try:
+            data = yaml.safe_load(content) or {}
+            udp = data.get("UDP_Settings", {})
+            cards = udp.get("Cards", [])
+        except Exception:
+            cards = []
+
+        rows = []
+        for card in cards:
+            rows.append({
+                "card_id": card.get("card_id", 0),
+                "enabled": card.get("enabled", False),
+                "send_ip": card.get("send_ip", ""),
+                "send_port": card.get("send_port", 0),
+                "receive_ip": card.get("receive_ip", ""),
+                "receive_port": card.get("receive_port", 0),
+            })
+
+        self.comm_table.set_rows(rows)
+
+    def _populate_comm_board_fields(self, content: str):
+        """Load board fields into the dialog."""
+        try:
+            data = yaml.safe_load(content) or {}
+        except Exception:
+            data = {}
+
+        board = data.get("Board", {})
+        self.board_port_input.setText(str(board.get("Port", "")))
+
+    def _save_comm_settings(self, dialog: QDialog, comm_path: Path):
+        """Validate and save edited Comm_settings.yaml content from the table."""
+        rows = self.comm_table.get_rows()
+        try:
+            comm_data = yaml.safe_load(comm_path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            comm_data = {}
+
+        comm_data.setdefault("Board", self.settings.get("Board", {}))
+        comm_data.setdefault("UDP_Settings", {})
+        comm_data["UDP_Settings"]["Cards"] = rows
+
+        board_port = self.board_port_input.text().strip()
+
+        comm_data["Board"]["Port"] = board_port
+
+        try:
+            comm_path.parent.mkdir(parents=True, exist_ok=True)
+            comm_path.write_text(yaml.safe_dump(comm_data, sort_keys=False), encoding="utf-8")
+            self.main_window.log.append(f"Saved Comm_settings.yaml to {comm_path}", "SUCCESS")
+            self.settings = load_settings()
+            self._init_ui_state()
+            dialog.accept()
+        except Exception as e:
+            self.main_window.log.append(f"Failed to save Comm_settings.yaml: {e}", "ERROR")
+            self._show_message(
+                "Save Error",
+                f"Failed to save Comm_settings.yaml:\n{e}",
+                "critical"
+            )
+
     def on_log_filter_change(self):
         """
         Handle log filter checkbox changes - update log display filtering.
@@ -579,8 +690,8 @@ class MainController:
         self.settings['Board']['simulation'] = new_simulation_enabled
         
         try:
-            # Save settings to YAML file
-            save_settings(self.settings)
+            # Save settings to split YAML files
+            save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
             
             # Update button text
             self.main_window.btn_simulation.setText(new_text)
@@ -636,8 +747,8 @@ class MainController:
         self.settings['UDP_Settings']['localhost_mode'] = localhost_enabled
         
         try:
-            # Save updated settings
-            save_settings(self.settings)
+            # Save updated settings to split files
+            save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
             self.main_window.log.append(
                 f"Settings saved with localhost_mode={localhost_enabled}",
                 "SUCCESS"
@@ -722,8 +833,8 @@ class MainController:
         self.settings['Debug']['mode'] = self.debug_mode
         
         try:
-            # Save settings to YAML file
-            save_settings(self.settings)
+            # Save settings to split YAML files
+            save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
             
             # Update button text
             self.main_window.btn_debug.setText(new_text)

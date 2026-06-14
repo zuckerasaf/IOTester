@@ -5,7 +5,7 @@ Port of Tkinter PinTableView to Qt/PySide6 with enhanced features.
 from typing import List, Dict, Optional, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTableView, QHeaderView,
-    QLineEdit, QAbstractItemView, QStyledItemDelegate
+    QLineEdit, QAbstractItemView, QStyledItemDelegate, QComboBox
 )
 from PySide6.QtCore import (
     Qt, QAbstractTableModel, QModelIndex, Signal, Slot
@@ -522,6 +522,208 @@ class PinTableQt(QWidget):
             table.set_testing_pin(None)  # Clear highlight
         """
         self.model.set_testing_pin(pin_id)
+
+
+class CommEnabledDelegate(QStyledItemDelegate):
+    """Delegate for editing enabled state with a dropdown."""
+
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        editor.addItems(["True", "False"])
+        return editor
+
+    def setEditorData(self, editor, index):
+        value = index.model().data(index, Qt.EditRole)
+        current = "True" if str(value).strip().lower() in ("1", "true", "yes", "on") else "False"
+        editor.setCurrentText(current)
+
+    def setModelData(self, editor, model, index):
+        text = editor.currentText()
+        model.setData(index, text, Qt.EditRole)
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
+
+class CommEnabledDelegate(QStyledItemDelegate):
+    """Delegate for editing enabled state with a dropdown."""
+
+    def createEditor(self, parent, option, index):
+        editor = QComboBox(parent)
+        editor.addItems(["True", "False"])
+        return editor
+
+    def setEditorData(self, editor, index):
+        value = index.model().data(index, Qt.EditRole)
+        current = "True" if str(value).strip().lower() in ("1", "true", "yes", "on") else "False"
+        editor.setCurrentText(current)
+
+    def setModelData(self, editor, model, index):
+        text = editor.currentText()
+        model.setData(index, text, Qt.EditRole)
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
+
+class CommCardsTableModel(QAbstractTableModel):
+    """Table model for UDP card settings."""
+
+    COLUMNS = (
+        "card_id", "enabled", "send_ip", "send_port", "receive_ip", "receive_port"
+    )
+
+    DISPLAY_NAMES = {
+        "card_id": "Card ID",
+        "enabled": "Enabled",
+        "send_ip": "Send IP",
+        "send_port": "Send Port",
+        "receive_ip": "Receive IP",
+        "receive_port": "Receive Port"
+    }
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._rows: List[Dict[str, str]] = []
+
+    def rowCount(self, parent=QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return len(self._rows)
+
+    def columnCount(self, parent=QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return len(self.COLUMNS)
+
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
+        if not index.isValid() or not (0 <= index.row() < len(self._rows)):
+            return None
+
+        row = self._rows[index.row()]
+        column = self.COLUMNS[index.column()]
+        value = row.get(column, "")
+
+        if role == Qt.DisplayRole or role == Qt.EditRole:
+            if column == "enabled":
+                return "True" if row.get("enabled", False) else "False"
+            return str(value)
+
+        if role == Qt.TextAlignmentRole:
+            if column in ("send_port", "receive_port", "card_id"):
+                return Qt.AlignRight | Qt.AlignVCenter
+            return Qt.AlignLeft | Qt.AlignVCenter
+
+        return None
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
+        if role != Qt.DisplayRole:
+            return None
+        if orientation == Qt.Horizontal:
+            return self.DISPLAY_NAMES.get(self.COLUMNS[section], self.COLUMNS[section])
+        return str(section + 1)
+
+    def flags(self, index: QModelIndex):
+        if not index.isValid():
+            return Qt.NoItemFlags
+
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        column = self.COLUMNS[index.column()]
+        if column == "card_id":
+            return flags
+        return flags | Qt.ItemIsEditable
+
+    def setData(self, index: QModelIndex, value, role: int = Qt.EditRole) -> bool:
+        if not index.isValid():
+            return False
+
+        column = self.COLUMNS[index.column()]
+        row = self._rows[index.row()]
+
+        if column == "enabled" and role == Qt.CheckStateRole:
+            row["enabled"] = value == Qt.Checked
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.CheckStateRole])
+            return True
+
+        if role != Qt.EditRole:
+            return False
+
+        if column in ("send_port", "receive_port", "card_id"):
+            try:
+                row[column] = int(value)
+            except (ValueError, TypeError):
+                return False
+        elif column == "enabled":
+            row["enabled"] = str(value).strip().lower() in ("1", "true", "yes", "on")
+        else:
+            row[column] = str(value)
+
+        self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+        return True
+
+    def set_rows(self, rows: List[Dict[str, str]]) -> None:
+        self.beginResetModel()
+        self._rows = []
+        for row in rows:
+            normalized = {
+                "card_id": int(row.get("card_id", 0)),
+                "enabled": bool(row.get("enabled", False)),
+                "send_ip": str(row.get("send_ip", "")),
+                "send_port": int(row.get("send_port", 0)),
+                "receive_ip": str(row.get("receive_ip", "")),
+                "receive_port": int(row.get("receive_port", 0)),
+            }
+            self._rows.append(normalized)
+        self.endResetModel()
+
+    def get_rows(self) -> List[Dict[str, object]]:
+        return [
+            {
+                "card_id": row["card_id"],
+                "enabled": row["enabled"],
+                "send_ip": row["send_ip"],
+                "send_port": row["send_port"],
+                "receive_ip": row["receive_ip"],
+                "receive_port": row["receive_port"],
+            }
+            for row in self._rows
+        ]
+
+
+class CommSettingsTable(QWidget):
+    """Table widget for editing UDP card configuration."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.table = QTableView()
+        self.model = CommCardsTableModel()
+        self.table.setModel(self.model)
+        self.table.setItemDelegateForColumn(1, CommEnabledDelegate(self.table))
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setAlternatingRowColors(False)
+        self.table.setSortingEnabled(True)
+        self.table.horizontalHeader().setSectionsClickable(True)
+        self.table.verticalHeader().setVisible(False)
+
+        self.table.setColumnWidth(0, 70)
+        self.table.setColumnWidth(1, 70)
+        self.table.setColumnWidth(2, 140)
+        self.table.setColumnWidth(3, 90)
+        self.table.setColumnWidth(4, 140)
+        self.table.setColumnWidth(5, 90)
+        self.table.horizontalHeader().setStretchLastSection(True)
+
+        layout.addWidget(self.table)
+
+    def set_rows(self, rows: List[Dict[str, object]]) -> None:
+        self.model.set_rows(rows)
+
+    def get_rows(self) -> List[Dict[str, object]]:
+        return self.model.get_rows()
 
 
 # Demo/Test code

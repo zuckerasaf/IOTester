@@ -46,10 +46,12 @@ class MainWindowQt(QMainWindow):
         self.connector_edit = QLineEdit("")
         g1l.addWidget(self.connector_edit, 0, 1, 1, 3)
 
+        self.btn_settings = QPushButton("Settings")
         self.btn_load = QPushButton("Load")
         self.btn_load.setObjectName("btnPrimary")  # QSS primary styling
         self.btn_report = QPushButton("Report")
         self.btn_doc = QPushButton("DOC")
+        g1l.addWidget(self.btn_settings, 1, 0)
         g1l.addWidget(self.btn_load, 1, 1)
         g1l.addWidget(self.btn_report, 1, 2)
         g1l.addWidget(self.btn_doc, 1, 3)

@@ -12,7 +12,7 @@ import yaml
 import sys
 from pathlib import Path
 
-from hw_tester.utils.config_loader import resolve_config_path
+from hw_tester.utils.config_loader import load_settings, resolve_config_path
 
 # Import handling for both direct execution and package import
 try:
@@ -38,7 +38,7 @@ class UDPSender:
     @staticmethod
     def load_settings(settings_path: str = None) -> dict:
         """
-        Load UDP settings from settings.yaml file.
+        Load UDP settings from the merged settings files.
         
         Args:
             settings_path: Path to settings.yaml file (default: auto-detect)
@@ -47,14 +47,10 @@ class UDPSender:
             Dictionary with UDP settings
         """
         if settings_path is None:
-            settings_path = resolve_config_path("settings.yaml")
-        
-        try:
-            with open(settings_path, 'r') as f:
-                settings = yaml.safe_load(f)
-                return settings.get('UDP_Settings', {})
-        except Exception as e:
-            return {}
+            settings_path = "settings.yaml"
+
+        settings = load_settings(path=settings_path, comm_path="Comm_settings.yaml")
+        return settings.get('UDP_Settings', {})
     
     @classmethod
     def get_card_configs_from_settings(cls, settings_path: str = None) -> List[dict]:

@@ -85,7 +85,7 @@ if not exist "%CONFIG_DIR%" (
     mkdir "%CONFIG_DIR%"
 )
 set "SOURCE_CONFIG_DIR=src\hw_tester\config"
-for %%F in (board_pin_config.json pin_map.json settings.yaml connector_Address_A_map.xlsx connector_Address_B_map.xlsx) do (
+for %%F in (board_pin_config.json pin_map.json settings.yaml Comm_settings.yaml connector_Address_A_map.xlsx connector_Address_B_map.xlsx) do (
     if exist "%SOURCE_CONFIG_DIR%\%%F" (
         if exist "%CONFIG_DIR%\%%F" del /f /q "%CONFIG_DIR%\%%F"
         echo Copying %%F to external config folder...

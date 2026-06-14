@@ -254,6 +254,20 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
     background: transparent;
 }
 
+/* Text editors and dialog text areas */
+QTextEdit,
+QDialog QTextEdit {
+    background: #0b0f14;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 10px;
+    font-family: "Consolas";
+    font-size: 10pt;
+    selection-background-color: #2f65d9;
+    selection-color: #ffffff;
+}
+
 /* Log window (optional)
    In Python: self.log.setObjectName("logWindow")
 */
@@ -305,9 +319,16 @@ QMessageBox QLabel[icon] {
 
 QDialog {
     background: #1f2328;
+    color: #e6edf3;
 }
 
-QDialog QLabel {
+QDialog QLabel,
+QDialog QLineEdit,
+QDialog QComboBox,
+QDialog QTextEdit,
+QDialog QSpinBox,
+QDialog QDoubleSpinBox,
+QDialog QPushButton {
     color: #e6edf3;
 }
 
