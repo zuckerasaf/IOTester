@@ -7,11 +7,11 @@ Board:
   - none
   Port: COM5
   BaudRate: 115200
-  simulation: true
+  simulation: false
 UDP_Settings:
   Frequency_Hz: 20.0
   Communication_Timeout: 2.0
-  localhost_mode: true
+  localhost_mode: false
   Cards:
   - card_id: 1
     enabled: true
@@ -44,13 +44,13 @@ UDP_Settings:
     receive_ip: 192.168.195.101
     receive_port: 1015
   - card_id: 6
-    enabled: true
+    enabled: false
     send_ip: 192.168.195.16
     send_port: 2880
     receive_ip: 192.168.195.101
     receive_port: 1016
   - card_id: 7
-    enabled: true
+    enabled: false
     send_ip: 192.168.195.17
     send_port: 2880
     receive_ip: 192.168.195.101

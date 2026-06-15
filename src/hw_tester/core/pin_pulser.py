@@ -170,6 +170,7 @@ class PinPulser:
         self._active_timers[digital_port] = timer
         timer.start()
         
+        
         return timer
     
     def set_high(self, digital_port: int) -> None:

@@ -14,7 +14,7 @@ from typing import Optional, List, Dict
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, QTimer, QMetaObject, Q_ARG
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox
 
 import openpyxl
 import yaml
@@ -632,6 +632,11 @@ class MainController:
             self.main_window.log.append(f"Saved Comm_settings.yaml to {comm_path}", "SUCCESS")
             self.settings = load_settings()
             self._init_ui_state()
+            self._show_message(
+                "Restart Required",
+                "For the changes to take effect, the application needs to be restarted.",
+                "information"
+            )
             dialog.accept()
         except Exception as e:
             self.main_window.log.append(f"Failed to save Comm_settings.yaml: {e}", "ERROR")
@@ -881,6 +886,11 @@ class MainController:
         After pulsing, performs a light ping-style communication check for enabled cards.
         """
         self.main_window.log.append("Starting Comm Check pulse sequence...", "INFO")
+        self.main_window.btn_keepalive.setStyleSheet("")
+        self.main_window.btn_keepalive.style().unpolish(self.main_window.btn_keepalive)
+        self.main_window.btn_keepalive.style().polish(self.main_window.btn_keepalive)
+        self.main_window.btn_keepalive.update()
+        QApplication.processEvents()
         
         # Get all digital ports from pin map
         digital_ports = self.pin_map.get('D', {})
@@ -905,7 +915,7 @@ class MainController:
                         "ERROR"
                     )
                 else:
-                    self.main_window.log.append(f"Pulsing {port_name} (port {port_number})", "DEBUG")
+                    self.main_window.log.append(f"Pulsing {port_name} (port {port_number}) - SUCCESS", "INFO")
             except Exception as e:
                 pulse_success = False
                 self.main_window.log.append(f"Error pulsing {port_name}: {str(e)}", "ERROR")
