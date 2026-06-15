@@ -68,6 +68,10 @@ class PinPulser:
         Example:
             keep_alive.pulse(digital_port=5, timeout=3.0)  # D5 HIGH for 3 seconds
         """
+        is_simulation = self.settings.get('Board', {}).get('simulation', True)
+        if is_simulation:
+            return None  # In simulation mode, do nothing and return None  
+
         if timeout is None:
             timeout = self.default_timeout
         
@@ -116,6 +120,11 @@ class PinPulser:
             # Do other work...
             # timer.cancel()  # Optional: cancel before timeout
         """
+        
+        is_simulation = self.settings.get('Board', {}).get('simulation', True)
+        if is_simulation:
+            return None  # In simulation mode, do nothing and return None  
+        
         if timeout is None:
             timeout = self.default_timeout
         

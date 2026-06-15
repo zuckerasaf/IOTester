@@ -146,8 +146,8 @@ class MainWindowQt(QMainWindow):
         g4l = QGridLayout(g4)
         g4l.setSpacing(8)
         
-        # Column 0: Keepalive, IBIT, Stop IBIT
-        self.btn_keepalive = QPushButton("Keepalive")
+        # Column 0: Comm Check, IBIT, Stop IBIT
+        self.btn_keepalive = QPushButton("Comm Check")
         self.btn_ibit = QPushButton("IBIT")
         self.btn_stop_ibit = QPushButton("Stop IBIT")
         self.btn_stop_ibit.setEnabled(False)  # Disabled until IBIT test starts

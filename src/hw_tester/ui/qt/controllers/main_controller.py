@@ -3,6 +3,7 @@ Main controller for the Qt UI - handles all button callbacks and business logic.
 """
 from pathlib import Path
 from datetime import datetime
+import platform
 import re
 import subprocess
 import sys
@@ -56,6 +57,7 @@ class MainController:
         # Threading event for Next button debug control
         self.next_event = threading.Event()
         self.debug_mode = self.settings.get('Debug', {}).get('mode', False)
+        self._comm_check_pulse_success = False
         
         # HTTP server process for HTML viewing
         self.http_server_process = None
@@ -210,7 +212,7 @@ class MainController:
         self.main_window.btn_connection.clicked.connect(self.on_localhost_toggle)
         self.main_window.btn_debug.clicked.connect(self.on_debug_toggle)
         self.main_window.btn_next.clicked.connect(self.on_next)
-        self.main_window.btn_keepalive.clicked.connect(self.on_keepalive)
+        self.main_window.btn_keepalive.clicked.connect(self.on_comm_check)
         self.main_window.btn_ibit.clicked.connect(self.on_ibit)
         self.main_window.btn_stop_ibit.clicked.connect(self.on_stop_ibit)
     
@@ -871,14 +873,14 @@ class MainController:
         self.next_event.set()
         self.main_window.log.append("Next button pressed - resuming execution", "INFO")
     
-    def on_keepalive(self):
+    def on_comm_check(self):
         """
-        Handle KeepAlive button click - Pulse all digital ports for the configured board.
+        Handle Comm Check button click - pulse all digital ports for the configured board.
         
         Retrieves all digital ports from the pin map and pulses each one asynchronously.
-        This is used to maintain board activity and verify digital output functionality.
+        After pulsing, performs a light ping-style communication check for enabled cards.
         """
-        self.main_window.log.append("Starting KeepAlive pulse sequence...", "INFO")
+        self.main_window.log.append("Starting Comm Check pulse sequence...", "INFO")
         
         # Get all digital ports from pin map
         digital_ports = self.pin_map.get('D', {})
@@ -891,12 +893,13 @@ class MainController:
         self.main_window.log.append(f"Pulsing {len(digital_ports)} digital ports...", "INFO")
         
         # Pulse all digital ports asynchronously
+        pulse_success = True
         for port_name, port_number in digital_ports.items():
             try:
-                # Pulse the digital port (async, non-blocking)
                 timer = self.keep_alive.pulse_async(digital_port=port_number)
                 
                 if timer == 999:
+                    pulse_success = False
                     self.main_window.log.append(
                         f"Error pulsing {port_name} (port {port_number}) - Invalid port state",
                         "ERROR"
@@ -904,13 +907,116 @@ class MainController:
                 else:
                     self.main_window.log.append(f"Pulsing {port_name} (port {port_number})", "DEBUG")
             except Exception as e:
+                pulse_success = False
                 self.main_window.log.append(f"Error pulsing {port_name}: {str(e)}", "ERROR")
         
-        self.main_window.log.append(
-            f"KeepAlive pulse sequence initiated for all {len(digital_ports)} ports",
-            "SUCCESS"
+        self._comm_check_pulse_success = pulse_success
+        if pulse_success:
+            self.main_window.log.append(
+                f"Comm Check pulse sequence initiated for all {len(digital_ports)} ports",
+                "SUCCESS"
+            )
+        else:
+            self.main_window.log.append(
+                f"Comm Check pulse sequence initiated with pulse failures for {len(digital_ports)} ports",
+                "ERROR"
+            )
+
+        # Run ping-style health check for each enabled card in a background thread
+        threading.Thread(target=self._run_comm_check_ping, daemon=True).start()
+
+    def _run_comm_check_ping(self):
+        """Check communication for enabled cards and log success/failure."""
+        enabled_cards = []
+        if hasattr(self, 'card_manager') and self.card_manager:
+            enabled_cards = self.card_manager.get_enabled_cards()
+
+        if not enabled_cards:
+            self._log_callback("No enabled UDP cards available for Comm Check.", "WARNING")
+            self._apply_comm_check_button_color(self._comm_check_pulse_success)
+            return
+
+        localhost_mode = self.settings.get('UDP_Settings', {}).get('localhost_mode', False)
+        mode_label = "LocalHost" if localhost_mode else "IO Box"
+
+        all_pings_success = True
+        for card in enabled_cards:
+            # Perform a system ping to the card's configured remote IP.
+            ping_host = card.send_ip
+            ping_success, ping_received, ping_sent = self._run_ping_command(ping_host)
+            ping_status = f"SUCCESS ({ping_received}/{ping_sent})" if ping_success else f"FAIL ({ping_received}/{ping_sent})"
+            all_pings_success = all_pings_success and ping_success
+
+            self._log_callback(
+                f"Comm Check card {card.card_id} [{mode_label}] ping: {ping_status} ({ping_host})",
+                "SUCCESS" if ping_success else "ERROR"
+            )
+
+        comm_check_success = self._comm_check_pulse_success and all_pings_success
+        self._log_callback(
+            f"Comm Check overall: {'SUCCESS' if comm_check_success else 'FAIL'}",
+            "SUCCESS" if comm_check_success else "ERROR"
         )
-    
+        self._apply_comm_check_button_color(comm_check_success)
+
+    def _apply_comm_check_button_color(self, success: bool):
+        """Set the Comm Check button color based on overall result."""
+        if success:
+            self.main_window.btn_keepalive.setStyleSheet(
+                "background-color: #28a745; color: #ffffff;"
+            )
+        else:
+            self.main_window.btn_keepalive.setStyleSheet(
+                "background-color: #d73a49; color: #ffffff;"
+            )
+
+    def _run_ping_command(self, host: str, count: int = 4, timeout_sec: int = 1) -> tuple[bool, int, int]:
+        """Run a system ping to the given host and return success plus packet counts."""
+        if not host:
+            return False, 0, 0
+
+        system_name = platform.system().lower()
+        param = '-n' if system_name == 'windows' else '-c'
+        timeout_param = '-w' if system_name == 'windows' else '-W'
+        cmd = ['ping', param, str(count), timeout_param, str(timeout_sec), host]
+
+        try:
+            completed = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=timeout_sec + 4,
+                check=False
+            )
+            output = (completed.stdout or "") + "\n" + (completed.stderr or "")
+            sent = count
+            received = 0
+
+            if system_name == 'windows':
+                # Example: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)
+                for line in output.splitlines():
+                    if 'Sent =' in line and 'Received =' in line:
+                        match = re.search(r'Sent\s*=\s*(\d+).*Received\s*=\s*(\d+)', line)
+                        if match:
+                            sent = int(match.group(1))
+                            received = int(match.group(2))
+                        break
+            else:
+                # Example: 4 packets transmitted, 4 received, 0% packet loss, time 3065ms
+                for line in output.splitlines():
+                    if 'transmitted' in line and 'received' in line:
+                        match = re.search(r'(\d+)\s+packets transmitted,\s*(\d+)\s+received', line)
+                        if match:
+                            sent = int(match.group(1))
+                            received = int(match.group(2))
+                        break
+
+            success = (received + sent > 7) or completed.returncode == 0 # we had at least 3 out of 4 packets received or the ping command returned 0
+            return success, received, sent
+        except Exception:
+            return False, 0, count
+
     def on_ibit(self):
         """
         Handle IBIT button click - Run Ibit test on all pins.
