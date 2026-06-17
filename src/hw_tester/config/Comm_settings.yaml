@@ -7,11 +7,11 @@ Board:
   - none
   Port: COM5
   BaudRate: 115200
-  simulation: false
+  simulation: true
 UDP_Settings:
   Frequency_Hz: 20.0
   Communication_Timeout: 2.0
-  localhost_mode: false
+  localhost_mode: true
   Cards:
   - card_id: 1
     enabled: true

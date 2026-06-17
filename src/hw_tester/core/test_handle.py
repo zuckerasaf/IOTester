@@ -1732,6 +1732,9 @@ class TestHandle:
                     power_measured = f"{pin.Power_Measured:.2f}"
                     power_result = "Pass" if pin.Power_Result else "Fail"
                     power_reason = power_message
+                    pin_row["Power_Measured"] = power_measured
+                    pin_row["Power_Result"] = power_result
+                    pin_row["Power_Result_Reason"] = power_reason
                     root.after(0, lambda pid=pin_id_local, pm=power_measured, pr=power_result, r=power_reason: 
                         pin_table.update_row(pid, {
                             "Power_Measured": pm,
@@ -1757,6 +1760,9 @@ class TestHandle:
                         pullup_measured = f"{pin.PullUp_Measured:.2f}"
                         pullup_result = "Pass" if pin.PullUp_Result else "Fail"
                         pullup_reason = pullup_message
+                        pin_row["PullUp_Measured"] = pullup_measured
+                        pin_row["PullUp_Result"] = pullup_result
+                        pin_row["PullUp_Result_Reason"] = pullup_reason
                         root.after(0, lambda pid=pin_id_local, pum=pullup_measured, pur=pullup_result, r=pullup_reason:
                             pin_table.update_row(pid, {
                                 "PullUp_Measured": pum,
@@ -1785,6 +1791,8 @@ class TestHandle:
                     pin_id_local = pin.Id
                     logic_result_str = "Pass" if pin.Logic_DI_Result else "Fail"
                     logic_reason = logic_test_message
+                    pin_row["Logic_DI_Result"] = logic_result_str
+                    pin_row["Logic_DI_Result_Reason"] = logic_reason
                     root.after(0, lambda pid=pin_id_local, lr=logic_result_str, r=logic_reason:
                             pin_table.update_row(pid, {
                                 "Logic_DI_Result": lr,
