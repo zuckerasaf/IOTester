@@ -86,6 +86,22 @@ def verify_card_output(card_manager, card: int, event_type: str, event_num: int,
         return (False, msg)
 
 
+def get_debug_setting(settings: dict, key: str = "mode") -> bool:
+    """Return the debug state for a given key, falling back to Debug.mode.
+
+    Args:
+        settings: The settings dictionary.
+        key: Specific debug section to check, e.g. "Power_Test" or "Test_Sequence".
+
+    Returns:
+        True if debug is enabled for the requested key or globally via Debug.mode.
+    """
+    debug_settings = settings.get("Debug", {})
+    if key == "mode":
+        return bool(debug_settings.get("mode", False))
+    return bool(debug_settings.get(key, debug_settings.get("mode", False)))
+
+
 def parse_event_string(event_str: str) -> Tuple[Optional[int], Optional[str], Optional[int], Optional[int]]:
     """
     Parse event string format and extract components.
@@ -132,50 +148,6 @@ def parse_event_string(event_str: str) -> Tuple[Optional[int], Optional[str], Op
         return (None, None, None, None)
 
 
-# def parse_logic_input_string(logic_input: str) -> Tuple[Optional[int], Optional[int], Optional[int]]:
-#     """
-#     Parse logic input string format and extract components.
-    
-#     Expected format: C{Card}_DI{DINum}_{ConnectPin}
-#     Example: "C4_DI29_3" -> Card=4, DINum=29, ConnectPin=3
-    
-#     Args:
-#         logic_input: Logic input string to parse (e.g., "C4_DI29_3")
-        
-#     Returns:
-#         Tuple of (Card, DINumber, ConnectPinNumber)
-#         Returns (None, None, None) if parsing fails
-        
-#     Examples:
-#         >>> parse_logic_input_string("C4_DI29_3")
-#         (4, 29, 3)
-        
-#         >>> parse_logic_input_string("C1_DI5_12")
-#         (1, 5, 12)
-        
-#         >>> parse_logic_input_string("C2_DI15_25")
-#         (2, 15, 25)
-#     """
-#     try:
-#         # Pattern: C{digit(s)}_DI{digit(s)}_{digit(s)}
-#         # Example: C4_DI29_3
-#         pattern = r'^C(\d+)_DI(\d+)_(\d+)$'
-        
-#         match = re.match(pattern, logic_input.strip())
-        
-#         if not match:
-#             return (None, None, None)
-        
-#         card = int(match.group(1))
-#         di_number = int(match.group(2))
-#         connect_pin = int(match.group(3))
-        
-#         return (card, di_number, connect_pin)
-        
-#     except Exception as e:
-#         # If any error occurs during parsing, return None values
-#         return (None, None, None)
-
 
 def get_pin_pair_info_controlino(pin_number: int) -> Tuple[int, str, str, str, str, str, str, str]:
     """
@@ -207,17 +179,6 @@ def get_pin_pair_info_controlino(pin_number: int) -> Tuple[int, str, str, str, s
         (4, 'voltage_measure_pin_pair4', 'pullup_pins_pin_pair4', 'enable_card_4_A_pin', 'enable_card_4_B_pin', 'enable_Relay_pin_4_A', 'enable_Relay_pin_4_B')
     """
 
-    #old board configuration with 4 pairs and 2 cards per pair
-
-    # if 1 <= pin_number <= 16:
-    #     return (1, "voltage_measure_pin_pair1","voltage_measure_pin_pair1_B", "pullup_pins_pin_pair1", "enable_card_1_A_pin", "enable_card_1_B_pin", "enable_Relay_pin_1_A", "enable_Relay_pin_1_B")
-    # elif 17 <= pin_number <= 32:
-    #     return (2, "voltage_measure_pin_pair2","voltage_measure_pin_pair2_B", "pullup_pins_pin_pair2", "enable_card_2_A_pin", "enable_card_2_B_pin", "enable_Relay_pin_2_A", "enable_Relay_pin_2_B")
-    # elif 33 <= pin_number <= 48:
-    #     return (3, "voltage_measure_pin_pair3","voltage_measure_pin_pair3_B", "pullup_pins_pin_pair3", "enable_card_3_A_pin", "enable_card_3_B_pin", "enable_Relay_pin_3_A", "enable_Relay_pin_3_B")
-    # else:
-    #     return (4, "voltage_measure_pin_pair4","voltage_measure_pin_pair4_B", "pullup_pins_pin_pair4", "enable_card_4_A_pin", "enable_card_4_B_pin", "enable_Relay_pin_4_A", "enable_Relay_pin_4_B")
-    #new board configuration with 4 pairs and 1only onw volatge sure 
     if 1 <= pin_number <= 16:
         return (1, "voltage_measure_general","voltage_measure_general", "pullup_pins_pin_general", "enable_card_1_A_pin", "enable_card_1_B_pin", "enable_Relay_pin_1_A", "enable_Relay_pin_1_B")
     elif 17 <= pin_number <= 32:
@@ -399,56 +360,6 @@ def clear_bits(
         return False
 
 
-# def clear_analog_bits(
-#     pin_map: Dict,
-#     hardware: Any,
-#     log_callback: Optional[Callable] = None
-# ) -> bool:
-#     """
-#     Clear all Analog bits by setting A0-A7 to LOW.
-#     Should be called before setting a new bit pattern.
-    
-#     Args:
-#         pin_map: Pin mapping dictionary
-#         hardware: Hardware interface object
-#         log_callback: Optional logging function(message, level)
-        
-#     Returns:
-#         True if successful, False otherwise
-#     """
-#     def log(message: str, level: str = "INFO"):
-#         """Helper to log messages if callback provided."""
-#         if log_callback:
-#             log_callback(message, level)
-    
-#     try:
-#         # Get analog ports from pin map
-#         analog_ports = pin_map.get('A', {})
-        
-#         if not analog_ports:
-#             log("No analog ports found in pin map", "ERROR")
-#             return False
-        
-#         # Set all A0-A7 pins to LOW
-#         for bit_idx in range(8):
-#             analog_pin_name = f"A{bit_idx}"
-#             if analog_pin_name in analog_ports:
-#                 physical_pin = analog_ports.get(analog_pin_name)
-#                 if physical_pin is not None:
-#                     hardware.digital_write(physical_pin, False)
-        
-#         # Small delay to allow pins to stabilize
-#         settings = load_settings()
-#         stabilize_delay = settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
-#         time.sleep(stabilize_delay)
-        
-#         log("All analog bits (A0-A7) cleared to LOW", "DEBUG")
-#         return True
-        
-#     except Exception as e:
-#         log(f"Error clearing analog bits: {str(e)}", "ERROR")
-#         return False
-
 
 def set_mux_bits(
     bits: list,
@@ -529,118 +440,3 @@ def set_mux_bits(
         log(f"Error setting mux bits: {str(e)}", "ERROR")
         return False
 
-
-# def setup_pin_hardware_for_test(
-#     pin_id: str,
-#     board_config: Dict,
-#     pin_map: Dict,
-#     hardware: Any,
-#     settings: Dict,
-#     test_type: str,
-#     log_callback: Optional[Callable] = None
-# ) -> Dict[str, Any]:
-#     """
-#     Configure hardware for testing a specific pin.
-    
-#     This function handles:
-#     - Getting pair info and pin mappings
-#     - Enabling correct card pins based on test type
-#     - Setting up mux matrix (bit pattern)
-#     - Waiting for stabilization
-    
-#     Args:
-#         pin_id: Pin ID (e.g., "J1-05")
-#         board_config: Board configuration dictionary
-#         pin_map: Pin mapping dictionary
-#         hardware: Hardware interface object
-#         settings: Settings dictionary
-#         test_type: Type of test ('power', 'pullup', 'logic')
-#         log_callback: Optional logging function(message, level)
-        
-#     Returns:
-#         Dictionary with:
-#             - voltage_pin_name: Voltage measurement pin name
-#             - pullup_pin_name: Pullup pin name
-#             - pair_num: Pair number
-#             - card_enable_a: Card A enable pin key
-#             - card_enable_b: Card B enable pin key
-            
-#     Test type card enabling:
-#         - 'power': Enable both card A and B
-#         - 'pullup': Enable both card A and B (pullup needs full circuit)
-#         - 'logic': Enable both card A and B (logic test needs full circuit)
-#     """
-#     from hw_tester.hardware.controllino_io import connector_pin_to_bits
-    
-#     def log(message: str, level: str = "INFO"):
-#         """Helper to log messages if callback provided."""
-#         if log_callback:
-#             log_callback(message, level)
-    
-#     # Step 4: Get pair number and associated pins
-#     pin_number = int(''.join(filter(str.isdigit, pin_id)))
-#     pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(pin_number)
-    
-#     # Get actual pin names from board config
-#     voltage_pin_name = board_config.get(voltage_pin_key, 'A0')
-#     pullup_pin_name = board_config.get(pullup_pin_key, 'D20')
-    
-#     log(f"Pin {pin_id} belongs to Pair {pair_num}, Cards: {card_enable_a_key}, {card_enable_b_key}", "INFO")
-    
-#     # Step 5: Determine which cards to enable based on test type
-#     if test_type == 'power':
-#         active_cards = [card_enable_a_key]
-#     elif test_type == 'pullup':
-#         active_cards = [card_enable_a_key]
-#     elif test_type == 'logic':
-#         active_cards = [card_enable_a_key, card_enable_b_key]
-#     else:
-#         active_cards = [card_enable_a_key, card_enable_b_key]  # Default: enable both
-    
-#     # Enable specified cards and disable all others
-#     enable_cards(active_cards, board_config, pin_map, hardware, log_callback)
-    
-#     # Step 6: Small delay to allow pins to stabilize
-#     stabilize_delay = settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
-#     time.sleep(stabilize_delay)
-    
-#     # Return configuration info
-#     return {
-#         'voltage_pin_name': voltage_pin_name,
-#         'pullup_pin_name': pullup_pin_name,
-#         'pair_num': pair_num,
-#         'card_enable_a': card_enable_a_key,
-#         'card_enable_b': card_enable_b_key
-#     }
-
-
-# if __name__ == "__main__":
-#     # Test cases for parse_event_string
-#     test_cases = [
-#         "C2_AO2_10",
-#         "C1_DI5_1",
-#         "C3_DO12_0",
-#         "C4_AI3_255",
-#         "invalid_format",
-#         "C2_AO2",
-#         ""
-#     ]
-    
-#     print("Testing parse_event_string():")
-#     print("-" * 60)
-#     for test in test_cases:
-#         card, event_type, event_num, event_value = parse_event_string(test)
-#         print(f"Input: '{test}'")
-#         print(f"  Card={card}, EventType={event_type}, EventNum={event_num}, EventValue={event_value}")
-#         print()
-    
-#     # Test cases for get_pin_pair_info_controlino
-#     print("\nTesting get_pin_pair_info_controlino():")
-#     print("-" * 60)
-#     pin_tests = [1, 5, 16, 17, 25, 32, 33, 40, 48, 49, 50, 64]
-#     for pin_num in pin_tests:
-#         pair_num, voltage_pin, voltage_pin_b, pullup_pin, card_a, card_b, relay_a, relay_b = get_pin_pair_info_controlino(pin_num)
-#         print(f"Pin {pin_num:2d}: Pair {pair_num}, Voltage: {voltage_pin}, Voltage_B: {voltage_pin_b}, Pullup: {pullup_pin}")
-#         print(f"         Cards: {card_a}, {card_b}")
-#         print(f"         Relays: {relay_a}, {relay_b}")
-#     print()
