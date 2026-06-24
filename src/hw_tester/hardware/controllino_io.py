@@ -26,9 +26,9 @@ def _load_connector_mapping(type = "a"):
         # Get board type from settings
         board_type = settings.get('Board', {}).get('Type', 'ControllinoMega')
         
-        # Try to get board-specific mapping path first
-        board_specific_key = f'ConnectorAddressMap_{board_type}'
-        map_path = settings.get('Paths', {}).get(board_specific_key)
+        # # Try to get board-specific mapping path first
+        # board_specific_key = f'ConnectorAddressMap_{board_type}'
+        # map_path = settings.get('Paths', {}).get(board_specific_key)
         
         # Fallback to default if board-specific path not found
         #if map_path is None:

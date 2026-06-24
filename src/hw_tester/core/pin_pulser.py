@@ -139,9 +139,6 @@ class PinPulser:
         if self.hardware is not None:
             self.hardware.digital_write(digital_port, True)
         
-        # Wait for timeout
-        time.sleep(timeout)
-
         # Verify port state high
         portState = self.hardware.digital_read(digital_port)
         if portState is not True:
@@ -198,10 +195,3 @@ class PinPulser:
         if self.hardware is not None:
             self.hardware.digital_write(digital_port, False)
     
-    def cancel_all(self) -> None:
-        """Cancel all active timers and set all ports LOW."""
-        for port, timer in list(self._active_timers.items()):
-            timer.cancel()
-            if self.hardware is not None:
-                self.hardware.digital_write(port, False)
-        self._active_timers.clear()

@@ -214,7 +214,6 @@ def logic_test(test_handle, pin: "Pin", pin_table_rows: list) -> tuple[float, bo
             clear_mux_bits(self.pin_map, self.hardware, self.log)
             return (0.0, False, text)
 
-        temp = self.card_manager.get_encoder_word(card_id=3, encoder_id=1, word_index=1)
         try:
             if "DI" in pin.Logic_Expected:
                 expected_state_bool = bool(event_value)

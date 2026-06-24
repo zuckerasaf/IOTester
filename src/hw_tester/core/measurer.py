@@ -3,7 +3,6 @@ Voltage measurement and continuity checking module.
 """
 import time
 from typing import Optional, List
-from pathlib import Path
 from statistics import mean
 from hw_tester.hardware.hardware_factory import initialize_hardware
 from hw_tester.utils.config_loader import load_settings

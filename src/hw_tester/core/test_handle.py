@@ -15,12 +15,9 @@ from hw_tester.core.test_logic import logic_test
 from hw_tester.hardware.pin import TestResult
 from hw_tester.hardware.controllino_io import connector_pin_to_bits
 from hw_tester.utils.general import (
-    parse_event_string,
     get_debug_setting,
     get_pin_pair_info_controlino,
     set_mux_bits,
-    verify_card_output,
-    enable_cards,
     clear_mux_bits,
     clear_bits,
 )
@@ -251,7 +248,6 @@ class TestHandle:
                     continue
                 self.hardware.digital_write(pullup_physical_pin, True)
                 # Step 7: Wait 1 sec
-                import time
                 time.sleep(pins_to_stabilize)
 
                 # Step 7.1: close Relay 15
@@ -259,8 +255,6 @@ class TestHandle:
                 if relay_connect == False:
                     return (0, False, f"the relay logic didnt operate")
         
-
-
                 # Step 8: Measure voltage (after pullup)
                 if isSimulate:
                     measured_voltage_pullup = voltage + random.uniform(-0.1, 0.1)

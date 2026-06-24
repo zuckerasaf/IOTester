@@ -12,8 +12,8 @@ import time
 import webbrowser
 from typing import Optional, List, Dict
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, QTimer, QMetaObject, Q_ARG
-from PySide6.QtGui import QFont
+from PySide6.QtCore import  Qt, QTimer, QMetaObject, Q_ARG
+# from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox
 
 import openpyxl
@@ -1111,8 +1111,8 @@ class MainController:
         self.main_window.btn_ibit.setEnabled(True)
 
         # Wait 2 seconds, then clear mux bits to ensure all pins are shut down
-        import time
-        time.sleep(2.0)
+        # import time
+        # time.sleep(2.0)
         try:
             from hw_tester.utils.general import clear_mux_bits
             clear_mux_bits(self.pin_map, self.hardware, self.main_window.log.append)
@@ -1501,8 +1501,3 @@ class QtTableAdapter:
         # PinTableQt.set_testing_pin uses QApplication.postEvent internally — thread-safe.
         self.main_window.table.set_testing_pin(pin_id)
     
-    def get_all_rows(self) -> List[dict]:
-        """Get all table rows as dictionaries."""
-        # TestHandle passes all_rows explicitly, so this isn't needed
-        # Just return empty list as placeholder
-        return []

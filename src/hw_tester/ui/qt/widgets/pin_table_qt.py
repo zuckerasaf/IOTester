@@ -562,27 +562,6 @@ class CommEnabledDelegate(QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 
-class CommEnabledDelegate(QStyledItemDelegate):
-    """Delegate for editing enabled state with a dropdown."""
-
-    def createEditor(self, parent, option, index):
-        editor = QComboBox(parent)
-        editor.addItems(["True", "False"])
-        return editor
-
-    def setEditorData(self, editor, index):
-        value = index.model().data(index, Qt.EditRole)
-        current = "True" if str(value).strip().lower() in ("1", "true", "yes", "on") else "False"
-        editor.setCurrentText(current)
-
-    def setModelData(self, editor, model, index):
-        text = editor.currentText()
-        model.setData(index, text, Qt.EditRole)
-
-    def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect)
-
-
 class CommCardsTableModel(QAbstractTableModel):
     """Table model for UDP card settings."""
 

@@ -484,48 +484,48 @@ class ReceiveData:
             raise ValueError(f"Encoder word index {word_index} out of range (1-2)")
         return self.get_encoder_words(encoder_id)[word_index - 1]
 
-    def get_Matrix_rows(self, card_id: int) -> List[int]:
-        """
-        Get matrix rows data for a card.
+    # def get_Matrix_rows(self, card_id: int) -> List[int]:
+    #     """
+    #     Get matrix rows data for a card.
         
-        Returns 8 16-bit values representing the 8 matrix rows.
-        Each value is constructed from 2 bytes (little-endian).
+    #     Returns 8 16-bit values representing the 8 matrix rows.
+    #     Each value is constructed from 2 bytes (little-endian).
         
-        Args:
-            card_id: Card ID (currently unused, for future multi-card support)
+    #     Args:
+    #         card_id: Card ID (currently unused, for future multi-card support)
         
-        Returns:
-            List of 8 16-bit integer values (one per row)
+    #     Returns:
+    #         List of 8 16-bit integer values (one per row)
         
-        Mapping (according to message specification):
-            Word 6 (bytes 12-13): Row 1 (low byte) | Row 2 (high byte)
-            Word 7 (bytes 14-15): Row 3 (low byte) | Row 4 (high byte)
-            Word 24 (bytes 48-49): Row 5 (low byte) | Row 6 (high byte)
-            Word 25 (bytes 50-51): Row 7 (low byte) | Row 8 (high byte)
-        """
-        matrix_rows = []
+    #     Mapping (according to message specification):
+    #         Word 6 (bytes 12-13): Row 1 (low byte) | Row 2 (high byte)
+    #         Word 7 (bytes 14-15): Row 3 (low byte) | Row 4 (high byte)
+    #         Word 24 (bytes 48-49): Row 5 (low byte) | Row 6 (high byte)
+    #         Word 25 (bytes 50-51): Row 7 (low byte) | Row 8 (high byte)
+    #     """
+    #     matrix_rows = []
         
-        # Rows 1-4 from bytes 12-15 (words 6-7)
-        for i in range(2):  # 2 words
-            byte_idx = 12 + i * 2
-            low_byte = self.data[byte_idx]
-            high_byte = self.data[byte_idx + 1]
+    #     # Rows 1-4 from bytes 12-15 (words 6-7)
+    #     for i in range(2):  # 2 words
+    #         byte_idx = 12 + i * 2
+    #         low_byte = self.data[byte_idx]
+    #         high_byte = self.data[byte_idx + 1]
             
-            # Each word contains 2 rows (low byte = odd row, high byte = even row)
-            matrix_rows.append(low_byte)  # Row 1 or Row 3
-            matrix_rows.append(high_byte)  # Row 2 or Row 4
+    #         # Each word contains 2 rows (low byte = odd row, high byte = even row)
+    #         matrix_rows.append(low_byte)  # Row 1 or Row 3
+    #         matrix_rows.append(high_byte)  # Row 2 or Row 4
         
-        # Rows 5-8 from bytes 48-51 (words 24-25)
-        for i in range(2):  # 2 words
-            byte_idx = 48 + i * 2
-            low_byte = self.data[byte_idx]
-            high_byte = self.data[byte_idx + 1]
+    #     # Rows 5-8 from bytes 48-51 (words 24-25)
+    #     for i in range(2):  # 2 words
+    #         byte_idx = 48 + i * 2
+    #         low_byte = self.data[byte_idx]
+    #         high_byte = self.data[byte_idx + 1]
             
-            # Each word contains 2 rows (low byte = odd row, high byte = even row)
-            matrix_rows.append(low_byte)  # Row 5 or Row 7
-            matrix_rows.append(high_byte)  # Row 6 or Row 8
+    #         # Each word contains 2 rows (low byte = odd row, high byte = even row)
+    #         matrix_rows.append(low_byte)  # Row 5 or Row 7
+    #         matrix_rows.append(high_byte)  # Row 6 or Row 8
         
-        return matrix_rows
+    #     return matrix_rows
     
     def print_data_binary(self, card_id: int = None) -> None:
         """

@@ -5,15 +5,15 @@ from typing import Optional, List
 from enum import Enum
 
 
-class PinType(Enum):
-    """Pin type enumeration for connector pins"""
-    DIGITAL_OUT = "Digital_Output"
-    DIGITAL_INPUT = "Digital_Input"
-    ANALOG_OUTPUT = "Analog_Output"
-    ANALOG_INPUT = "Analog_Input"
-    PWM = "pwm"
-    GROUND = "Ground"
-    POWER = "Power"
+# class PinType(Enum):
+#     """Pin type enumeration for connector pins"""
+#     DIGITAL_OUT = "Digital_Output"
+#     DIGITAL_INPUT = "Digital_Input"
+#     ANALOG_OUTPUT = "Analog_Output"
+#     ANALOG_INPUT = "Analog_Input"
+#     PWM = "pwm"
+#     GROUND = "Ground"
+#     POWER = "Power"
 
 
 class TestResult(Enum):
@@ -206,21 +206,6 @@ class Connector:
     def add_pin(self, pin: Pin) -> None:
         """Add a pin to the connector"""
         self.pins.append(pin)
-    
-    def get_pin(self, pin_id: str) -> Optional[Pin]:
-        """Get a pin by its ID"""
-        for pin in self.pins:
-            if pin.id == pin_id:
-                return pin
-        return None
-    
-    def remove_pin(self, pin_id: str) -> bool:
-        """Remove a pin by its ID. Returns True if removed, False if not found"""
-        for i, pin in enumerate(self.pins):
-            if pin.id == pin_id:
-                self.pins.pop(i)
-                return True
-        return False
     
     def __repr__(self) -> str:
         return f"Connector(id='{self.id}', pins={len(self.pins)})"
