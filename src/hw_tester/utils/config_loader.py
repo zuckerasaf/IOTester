@@ -176,16 +176,16 @@ def get_board_pin_map(settings: dict, pin_map_path="pin_map.json") -> dict:
     return boards[board_type]
 
 
-def get_board_config_and_pins(
-    settings_path="settings.yaml",
-    pin_map_path="pin_map.json",
-) -> tuple[dict, dict]:
-    """
-    Convenience helper: loads both settings and board pin map.
-    """
-    settings = load_settings(settings_path)
-    pins = get_board_pin_map(settings, pin_map_path)
-    return settings, pins
+# def get_board_config_and_pins(
+#     settings_path="settings.yaml",
+#     pin_map_path="pin_map.json",
+# ) -> tuple[dict, dict]:
+#     """
+#     Convenience helper: loads both settings and board pin map.
+#     """
+#     settings = load_settings(settings_path)
+#     pins = get_board_pin_map(settings, pin_map_path)
+#     return settings, pins
 
 
 def get_board_pin_config(settings: dict) -> dict:

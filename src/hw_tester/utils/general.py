@@ -188,56 +188,56 @@ def get_pin_pair_info_controlino(pin_number: int) -> Tuple[int, str, str, str, s
     else:
         return (4, "voltage_measure_general","voltage_measure_general", "pullup_pins_pin_general", "enable_card_4_A_pin", "enable_card_4_B_pin", "enable_Relay_pin_4_A", "enable_Relay_pin_4_B")
 
-def enable_cards(
-    cards_to_enable: list[str],
-    board_config: Dict,
-    pin_map: Dict,
-    hardware: Any,
-    log_callback: Optional[Callable] = None
-) -> None:
-    """
-    Enable specific card pins and disable all others.
+# def enable_cards(
+#     cards_to_enable: list[str],
+#     board_config: Dict,
+#     pin_map: Dict,
+#     hardware: Any,
+#     log_callback: Optional[Callable] = None
+# ) -> None:
+#     """
+#     Enable specific card pins and disable all others.
     
-    Args:
-        cards_to_enable: List of card pin keys to enable (e.g., ['enable_card_1_A_pin', 'enable_card_1_B_pin'])
-        board_config: Board configuration dictionary
-        pin_map: Pin mapping dictionary
-        hardware: Hardware interface object
-        log_callback: Optional logging function(message, level)
+#     Args:
+#         cards_to_enable: List of card pin keys to enable (e.g., ['enable_card_1_A_pin', 'enable_card_1_B_pin'])
+#         board_config: Board configuration dictionary
+#         pin_map: Pin mapping dictionary
+#         hardware: Hardware interface object
+#         log_callback: Optional logging function(message, level)
         
-    Example:
-        >>> enable_cards(['enable_card_1_A_pin'], board_config, pin_map, hardware)
-        # Enables card 1_A, disables all other cards
-    """
-    def log(message: str, level: str = "INFO"):
-        """Helper to log messages if callback provided."""
-        if log_callback:
-            log_callback(message, level)
+#     Example:
+#         >>> enable_cards(['enable_card_1_A_pin'], board_config, pin_map, hardware)
+#         # Enables card 1_A, disables all other cards
+#     """
+#     def log(message: str, level: str = "INFO"):
+#         """Helper to log messages if callback provided."""
+#         if log_callback:
+#             log_callback(message, level)
     
-    # All possible card enable pins
-    all_card_pins = [
-        "enable_card_1_A_pin", "enable_card_1_B_pin",
-        "enable_card_2_A_pin", "enable_card_2_B_pin",
-        "enable_card_3_A_pin", "enable_card_3_B_pin",
-        "enable_card_4_A_pin", "enable_card_4_B_pin"
-    ]
+#     # All possible card enable pins
+#     all_card_pins = [
+#         "enable_card_1_A_pin", "enable_card_1_B_pin",
+#         "enable_card_2_A_pin", "enable_card_2_B_pin",
+#         "enable_card_3_A_pin", "enable_card_3_B_pin",
+#         "enable_card_4_A_pin", "enable_card_4_B_pin"
+#     ]
     
-    # Get digital ports from pin map
-    digital_ports = pin_map.get('D', {})
+#     # Get digital ports from pin map
+#     digital_ports = pin_map.get('D', {})
     
-    # Enable/disable card pins
-    for card_pin_key in all_card_pins:
-        card_pin_name = board_config.get(card_pin_key)
-        if card_pin_name:
-            card_physical_pin = digital_ports.get(card_pin_name)
-            if card_physical_pin is not None:
-                # Set HIGH only for the cards in cards_to_enable, LOW for all others
-                state = (card_pin_key in cards_to_enable)
-                hardware.digital_write(card_physical_pin, state)
-                if state:
-                    log(f"Enabling card pin {card_pin_name} (pin {card_physical_pin}) HIGH", "DEBUG")
-                else:
-                    log(f"Disabling card pin {card_pin_name} (pin {card_physical_pin}) LOW", "DEBUG")
+#     # Enable/disable card pins
+#     for card_pin_key in all_card_pins:
+#         card_pin_name = board_config.get(card_pin_key)
+#         if card_pin_name:
+#             card_physical_pin = digital_ports.get(card_pin_name)
+#             if card_physical_pin is not None:
+#                 # Set HIGH only for the cards in cards_to_enable, LOW for all others
+#                 state = (card_pin_key in cards_to_enable)
+#                 hardware.digital_write(card_physical_pin, state)
+#                 if state:
+#                     log(f"Enabling card pin {card_pin_name} (pin {card_physical_pin}) HIGH", "DEBUG")
+#                 else:
+#                     log(f"Disabling card pin {card_pin_name} (pin {card_physical_pin}) LOW", "DEBUG")
 
 
 def clear_mux_bits(
@@ -333,19 +333,21 @@ def clear_bits(
         # Set each bit position to LOW (only those that are set in the bit list)
         cleared_pins = []
         for bit_idx in range(16):
-            Pinstate = 0
+            Pinstate = 0 
             if bits[bit_idx] == 1:  # Only clear bits that were set
                 digital_pin_name = f"D{bit_idx}"
                 if digital_pin_name in digital_ports:
                     physical_pin = digital_ports.get(digital_pin_name)
                     if physical_pin is not None:
                         hardware.digital_write(physical_pin, False)
-                        #Pinstate = hardware.digital_read(physical_pin)
-                        if Pinstate == 0:  
-                            cleared_pins.append(digital_pin_name)
-                        else:
-                            log(f"Failed to clear pin {digital_pin_name} (pin {physical_pin})", "WARNING")
-                            cleared_pins.append("FAILED:"+digital_pin_name)
+                        #Pinstate = hardware.digital_read(physical_pin)  
+                        cleared_pins.append(digital_pin_name)
+                    else:
+                        log(f"Failed to clear pin {digital_pin_name} (pin {physical_pin})", "WARNING")
+                        cleared_pins.append("FAILED:"+digital_pin_name)
+                else:
+                    log(f"Digital pin {digital_pin_name} not found in pin map", "WARNING")
+                    cleared_pins.append("NOT_FOUND:"+digital_pin_name)
         
         if cleared_pins:
             # Small delay to allow pins to stabilize
