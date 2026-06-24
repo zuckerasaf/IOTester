@@ -175,6 +175,17 @@ class MainController:
     
     def _log_callback(self, message: str, level: str = "INFO"):
         """Thread-safe log callback for hardware and test components."""
+        # Detect IBIT result logs and update button color from the main thread.
+        # Use the pass/fail summary line so the result is derived from the actual test outcome.
+        if "Ibit result: SUCCESS" in message or "Ibit result: FAILURE" in message:
+            success = "SUCCESS" in message
+            print(f"[MainController._log_callback] scheduling IBIT color update success={success} message={message}")
+            def schedule_update():
+                print(f"[MainController._log_callback] running scheduled IBIT color update success={success}")
+                self._apply_ibit_button_color(success)
+            QTimer.singleShot(0, self.main_window, schedule_update)
+
+
         # Use Qt's thread-safe mechanism to update UI from background threads
         QMetaObject.invokeMethod(
             self.main_window.log,
@@ -980,6 +991,26 @@ class MainController:
                 "background-color: #d73a49; color: #ffffff;"
             )
 
+    def _apply_ibit_button_color(self, success: bool):
+        """Set the IBIT button color based on overall result."""
+        print(f"[MainController._apply_ibit_button_color] success={success}")
+        if success:
+            self.main_window.btn_ibit.setStyleSheet(
+                "background-color: #28a745; color: #ffffff;"
+            )
+        else:
+            self.main_window.btn_ibit.setStyleSheet(
+                "background-color: #d73a49; color: #ffffff;"
+            )
+        self.main_window.btn_ibit.style().unpolish(self.main_window.btn_ibit)
+        self.main_window.btn_ibit.style().polish(self.main_window.btn_ibit)
+        self.main_window.btn_ibit.update()
+
+    def _update_ibit_button_color_threadsafe(self, success: bool):
+        """Thread-safe IBIT button color update."""
+        print ("arrived here ")
+        QTimer.singleShot(0, lambda: self._apply_ibit_button_color(success))
+
     def _run_ping_command(self, host: str, count: int = 4, timeout_sec: int = 1) -> tuple[bool, int, int]:
         """Run a system ping to the given host and return success plus packet counts."""
         if not host:
@@ -1034,18 +1065,35 @@ class MainController:
         Runs relay fuse tests on 4 pin pairs followed by comprehensive short circuit test.
         All tests execute in background thread with thread-safe logging and UI updates.
         """
+        if self.running_ibit:
+            self.main_window.log.append("I_Bit test already running", "WARNING")
+            return
+
         self.main_window.log.append("Starting I_Bit short circuit test...", "INFO")
+        self._show_message(
+            "Ibit Required",
+            "Before running the Ibit test, please ensure that no hardware (IO Box, cables, etc.) is connected.",
+            "information"
+        )
         self.running_ibit = True
         if self.test_handler:
             self.test_handler.running_ibit = True
         
+        # Reset IBIT button styling while the test is running
+        self.main_window.btn_ibit.setStyleSheet("")
+        self.main_window.btn_ibit.setObjectName("")
+        self.main_window.btn_ibit.style().unpolish(self.main_window.btn_ibit)
+        self.main_window.btn_ibit.style().polish(self.main_window.btn_ibit)
+
         self.main_window.btn_stop_ibit.setEnabled(True)
-        self.main_window.btn_ibit.setEnabled(False)
         
         # Run Ibit test in background thread using TestHandle
         def run_i_bit_test():
+            success = False
             if self.test_handler:
-                self.test_handler.run_i_bit_test()
+                _, _, success = self.test_handler.run_i_bit_test()
+            self._update_ibit_button_color_threadsafe(success)
+            self._on_ibit_complete_threadsafe()
         threading.Thread(target=run_i_bit_test, daemon=True).start()
     
     def on_stop_ibit(self):
@@ -1445,12 +1493,13 @@ class QtTableAdapter:
     def set_testing_pin(self, pin_id: Optional[str]):
         """
         Highlight the row currently being tested (thread-safe).
-        
+
         Args:
             pin_id: Pin ID currently being tested, or None to clear
         """
         print(f"[QtTableAdapter.set_testing_pin] Called with pin_id={pin_id}")
-        QTimer.singleShot(0, lambda: self.main_window.table.set_testing_pin(pin_id))
+        # PinTableQt.set_testing_pin uses QApplication.postEvent internally — thread-safe.
+        self.main_window.table.set_testing_pin(pin_id)
     
     def get_all_rows(self) -> List[dict]:
         """Get all table rows as dictionaries."""

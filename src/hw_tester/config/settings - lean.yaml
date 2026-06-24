@@ -1,0 +1,36 @@
+Debug:
+  mode: false
+UI:
+  UI_Type: Qt
+Timeouts:
+  pins_to_stabilize: 0.5
+scale:
+  voltage: 6.14
+  voltage_degredation: 1.5
+  voltage_tolerance: 1.5
+  zero_voltage_threshold: 0.5
+  Analog_voltage_threshold: 13.0
+  logic_voltage_threshold: 4.0
+Paths:
+  reports: C:\ArduinoProject\IO_Tester\tests\Results
+  ConnectorAddressMap: connector_Address_map.xlsx
+  ConnectorAddressMap_A: connector_Address_A_map.xlsx
+  ConnectorAddressMap_B: connector_Address_B_map.xlsx
+ExcelColumns:
+  ID: H
+  Connect: A
+  Discrete_Name: B
+  Signal_Name: C
+  Plug: J
+  Pin: K
+  Type: D
+  Power_Expected: N
+  Power_Input: O
+  PullUp_Expected: P
+  PullUp_Input: Q
+  Logic_Pin_Input: R
+  Logic_Command: S
+  Logic_Expected: T
+  Test_Result: U
+Measure_value:
+  Scale_1: 6

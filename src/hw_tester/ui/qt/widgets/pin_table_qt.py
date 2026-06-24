@@ -5,16 +5,36 @@ Port of Tkinter PinTableView to Qt/PySide6 with enhanced features.
 from typing import List, Dict, Optional, Any
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTableView, QHeaderView,
-    QLineEdit, QAbstractItemView, QStyledItemDelegate, QComboBox
+    QLineEdit, QAbstractItemView, QStyledItemDelegate, QComboBox, QApplication
 )
 from PySide6.QtCore import (
-    Qt, QAbstractTableModel, QModelIndex, Signal, Slot
+    Qt, QAbstractTableModel, QModelIndex, Signal, Slot, QEvent
 )
 from PySide6.QtGui import QColor, QBrush, QFont
+
+# Custom event for thread-safe row highlight — QApplication.postEvent is safe from any thread
+_SET_TESTING_PIN_TYPE = QEvent.Type(QEvent.registerEventType())
+
+
+class _SetTestingPinEvent(QEvent):
+    """Carries a pin_id (or None to clear) across thread boundaries."""
+    def __init__(self, pin_id: Optional[str]):
+        super().__init__(_SET_TESTING_PIN_TYPE)
+        self.pin_id = pin_id
 
 
 class PinTableEditDelegate(QStyledItemDelegate):
     """Custom editor delegate to ensure edited values are always readable."""
+
+    def paint(self, painter, option, index):
+        # QStyleSheetStyle owns CE_ItemViewItem rendering when QTableView::item is in the
+        # stylesheet. It draws nothing for the background (no CSS background set), so we
+        # fill it manually first. The stylesheet then draws text/border on top without
+        # overwriting this fill.
+        bg = index.data(Qt.BackgroundRole)
+        if bg is not None:
+            painter.fillRect(option.rect, bg)
+        super().paint(painter, option, index)
 
     def createEditor(self, parent, option, index):
         if not index.isValid():
@@ -125,6 +145,10 @@ class PinTableModel(QAbstractTableModel):
             # Keep white text for all rows (goldenrod, Pass, Fail, normal)
             return QBrush(QColor("#e6edf3"))
         
+        elif role == Qt.ToolTipRole:
+            value = str(row_data[col_idx]) if row_data[col_idx] is not None else ""
+            return value if value else None
+
         elif role == Qt.TextAlignmentRole:
             # Right-align numeric columns
             col_name = self.COLUMNS[col_idx]
@@ -145,18 +169,17 @@ class PinTableModel(QAbstractTableModel):
         pullup_result = row_data[self.COLUMNS.index("PullUp_Result")] if "PullUp_Result" in self.COLUMNS else ""
         logic_result = row_data[self.COLUMNS.index("Logic_DI_Result")] if "Logic_DI_Result" in self.COLUMNS else ""
         
-        # Priority: Fail (red/pink)
-        if power_result == "Fail" or pullup_result == "Fail" or logic_result == "Fail":
-            return QBrush(QColor("#FFB6C1"))  # Light red/pink
-        
-        # Next: Pass (green)
-        if power_result == "Pass" or pullup_result == "Pass" or logic_result == "Pass":
-            return QBrush(QColor("#90EE90"))  # Light green
-        
         # Check if this row is currently being tested
         pin_id = row_data[0]  # ID is first column
-        if self._testing_pin_id and pin_id == self._testing_pin_id:
-            return QBrush(QColor("#DAA520"))  # Goldenrod - currently testing (darker, better for dark theme)
+        pin_number = row_data[self.COLUMNS.index("Pin")] if "Pin" in self.COLUMNS else ""
+        if self._testing_pin_id and (pin_id == self._testing_pin_id or pin_number == self._testing_pin_id):
+            return QBrush(QColor("#FFF59D5E"))  # Soft yellow for active testing
+        # if power_result == "Fail" or pullup_result == "Fail" or logic_result == "Fail":
+        #     return QBrush(QColor("#FFB6C1"))  # Light red/pink
+        
+        # # Next: Pass (green)
+        # if power_result == "Pass" or pullup_result == "Pass" or logic_result == "Pass":
+        #     return QBrush(QColor("#90EE90"))  # Light green
         
         # Default: Zebra striping for dark theme (subtle alternating)
         if row_idx % 2 == 0:
@@ -268,30 +291,20 @@ class PinTableModel(QAbstractTableModel):
     
     def set_testing_pin(self, pin_id: Optional[str]) -> None:
         """
-        Set which pin is currently being tested (highlights row with orange background).
-        
+        Set which pin is currently being tested (highlights row with yellow background).
+
         Args:
             pin_id: Pin ID currently being tested, or None to clear
         """
         print(f"[PinTableModel.set_testing_pin] Setting testing pin: {pin_id}")
-        old_pin_id = self._testing_pin_id
         self._testing_pin_id = pin_id
-        
-        # Refresh old testing row (if any)
-        if old_pin_id and old_pin_id in self._row_id_map:
-            old_row_idx = self._row_id_map[old_pin_id]
-            print(f"[PinTableModel.set_testing_pin] Clearing old testing row {old_row_idx} (pin {old_pin_id})")
-            left = self.index(old_row_idx, 0)
-            right = self.index(old_row_idx, self.columnCount() - 1)
-            self.dataChanged.emit(left, right, [Qt.BackgroundRole, Qt.ForegroundRole])
-        
-        # Refresh new testing row (if any)
-        if pin_id and pin_id in self._row_id_map:
-            new_row_idx = self._row_id_map[pin_id]
-            print(f"[PinTableModel.set_testing_pin] Setting new testing row {new_row_idx} (pin {pin_id})")
-            left = self.index(new_row_idx, 0)
-            right = self.index(new_row_idx, self.columnCount() - 1)
-            self.dataChanged.emit(left, right, [Qt.BackgroundRole, Qt.ForegroundRole])
+
+        # Repaint all rows — no roles specified so Qt repaints everything
+        if self._rows:
+            self.dataChanged.emit(
+                self.index(0, 0),
+                self.index(len(self._rows) - 1, self.columnCount() - 1)
+            )
     
     def get_all_rows(self) -> List[Dict[str, str]]:
         """
@@ -364,7 +377,7 @@ class PinTableQt(QWidget):
     """
     Qt table view for displaying pin information with multi-selection support.
     Matches the API of the Tkinter PinTableView for easy migration.
-    
+
     Features:
     - 22 columns for comprehensive pin data
     - Pass/Fail color coding (green/red)
@@ -373,7 +386,7 @@ class PinTableQt(QWidget):
     - Multi-row selection
     - Zebra striping for uncolored rows
     """
-    
+
     def __init__(self, parent: Optional[QWidget] = None):
         """
         Initialize PinTableQt.
@@ -512,16 +525,20 @@ class PinTableQt(QWidget):
     
     def set_testing_pin(self, pin_id: Optional[str]) -> None:
         """
-        Highlight the row currently being tested with orange background.
-        
+        Highlight the row currently being tested with yellow background.
+        Thread-safe: posts a custom event so the main-thread event loop applies the change.
+
         Args:
             pin_id: Pin ID currently being tested, or None to clear highlight
-        
-        Example:
-            table.set_testing_pin("1")  # Highlight row with ID "1"
-            table.set_testing_pin(None)  # Clear highlight
         """
-        self.model.set_testing_pin(pin_id)
+        QApplication.postEvent(self, _SetTestingPinEvent(pin_id))
+
+    def customEvent(self, event: QEvent) -> None:
+        if event.type() == _SET_TESTING_PIN_TYPE:
+            self.model.set_testing_pin(event.pin_id)
+            self.table.viewport().update()
+        else:
+            super().customEvent(event)
 
 
 class CommEnabledDelegate(QStyledItemDelegate):

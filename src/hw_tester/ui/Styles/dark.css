@@ -129,6 +129,45 @@ QPushButton#btnPrimary:pressed {
     border-color: #2553b6;
 }
 
+/* IBIT status button colors */
+QPushButton[status="success"] {
+    background: #28a745;
+    color: #ffffff;
+    border-color: #28a745;
+}
+QPushButton[status="success"]:hover {
+    background: #2fae59;
+    border-color: #2fae59;
+}
+QPushButton[status="success"]:pressed {
+    background: #22863a;
+    border-color: #22863a;
+}
+QPushButton[status="success"]:disabled {
+    background: #28a745;
+    color: #ffffff;
+    border-color: #28a745;
+}
+
+QPushButton[status="failure"] {
+    background: #d73a49;
+    color: #ffffff;
+    border-color: #d73a49;
+}
+QPushButton[status="failure"]:hover {
+    background: #e5535d;
+    border-color: #e5535d;
+}
+QPushButton[status="failure"]:pressed {
+    background: #b2313d;
+    border-color: #b2313d;
+}
+QPushButton[status="failure"]:disabled {
+    background: #d73a49;
+    color: #ffffff;
+    border-color: #d73a49;
+}
+
 /* Active state button (for simulation/localhost when enabled)
    In Python: self.btn_simulation.setObjectName("btnActive")
 */

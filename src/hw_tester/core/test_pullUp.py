@@ -245,7 +245,7 @@ def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
         measured_voltage_after_do = self.measurer.measure_voltage(analog_port)
         if is_simulation:
             measured_voltage_after_do = 0 + variation
-        self.log(f"the measure_Voltage is simulated to be ~0V + samll variation = {variation} ", "DEBUG")
+            self.log(f"the measure_Voltage is simulated to be ~0V + samll variation = {variation} ", "DEBUG")
         self.log(f"Measurement after DO activation: {measured_voltage_after_do * voltage_scale:.3f}V", "INFO")
         if get_debug_setting(self.settings, "PullUp_Test"):
             self.wait_debug(290, "active")

@@ -134,22 +134,28 @@ class TestHandle:
 
     
    
-    def run_i_bit_test(self) -> None:
+    def run_i_bit_test(self) -> tuple[int, int, bool]:
         """
         Run I_Bit test (relay fuse tests + short circuit test).
         This function is intended to be run in a separate thread.
         """
         is_simulation = self.settings.get('Board', {}).get('simulation', True)
-        debug = get_debug_setting(self.settings, "Power_Test")
 
-        ibit_A = self.measure_all_pins_system("a",4.0, is_simulation)
-        ibit_B = self.measure_all_pins_system("b",4.0, is_simulation)
-        passed_count = len(ibit_A[0]) + len(ibit_B[0])
-        total_count = 100
-        self.log(f"Ibit  Circuit Test complete: {passed_count}/{total_count} pins PASSED", "SUCCESS" if passed_count == total_count else "WARNING")
-        
+        pinNumber = 51 #51 
+        ibit_A = self.measure_all_pins_system("a",4.0, is_simulation, pinNumber)
+        ibit_B = self.measure_all_pins_system("b",4.0, is_simulation, pinNumber)
+        total_count = len(ibit_A[0]) + len(ibit_B[0])
+        failed_count = len(ibit_A[2]) + len(ibit_B[2])
+        passed_count = total_count - failed_count
+        success = (passed_count == total_count)
+        self.log(
+            f"Ibit Circuit Test complete: {passed_count}/{total_count} pins PASSED",
+            "SUCCESS" if success else "WARNING"
+        )
+        self.log(f"Ibit result: {'SUCCESS' if success else 'FAILURE'}", "SUCCESS" if success else "ERROR")
+        return passed_count, total_count, success
     
-    def measure_all_pins_system(self, system: str, voltage: float, isSimulate: bool) -> tuple[list[float], bool, list[dict]]:
+    def measure_all_pins_system(self, system: str, voltage: float, isSimulate: bool, pinNumber ) -> tuple[list[float], bool, list[dict]]:
         """
         System measurement - loop run with validation.
         Test Procedure:
@@ -180,7 +186,11 @@ class TestHandle:
         tolerance = self.settings.get('Test', {}).get('voltage_degredation', 3.0)
         pins_to_stabilize = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.5)
         all_tests_passed = True
-        for current_pin in range(1, 51):
+
+        if get_debug_setting(self.settings, "Ibit_Test"):
+            self.log(f"start I_Bit test for all the pins ", "INFO")
+            self.wait_debug(500, "active")
+        for current_pin in range(1, pinNumber):
             if not self.running_ibit:
                 self.log("I_Bit test stopped by user", "WARNING")
                 break
@@ -213,7 +223,7 @@ class TestHandle:
                     voltage_measurements.append(0.0)
                     failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
                     all_tests_passed = False
-                    continue
+                    break
                 # Step 3: Measure voltage (before pullup)
                 if isSimulate:
                     import random, time
@@ -228,6 +238,9 @@ class TestHandle:
                     self.log(f"Pin {current_pin} on system {system} ({bits}) Volt measurement {measured_voltage:.3f}V - FAIL (expected ~0V)", "WARNING")
                     failed_pins.append({'pin': current_pin, 'measured': measured_voltage, 'expected': 0.0})
                     all_tests_passed = False
+                
+                if get_debug_setting(self.settings, "Ibit_Test"):
+                    self.wait_debug(560, "active")
                 voltage_measurements.append(measured_voltage)
                 # Step 6: Pullup activate
                 digital_ports = self.pin_map.get('D', {})
@@ -240,6 +253,14 @@ class TestHandle:
                 # Step 7: Wait 1 sec
                 import time
                 time.sleep(pins_to_stabilize)
+
+                # Step 7.1: close Relay 15
+                relay_connect = self.relay_general_operate(True)
+                if relay_connect == False:
+                    return (0, False, f"the relay logic didnt operate")
+        
+
+
                 # Step 8: Measure voltage (after pullup)
                 if isSimulate:
                     measured_voltage_pullup = voltage + random.uniform(-0.1, 0.1)
@@ -253,6 +274,9 @@ class TestHandle:
                     self.log(f"Pin {current_pin} on system {system} ({mux_addr}) Volt measurement {measured_voltage_pullup:.3f}V - FAIL (expected {voltage}V, diff: {voltage_diff:.3f}V)", "WARNING")
                     failed_pins.append({'pin': current_pin, 'measured': measured_voltage_pullup, 'expected': voltage})
                     all_tests_passed = False
+                
+                if get_debug_setting(self.settings, "Ibit_Test"):
+                    self.wait_debug(600, "active")
                 # Step 10: Wait 1 sec, pullup deactivate, deselect pin
                 time.sleep(pins_to_stabilize)
                 self.hardware.digital_write(pullup_physical_pin, False)
@@ -263,125 +287,17 @@ class TestHandle:
                 voltage_measurements.append(0.0)
                 failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
                 all_tests_passed = False
-
+        
+        # Step 10: open Relay 15       
+        relay_connect = self.relay_general_operate(False)
+        if relay_connect == False:
+            return (0, False, f"the relay logic didnt operate")
         result_msg = "SUCCESS" if all_tests_passed else "FAILED"
         clear_bits(bits, self.pin_map, self.hardware, self.log)
         self.log(f"System {system} measurement complete: {len(voltage_measurements)} pins measured - {result_msg} - {len(failed_pins)} failures", "SUCCESS" if all_tests_passed else "WARNING")
         return voltage_measurements, all_tests_passed, failed_pins
     
-    def measure_all_pins_system_b(self, pin_number: int, voltage: float) -> tuple[list[float], bool, list[dict]]:
-        """
-        System B measurement for loop run with validation.
-        
-        Test Procedure:
-        1. For each pin 1-50: Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
-        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - system B
-        3. Measure voltage on pair-specific analog pin
-        4. Validate measurements:
-           - Pin matching pin_number should measure ~voltage (within tolerance)
-           - All other pins should measure ~0V (within tolerance)
-        5. Return result (array of 50 voltage measurement values + pass/fail status + failed pins list)
-        
-        Args:
-            pin_number: The pin number that should show the voltage (1-50)
-            voltage: Expected voltage value on the specified pin
-            
-        Returns:
-            tuple[list[float], bool, list[dict]]: 
-                - Array of 50 final voltage readings in volts
-                - True if all measurements pass validation, False otherwise
-                - List of failed pins with format: [{'pin': int, 'measured': float, 'expected': float}, ...]
-        """
-        
-        
-        
-        voltage_measurements = []
-        failed_pins = []  # Track failed pins with their measurements
-        voltage_scale = 1
-        tolerance = self.settings.get('Test', {}).get('voltage_degredation', 3.0)
-        all_tests_passed = True
-        
-        self.log(f"Starting System B measurement for all pins (1-50)... Expected: Pin {pin_number} = {voltage}V, Others = ~0V", "INFO")
-        
-        for current_pin in range(1, 51):
-            try:
-                # Step 1: Get pair info
-                pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(current_pin)
-                
-                # Get actual pin names from board config
-                voltage_pin_name = self.board_config.get(voltage_pin_b_key, 'A1')
-                
-                # Step 2: Convert connector pin to bit representation using system B and set mux matrix
-                bits = connector_pin_to_bits(current_pin, "b")
-                success = set_mux_bits(bits, current_pin, self.pin_map, self.hardware, self.settings, self.log)
-                
-                if not success:
-                    self.log(f"Failed to set mux bits for pin {current_pin}", "WARNING")
-                    voltage_measurements.append(0.0)
-                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': voltage if current_pin == pin_number else 0.0})
-                    all_tests_passed = False
-                    continue
-                
-                # Get physical analog port from pin map
-                analog_ports = self.pin_map.get('A', {})
-                analog_port = analog_ports.get(voltage_pin_name)
-                
-                self.log(f"Pin {current_pin}: Looking for {voltage_pin_name} in analog ports", "DEBUG")
-                
-                if analog_port is None:
-                    self.log(f"Analog pin {voltage_pin_name} not found in pin map for pin {current_pin}", "WARNING")
-                    voltage_measurements.append(0.0)
-                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': voltage if current_pin == pin_number else 0.0})
-                    all_tests_passed = False
-                    continue
-                
-                self.log(f"Pin {current_pin}: Using analog port {analog_port} ({voltage_pin_name})", "INFO")
-                
-                # Step 3: Measure voltage
-                try:
-                    measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale 
-                    voltage_measurements.append(measured_voltage)
-                    
-                    # Step 4: Validate measurement
-                    if current_pin == pin_number:
-                        # This pin should measure ~voltage
-                        voltage_diff = abs(measured_voltage - voltage)
-                        if voltage_diff <= tolerance:
-                            self.log(f"in measure all pins sys B -  Pin {pin_number} check Pin {current_pin}: {measured_voltage:.3f}V (PASS - expected {voltage}V)", "SUCCESS")
-                        else:
-                            self.log(f"in measure all pins sys B  - Pin {pin_number} check Pin {current_pin}: {measured_voltage:.3f}V (FAIL - expected {voltage}V, diff: {voltage_diff:.3f}V)", "WARNING")
-                            failed_pins.append({'pin': current_pin, 'measured': measured_voltage, 'expected': voltage})
-                            all_tests_passed = False
-                    else:
-                        # This pin should measure ~0V
-                        if abs(measured_voltage) <= tolerance:
-                            self.log(f"for Pin {pin_number} check Pin {current_pin}: {measured_voltage:.3f}V (PASS - expected ~0V)", "DEBUG")
-                        else:
-                            self.log(f"in measure all pins sys B - for Pin {pin_number} check Pin {current_pin}: {measured_voltage:.3f}V (FAIL - expected ~0V)", "WARNING")
-                            failed_pins.append({'pin': current_pin, 'measured': measured_voltage, 'expected': 0.0})
-                            all_tests_passed = False
-                            
-                except Exception as e:
-                    self.log(f"in measure all pins sys B -Measurement error on pin {current_pin}: {str(e)}", "ERROR")
-                    voltage_measurements.append(0.0)
-                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': voltage if current_pin == pin_number else 0.0})
-                    all_tests_passed = False
-                
-                # Clear mux bits before next pin
-                clear_bits(bits, self.pin_map, self.hardware, self.log)
-                
-            except Exception as e:
-                self.log(f"in measure all pins sys B -Error processing pin {current_pin}: {str(e)}", "ERROR")
-                voltage_measurements.append(0.0)
-                failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': voltage if current_pin == pin_number else 0.0})
-                all_tests_passed = False
-        
-        result_msg = "SUCCESS" if all_tests_passed else "FAILED"
-        if failed_pins:
-            self.log(f"System B measurement complete: {len(voltage_measurements)} pins measured - {result_msg} - {len(failed_pins)} failures", "SUCCESS" if all_tests_passed else "WARNING")
-        else:
-            self.log(f"System B measurement complete: {len(voltage_measurements)} pins measured - {result_msg}", "SUCCESS" if all_tests_passed else "WARNING")
-        return voltage_measurements, all_tests_passed, failed_pins
+    
 
     def run_tests(self, selected_ids, all_rows, root, pin_table, on_test_complete):
         """
@@ -453,12 +369,12 @@ class TestHandle:
                 self.log(f"Processing pin number {pin.Id} - Type: {pin.Discrete_Name}", "INFO")
                 print(f"★★★ DEBUG: About to check hasattr for set_testing_pin")
                 
-                # Highlight the row being tested (orange background)
+                # Highlight the row being tested (thread-safe via postEvent internally)
                 if hasattr(pin_table, 'set_testing_pin'):
                     self.log(f"Setting testing indicator for pin {pin.Id}", "DEBUG")
                     pin_table.set_testing_pin(pin.Id)
-                    # Small delay to ensure orange is visible
-                    time.sleep(0.1)
+                    # Give the main thread time to render the yellow before the test runs
+                    time.sleep(0.15)
                 else:
                     self.log("pin_table does not have set_testing_pin method", "WARNING")
                 
@@ -571,17 +487,15 @@ class TestHandle:
                 if hasattr(pin_table, 'set_testing_pin'):
                     self.log(f"Clearing testing indicator for pin {pin.Id}", "DEBUG")
                     pin_table.set_testing_pin(None)
-                    
+
             except ValueError as e:
                 error_msg = f"running test - Pin data error for {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")
-                # Clear testing indicator on error
                 if hasattr(pin_table, 'set_testing_pin'):
                     pin_table.set_testing_pin(None)
             except Exception as e:
                 error_msg = f"running test - Unexpected error processing {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")
-                # Clear testing indicator on error
                 if hasattr(pin_table, 'set_testing_pin'):
                     pin_table.set_testing_pin(None)
         
