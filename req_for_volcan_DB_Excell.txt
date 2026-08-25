@@ -1,0 +1,55 @@
+1. take data from one excel and copy it to another excel at the same folder under the same name + prefix IOTester
+2. add the header caption
+2.1 N:0 = "Power_Expected" 
+2.2 O:0 = "Power_Input"
+2.3 P:0 = "PullUp_Expected"
+2.4 Q:0 = "PullUp_Input"
+2.5 R:0 = "logic_input"
+2.6 S:0 = "Logic_Command"
+2.7 T:0 = "Logic_Expected"
+2.8 U:0 = "Test_Result"
+3. for each raw if cell "F" contian "DI" for example "DI_33" the following need to be done :
+3.1in the same raw at cell "N"  value will be 3.5
+3.2 in the same raw at cell "R"  value will be "TBD"
+3.3 in the same raw at cell "T"  value will be look like C4_DI29_0 it built from 
+3.3.1  "C" (constatnt)
+3.3.2 the number after the come from the first number in the cell at column "C" for example 1P4 5 the number will be "1"
+3.3.3 the DIxx  come from column "F" for example 'DI_37 wil become DI29
+3.3.3 the "0" at the end is constant 
+4.for each raw if cell "F" contian "DO" for example "DO_24" fo the following need to be done :
+4.1in the same raw at cell "N"  value will be 0
+4.2 in the same raw at cell "P"  value will be 4
+4.3 in the same raw at cell "Q"  value will be look like C2_DO13_1 it built from 
+4.3.1  "C" (constatnt)
+4.3.2 the number after the come from the first number in the cell at column "C" for example 1P4 5 the number will be "1"
+4.3.3 the DOxx  come from column "F" for example 'DO_37 wil become DO29
+4.3.3 the "1" at the end is constant 
+5.for each raw if cell "F" contian "RTN" for example "24V I/O RTN_7" the following need to be done :
+5.1in the same raw at cell "N"  value will be 0
+5.2 in the same raw at cell "P"  value will be 0
+5.3 in the same raw at cell "Q"  value will be "G" 
+6.for each raw if cell "E" contian "Red" for example the following need to be done :
+6.1in the same raw at cell "N"  value will be the "valt" value from columnF for example "5V I\O_1" the value will be 5
+6.2 in the same raw at cell "O"  value will be "P"
+6.3 in the same raw at cell "Q"  value will be "G"
+7.for each raw if cell "F" contian "'INC_ENCY_A+"  the following need to be done :
+7.1in the same raw at cell "N"  value will be 3.5
+7.2 in the same raw at cell "R"  value will be "TBD"
+7.3 in the same raw at cell "T"  value will be look like C3_IE1_1 it built from 
+7.3.1  "C" (constatnt)
+7.3.2 the number after the come from the first number in the cell at column "C" for example 1P4 5 the number will be "1"
+7.3.3 if in column "C" contain P5 for example '2P5 17 the IE value will be IE2 , if it contain P1 for example '2P1 17 the IE value will be IE1 
+7.3.3 the "1" at the end is constant 
+8.for each raw if cell "F" contian "'INC_ENCY_B+"  the following need to be done :
+8.1in the same raw at cell "N"  value will be 3.5
+8.2 in the same raw at cell "R"  value will be "TBD"
+8.3 in the same raw at cell "T"  value will be look like C3_IE2_65535 it built from 
+8.3.1  "C" (constatnt)
+8.3.2 the number after the come from the first number in the cell at column "C" for example 1P4 5 the number will be "1"
+8.3.3 if in column "C" contain P5 for example '2P5 17 the IE value will be IE2 , if it contain P1 for example '2P1 17 the IE value will be IE1 
+8.3.3 the "65535" at the end is constant   
+
+
+
+
+ 

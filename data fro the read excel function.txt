@@ -1,0 +1,105 @@
+Create a new excel file based n source file data.
+
+    The new file is saved in the same folder with the same filename prefixed by
+    ``IOTester``.
+    
+    Args:
+        source_file: Path to the source Excel file
+        sheet_name: Name of the sheet to process (None = first sheet)
+        config_name: Column configuration to use ('default' or 'j31')
+        
+
+
+New File Headed 
+	'A': 'Card',
+        'B': 'DISCRETE NAME',
+        'C': 'SIGNAL NAME \ Data',
+        'D': 'TYPE',
+        'E': 'CONNECTOR',
+        'F': 'SPS \ Vendor',
+        'G': 'orignal',
+        'H': 'Pin Out Final'
+	'I': 'FROM',
+        'J': 'PLUG',
+        'K': 'Pin'
+	'L': 'Color',
+        'M': 'AWG',
+        'N': 'Power_Expected',
+        'O': 'Power_Input',
+        'P': 'PullUp_Expected',
+        'Q': 'PullUp_Input',
+        'R': 'logic_input',
+        'S': 'Logic_Command',
+        'T': 'Logic_Expected',
+        'U': 'Test_Result'
+
+
+copy the data form source file to new file 
+source Data	new Data 
+	B	E
+	C	C
+	D	J
+	E	M
+	F	L
+	G	B
+	H	I
+
+add \ calculate new data 
+
+1. for each raw if cell "G" contian "DI" for example "DI_33" the following need to be done :
+1.1in the same raw at cell "N"  value will be 3.5
+1.2 in the same raw at cell "R"  value will be "TBD"
+1.3 in the same raw at cell "T"  value will be look like C4_DI29_0 it built from 
+1.3.1  "C" (constatnt)
+1.3.2 the number after the come from the first number in the cell at column "D" for example 1P4 5 the number will be "1"
+1.3.3 the DIxx  come from column "G" for example 'DI_37 wil become DI29
+1.3.3 the "0" at the end is constant 
+2.for each raw if cell "G" contian "DO" for example "DO_24" fo the following need to be done :
+2.1in the same raw at cell "N"  value will be 0
+2.2 in the same raw at cell "P"  value will be 4
+2.3 in the same raw at cell "Q"  value will be look like C2_DO13_1 it built from 
+2.3.1  "C" (constatnt)
+2.3.2 the number after the come from the first number in the cell at column "D" for example 1P4 5 the number will be "1"
+2.3.3 the DOxx  come from column "G" for example 'DO_37 wil become DO29
+2.3.3 the "1" at the end is constant 
+3.for each raw if cell "G" contian "RTN" for example "24V I/O RTN_7" the following need to be done :
+3.1in the same raw at cell "N"  value will be 0
+3.2 in the same raw at cell "P"  value will be 0
+3.3 in the same raw at cell "Q"  value will be "G" 
+4.for each raw if cell "F" contian "Red" for example the following need to be done :
+4.1in the same raw at cell "N"  value will be the "valt" value from column F for example "5V I\O_1" the value will be 5
+4.2 in the same raw at cell "O"  value will be "P"
+5.for each raw if cell "G" contian "'INC_ENCY_A+"  the following need to be done :
+5.1in the same raw at cell "N"  value will be 3.5
+5.2 in the same raw at cell "R"  value will be "TBD"
+5.3 in the same raw at cell "T"  value will be look like C3_IE1_1 it built from 
+5.3.1  "C" (constatnt)
+5.3.2 the number after the come from the first number in the cell at column "D" for example 1P4 5 the number will be "1"
+5.3.3 if in column "C" contain P5 for example '2P5 17 the IE value will be IE2 , if it contain P1 for example '2P1 17 the IE value will be IE1 
+5.3.3 the "1" at the end is constant 
+6.for each raw if cell "G" contian "'INC_ENCY_B+"  the following need to be done :
+6.1in the same raw at cell "N"  value will be 3.5
+6.2 in the same raw at cell "R"  value will be "TBD"
+6.3 in the same raw at cell "T"  value will be look like C3_IE2_65535 it built from 
+6.3.1  "C" (constatnt)
+6.3.2 the number after the come from the first number in the cell at column "D" for example 1P4 5 the number will be "1"
+6.3.3 if in column "C" contain P5 for example '2P5 17 the IE value will be IE2 , if it contain P1 for example '2P1 17 the IE value will be IE1 
+6.3.3 the "65535" at the end is constant   
+7. for each raw if cell "D" contian "PIN 2" for example "1P5 1" the following need to be done :
+7.1in the same raw at cell "A"  value will be 1
+8. for each raw if cell "D" contian "2P" for example "2P5 17" the following need to be done :
+8.1in the same raw at cell "A"  value will be 2
+9. for each raw if cell "D" contian "3P" for example "3P2 14" the following need to be done :
+9.1in the same raw at cell "A"  value will be 3
+10 for each raw if cell "C" contian "PIN " + number for example "PIN 2" put the number in the same raw at column F,G,H else put NA
+11. for each raw if cell "G" contian "AI" for example "AI_5" the following need to be done :
+11.1in the same raw at cell "N"  value will be 0
+11.2 in the same raw at cell "R"  value will be "TBD"
+11.3 in the same raw at cell "T"  value will be look like C2_AI5_10 it built from 
+11.3.1  "C" (constatnt)
+11.3.2 the number after the come from the first number in the cell at column "D" for example 1P4 5 the number will be "1"
+11.3.3 the DIxx  come from column "G" for example 'AI_5 wil become AI5
+11.3.3 the "10" at the end is constant 
+
+
+
