@@ -91,8 +91,14 @@ def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
         self.log(f"in pullup test - Pullup pin {pullup_pin_name} not found in pin map", "ERROR")
         return (0.0, False, f"Error: Pullup pin {pullup_pin_name} not found")
     
-    self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH", "INFO")
-    self.hardware.digital_write(pullup_physical_pin, True)
+    if pin_PullUp_Expected == 4.0:
+        self.log(f"Activating pullup pin {pullup_pin_name} (pin {pullup_physical_pin}) HIGH its a ground logic", "INFO")
+        self.hardware.digital_write(pullup_physical_pin, True)
+    else:
+        self.log(f"Not ! Activating pullup pin {pullup_pin_name} its Power test (pin {pullup_physical_pin}) LOW its a Power logic ", "INFO")
+        self.hardware.digital_write(pullup_physical_pin, False)
+
+    
     
     # Wait for signal to stabilize
     stabilize_delay = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.1)
@@ -166,8 +172,10 @@ def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
         return (0.0, False, f"Error: Measurement failed after pullup activation - {str(e)}")
     
     # Step 6: Check that measured voltage matches PullUp_Expected
-
-    voltage_diff = abs(measured_voltage * voltage_scale - pin_PullUp_Expected)
+    if pin_PullUp_Expected == 24.0: # case of power test 
+        voltage_diff = 0 
+    else:
+        voltage_diff = abs(measured_voltage * voltage_scale - pin_PullUp_Expected)
 
     if voltage_diff > tolerance:
         self.log(f"Pullup voltage {measured_voltage * voltage_scale:.3f}V does NOT match expected {pin_PullUp_Expected:.2f}V (diff: {voltage_diff:.3f}V)", "WARNING")
@@ -258,16 +266,26 @@ def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
         return (0.0, False, f"Error: Measurement failed after DO activation - {str(e)}")
     
     # Step 13: Check that voltage is now ~0V (within tolerance)
+    if pin_PullUp_Expected == 24.0: # case of power test 
+       if abs(measured_voltage_after_do * voltage_scale - pin_PullUp_Expected) > tolerance:
+            self.log(f"Voltage after DO activation {measured_voltage_after_do * voltage_scale:.3f}V is not in tolerance to: {pin_PullUp_Expected}V)", "WARNING")
+            # Cleanup and return with warning
+            self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
+            self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
+       
+            return (measured_voltage_after_do * voltage_scale, False, f"Voltage after DO not ~0V: {measured_voltage_after_do * voltage_scale:.3f}V") 
 
-    if abs(measured_voltage_after_do * voltage_scale) > tolerance:
-        self.log(f"Voltage after DO activation {measured_voltage_after_do * voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V)", "WARNING")
-        # Cleanup and return with warning
-        self.hardware.digital_write(pullup_physical_pin, False)
-        relay_connect = self.relay_general_operate(False)
-        self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
+    else:
+        if abs(measured_voltage_after_do * voltage_scale) > tolerance:
+            self.log(f"Voltage after DO activation {measured_voltage_after_do * voltage_scale:.3f}V is not ~0V (tolerance: {tolerance}V)", "WARNING")
+            # Cleanup and return with warning
+            self.hardware.digital_write(pullup_physical_pin, False)
+            relay_connect = self.relay_general_operate(False)
+            self.card_manager.set_digital_output(card_id=card, do_number=event_num, state=False)
 
-        return (measured_voltage_after_do * voltage_scale, False, f"Voltage after DO not ~0V: {measured_voltage_after_do * voltage_scale:.3f}V")
-    
+            return (measured_voltage_after_do * voltage_scale, False, f"Voltage after DO not ~0V: {measured_voltage_after_do * voltage_scale:.3f}V")
+        
     self.log(f"Voltage after DO activation is ~0V as expected", "SUCCESS")
     
     # Step 14: Deactivate pullup pin (set LOW)
@@ -283,7 +301,7 @@ def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
 
     if not success:
         self.log(f"Failed to deactivate DO on card {card}", "WARNING")
-        return (measured_voltage * voltage_scale, False, f"Failed to deactivate DO on card {card}")
+        return (measured_voltage_after_do * voltage_scale, False, f"Failed to deactivate DO on card {card}")
     
     # Wait for DO to stabilize
     time.sleep(stabilize_delay)
@@ -297,9 +315,9 @@ def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
         self.log(f"the DO state after deactivation is simulated to be {actual_do_state_after} ", "DEBUG")
     if actual_do_state_after != False:
         self.log(f"DO deactivation verification failed: Expected False, got {actual_do_state_after}", "WARNING")
-        return (measured_voltage * voltage_scale, False, f"DO not deactivated correctly: got {actual_do_state_after}")
+        return (measured_voltage_after_do * voltage_scale, False, f"DO not deactivated correctly: got {actual_do_state_after}")
     
     self.log(f"DO deactivation verified: {actual_do_state_after}", "DEBUG")
 
     # All steps completed successfully
-    return (measured_voltage * voltage_scale, True, "Pullup test passed")
+    return (measured_voltage_after_do * voltage_scale, True, "Pullup test passed")

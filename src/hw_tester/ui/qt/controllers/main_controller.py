@@ -26,6 +26,7 @@ from hw_tester.core.test_handle import TestHandle
 from hw_tester.core.measurer import Measurer
 from hw_tester.core.pin_pulser import PinPulser
 from hw_tester.core.udp_card_manager import UDPCardManager
+from hw_tester.hardware.controllino_io import ControllinoIO
 from hw_tester.hardware.hardware_factory import initialize_hardware
 from hw_tester.ui.qt.widgets.pin_table_qt import CommSettingsTable
 # from hw_tester.core.test_handle import run_i_bit_test
@@ -111,6 +112,16 @@ class MainController:
     def _init_hardware(self):
         """Initialize hardware connection."""
         try:
+            if getattr(self, 'hardware', None) is not None and hasattr(self.hardware, 'close'):
+                try:
+                    self.hardware.close()
+                except Exception:
+                    pass
+
+            # If the user configured hardware mode at startup, verify COM before init.
+            if not self.settings.get('Board', {}).get('simulation', True):
+                self._test_com_connection()
+
             self.hardware = initialize_hardware(self.settings, log_callback=self._log_callback)
             # Reload settings in case hardware initialization changed simulation mode
             self.settings = load_settings()
@@ -118,6 +129,23 @@ class MainController:
             self.main_window.log.append(f"Hardware initialization failed: {e}", "ERROR")
             self.hardware = None
     
+    def _test_com_connection(self) -> bool:
+        """Validate the serial COM port connection before switching off simulation."""
+        port = self.settings.get('Board', {}).get('Port', 'COM5')
+        baud = self.settings.get('Board', {}).get('BaudRate', 115200)
+
+        try:
+            test_hw = ControllinoIO(port=port, baud_rate=baud, allow_no_connection=False, log_callback=self._log_callback)
+            try:
+                test_hw.close()
+            except Exception:
+                pass
+            self.main_window.log.append(f"COM port {port} is available and board connected.", "SUCCESS")
+            return True
+        except Exception as e:
+            self.main_window.log.append(f"Failed to connect to board on {port}", "ERROR")
+            return False
+
     def _init_test_components(self):
         """Initialize test-related components (Measurer, TestHandle, etc.)."""
         if not self.hardware:
@@ -202,6 +230,7 @@ class MainController:
         self.main_window.btn_load.clicked.connect(self.on_load)
         self.main_window.btn_report.clicked.connect(self.on_report)
         self.main_window.btn_doc.clicked.connect(self.on_doc)
+        self.main_window.btn_fails.clicked.connect(self.on_fails)
         
         # Group 2: Run Controls
         self.main_window.btn_test.clicked.connect(self.on_test)
@@ -312,7 +341,12 @@ class MainController:
         Opens a file dialog to select Excel file, loads the data, and populates the table.
         """
         # Open file dialog to select Excel file
-        initial_dir = str(Path.cwd() / "tests" / "DB")
+        # Get DB path from settings or use default
+        db_path_setting = self.settings.get('Paths', {}).get('database', 'tests/DB')
+        db_path_obj = Path(db_path_setting)
+        if not db_path_obj.is_absolute():
+            db_path_obj = Path.cwd() / db_path_obj
+        initial_dir = str(db_path_obj)
         file_path, _ = QFileDialog.getOpenFileName(
             self.main_window,
             "Select Connector Excel File",
@@ -531,6 +565,52 @@ class MainController:
                 "critical"
             )
     
+    def on_fails(self):
+        """
+        Handle Fails button click - generate combined fails report.
+        
+        Opens a dialog to select Excel report files and creates a combined
+        Excel file containing all rows with "Fail" in any result column.
+        """
+        try:
+            from hw_tester.core.doc_handle import create_fails_report_via_dialog
+            
+            self.main_window.log.append("Starting Fails report generation...", "INFO")
+            
+            # Get reports directory from settings
+            reports_dir_setting = self.settings.get('Paths', {}).get('reports', None)
+            if reports_dir_setting:
+                reports_dir = Path(reports_dir_setting)
+            else:
+                # Use workspace Results folder
+                reports_dir = Path.cwd() / "Results"
+            
+            output_path = create_fails_report_via_dialog(reports_dir)
+            
+            if output_path:
+                self.main_window.log.append(f"Fails report saved to {output_path}", "SUCCESS")
+                self._show_message(
+                    "Fails Report Ready",
+                    f"Fails report saved to:\n{output_path}",
+                    "information"
+                )
+            else:
+                self.main_window.log.append("Fails report creation canceled or no fails found", "INFO")
+                self._show_message(
+                    "Fails Report",
+                    "No failed tests found in selected files or operation was canceled.",
+                    "information"
+                )
+                
+        except Exception as e:
+            error_msg = f"Fails report generation failed: {e}"
+            self.main_window.log.append(error_msg, "ERROR")
+            self._show_message(
+                "Fails Report Error",
+                error_msg,
+                "critical"
+            )
+    
     def _get_table_rows_as_dicts(self) -> list:
         """
         Get all rows from the table as list of dictionaries.
@@ -577,7 +657,18 @@ class MainController:
         self.board_port_input = QLineEdit(board_group)
         board_layout.addRow("COM Port:", self.board_port_input)
 
+        paths_group = QGroupBox("Path Settings", dialog)
+        paths_layout = QFormLayout(paths_group)
+        self.report_path_input = QLineEdit(paths_group)
+        self.report_path_input.setPlaceholderText("e.g., C:\\Reports or leave empty for default")
+        paths_layout.addRow("Report Path:", self.report_path_input)
+        
+        self.db_path_input = QLineEdit(paths_group)
+        self.db_path_input.setPlaceholderText("e.g., C:\\TestData\\DB or leave empty for default")
+        paths_layout.addRow("DB Path (Load):", self.db_path_input)
+
         layout.addWidget(board_group)
+        layout.addWidget(paths_group)
         layout.addWidget(self.comm_table)
 
         self._populate_comm_board_fields(content)
@@ -620,6 +711,14 @@ class MainController:
 
         board = data.get("Board", {})
         self.board_port_input.setText(str(board.get("Port", "")))
+        
+        # Load report path from main settings.yaml
+        report_path = self.settings.get("Paths", {}).get("reports", "")
+        self.report_path_input.setText(str(report_path))
+        
+        # Load DB path from main settings.yaml
+        db_path = self.settings.get("Paths", {}).get("database", "")
+        self.db_path_input.setText(str(db_path))
 
     def _save_comm_settings(self, dialog: QDialog, comm_path: Path):
         """Validate and save edited Comm_settings.yaml content from the table."""
@@ -637,9 +736,23 @@ class MainController:
 
         comm_data["Board"]["Port"] = board_port
 
+        # Update report path in main settings
+        report_path = self.report_path_input.text().strip()
+        if "Paths" not in self.settings:
+            self.settings["Paths"] = {}
+        self.settings["Paths"]["reports"] = report_path if report_path else "C:\\ArduinoProject\\IO_Tester\\tests\\Results"
+        
+        # Update DB path in main settings
+        db_path = self.db_path_input.text().strip()
+        self.settings["Paths"]["database"] = db_path if db_path else "tests/DB"
+
         try:
             comm_path.parent.mkdir(parents=True, exist_ok=True)
             comm_path.write_text(yaml.safe_dump(comm_data, sort_keys=False), encoding="utf-8")
+            
+            # Save updated settings including report path to settings.yaml
+            save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
+            
             self.main_window.log.append(f"Saved Comm_settings.yaml to {comm_path}", "SUCCESS")
             self.settings = load_settings()
             self._init_ui_state()
@@ -704,6 +817,14 @@ class MainController:
             old_mode = "Simulation Off"
             new_mode = "Simulation On"
         
+        # If switching from simulation ON to OFF, verify the COM connection first.
+        if not new_simulation_enabled:
+            if not self._test_com_connection():
+                self.main_window.log.append(
+                    f"COM port {self.settings.get('Board', {}).get('Port')} is not available. Switching to hardware mode anyway.",
+                    "ERROR"
+                )
+
         # Update settings
         self.settings['Board']['simulation'] = new_simulation_enabled
         
@@ -1339,6 +1460,9 @@ class MainController:
         self.clear_test_results()
         
         self.main_window.log.append("Test sequence completed", "SUCCESS")
+        
+        # Automatically generate report after test completion
+        self.on_report()
     
     def on_stop_t(self):
         """Handle Stop button click - stop running test."""

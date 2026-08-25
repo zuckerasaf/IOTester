@@ -38,23 +38,43 @@ class MainWindowQt(QMainWindow):
 
         # Group 1: connector/file
         g1 = QGroupBox("Connector / File")
-        g1l = QGridLayout(g1)
-        g1l.setHorizontalSpacing(10)
-        g1l.setVerticalSpacing(8)
-
-        g1l.addWidget(QLabel("Connector:"), 0, 0)
+        g1l = QVBoxLayout(g1)
+        
+        # Connector field row
+        conn_layout = QHBoxLayout()
+        conn_layout.addWidget(QLabel("Connector:"))
         self.connector_edit = QLineEdit("")
-        g1l.addWidget(self.connector_edit, 0, 1, 1, 3)
+        conn_layout.addWidget(self.connector_edit)
+        g1l.addLayout(conn_layout)
 
         self.btn_settings = QPushButton("Settings")
+        self.btn_settings.setMinimumSize(120, 35)
         self.btn_load = QPushButton("Load")
         self.btn_load.setObjectName("btnPrimary")  # QSS primary styling
+        self.btn_load.setMinimumSize(120, 35)
         self.btn_report = QPushButton("Report")
+        self.btn_report.setMinimumSize(120, 35)
         self.btn_doc = QPushButton("DOC")
-        g1l.addWidget(self.btn_settings, 1, 0)
-        g1l.addWidget(self.btn_load, 1, 1)
-        g1l.addWidget(self.btn_report, 1, 2)
-        g1l.addWidget(self.btn_doc, 1, 3)
+        self.btn_doc.setMinimumSize(120, 35)
+        self.btn_fails = QPushButton("Fails")
+        self.btn_fails.setMinimumSize(120, 35)
+        
+        # First row: Settings, Load (centered)
+        row1_layout = QHBoxLayout()
+        row1_layout.addStretch()
+        row1_layout.addWidget(self.btn_settings)
+        row1_layout.addWidget(self.btn_load)
+        row1_layout.addStretch()
+        g1l.addLayout(row1_layout)
+        
+        # Second row: Report, DOC, Fails (centered)
+        row2_layout = QHBoxLayout()
+        row2_layout.addStretch()
+        row2_layout.addWidget(self.btn_report)
+        row2_layout.addWidget(self.btn_doc)
+        row2_layout.addWidget(self.btn_fails)
+        row2_layout.addStretch()
+        g1l.addLayout(row2_layout)
 
         controls_row.addWidget(g1, stretch=2)
 

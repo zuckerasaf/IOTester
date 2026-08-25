@@ -162,18 +162,17 @@ class PinTableModel(QAbstractTableModel):
     def _get_row_background(self, row_data: List[str], row_idx: int) -> Optional[QBrush]:
         """
         Get background color for row based on test results.
-        Priority: Fail > Pass > Testing > Zebra stripe
+        Priority:  Testing > Zebra stripe
         """
         # Get result columns
         power_result = row_data[self.COLUMNS.index("Power_Result")] if "Power_Result" in self.COLUMNS else ""
         pullup_result = row_data[self.COLUMNS.index("PullUp_Result")] if "PullUp_Result" in self.COLUMNS else ""
         logic_result = row_data[self.COLUMNS.index("Logic_DI_Result")] if "Logic_DI_Result" in self.COLUMNS else ""
         
-        # Check if this row is currently being tested
+        # Check if this row is currently being tested — match on ID only (ID is unique per row)
         pin_id = row_data[0]  # ID is first column
-        pin_number = row_data[self.COLUMNS.index("Pin")] if "Pin" in self.COLUMNS else ""
-        if self._testing_pin_id and (pin_id == self._testing_pin_id or pin_number == self._testing_pin_id):
-            return QBrush(QColor("#FFF59D5E"))  # Soft yellow for active testing
+        if self._testing_pin_id and pin_id == self._testing_pin_id:
+            return QBrush(QColor("#FFF59D5E"))  # Soft orange-tan for active testing
         # if power_result == "Fail" or pullup_result == "Fail" or logic_result == "Fail":
         #     return QBrush(QColor("#FFB6C1"))  # Light red/pink
         
@@ -562,6 +561,42 @@ class CommEnabledDelegate(QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
 
+class CommTableEditDelegate(QStyledItemDelegate):
+    """Custom editor delegate for CommSettingsTable to ensure edited values are readable."""
+
+    def paint(self, painter, option, index):
+        # Fill background manually for proper display
+        bg = index.data(Qt.BackgroundRole)
+        if bg is not None:
+            painter.fillRect(option.rect, bg)
+        super().paint(painter, option, index)
+
+    def createEditor(self, parent, option, index):
+        if not index.isValid():
+            return super().createEditor(parent, option, index)
+
+        # Only customize editors for editable cells
+        if not (index.flags() & Qt.ItemIsEditable):
+            return super().createEditor(parent, option, index)
+
+        editor = QLineEdit(parent)
+        editor.setFrame(False)
+        editor.setStyleSheet(
+            "QLineEdit {"
+            "background: #f8fafc;"
+            "color: #0f172a;"
+            "border: 1px solid #2563eb;"
+            "border-radius: 7px;"
+            "padding: 2px 6px;"
+            "selection-background-color: #1d4ed8;"
+            "selection-color: #ffffff;"
+            "font-weight: 600;"
+            "}"
+        )
+        editor.selectAll()
+        return editor
+
+
 class CommCardsTableModel(QAbstractTableModel):
     """Table model for UDP card settings."""
 
@@ -697,7 +732,12 @@ class CommSettingsTable(QWidget):
         self.table = QTableView()
         self.model = CommCardsTableModel()
         self.table.setModel(self.model)
+        
+        # Set default delegate for all columns (nice styling)
+        self.table.setItemDelegate(CommTableEditDelegate(self.table))
+        # Override with specific delegate for enabled column (dropdown)
         self.table.setItemDelegateForColumn(1, CommEnabledDelegate(self.table))
+        
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setAlternatingRowColors(False)

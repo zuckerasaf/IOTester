@@ -1,0 +1,617 @@
+================================================================================
+  IO TESTER — USER MANUAL
+================================================================================
+  Version 1.0  |  June 2026
+================================================================================
+
+TABLE OF CONTENTS
+─────────────────────────────────────────────────────────────────────────────
+  1.  Overview
+  2.  System Requirements
+  3.  Application Layout
+  4.  Connector / File Group
+  5.  Run Controls Group
+  6.  Log Group
+  7.  Test / Debug Group
+  8.  The Pin Table
+  9.  Test Types Explained
+  10. I-BIT Test
+  11. Log Window
+  12. Saving a Report
+  13. Configuration (Comm_settings.yaml)
+  14. Simulation and LocalHost Modes
+  15. Debug / Step Mode
+  16. Understanding Test Results
+  17. Troubleshooting
+  18. Keyboard and Mouse Shortcuts
+
+
+================================================================================
+1. OVERVIEW
+================================================================================
+
+IO Tester is a hardware verification application used to test the electrical
+integrity of connector pins on a unit under test (UUT). It drives stimulus
+signals through IO cards (C1–C5) and measures the resulting voltages through
+a Controllino Mega microcontroller, then compares them to expected values
+defined in a test Excel file.
+
+Three test types are supported per pin:
+  • Power Test   — measures DC voltage on the pin
+  • Pull-Up Test — activates a pull-up and measures the resulting voltage
+  • Logic Test   — commands a digital output and reads a digital input
+
+Results are colour-coded in the pin table and can be exported to an Excel
+report.
+
+
+================================================================================
+2. SYSTEM REQUIREMENTS
+================================================================================
+
+  Hardware:
+    • Controllino Mega connected via USB (serial COM port)
+    • IO Cards C1–C5 connected to the test network (192.168.195.x)
+    • UUT connected to the test fixture
+
+  Software / OS:
+    • Windows 10 or later (64-bit)
+    • No additional installation required — IO_Tester.exe is self-contained
+
+  Files required at runtime (same folder as the EXE or configured path):
+    • config\Comm_settings.yaml   — communication settings
+    • config\pin_map.json          — Controllino pin assignments
+    • config\board_pin_config.json — board-specific pin names
+    • config\connector_Address_A_map.xlsx  — connector A mux mapping
+    • config\connector_Address_B_map.xlsx  — connector B mux mapping
+
+
+================================================================================
+3. APPLICATION LAYOUT
+================================================================================
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │  Pin Table  (scrollable, 22 columns)                                     │
+  │  Rows colour: yellow=testing  green=pass  pink=fail  dark=not tested     │
+  ├──────────────────┬──────────────────────────┬───────┬────────────────────┤
+  │ Connector / File │     Run Controls          │  Log  │  Test / Debug      │
+  │ Settings  Load   │ Test  Test_All  Stop      │  INF  │ Comm Check  Sim    │
+  │ Report    DOC    │ Testing Pin:  Power:  …   │  SUC  │ IBIT        Local  │
+  │                  │                           │  WRN  │ Stop IBIT   Next   │
+  │                  │                           │  ERR  │             Debug  │
+  │                  │                           │  DBG  │        [html file] │
+  │                  │                           │ Clear │                    │
+  ├──────────────────┴──────────────────────────┴───────┴────────────────────┤
+  │  Operational Log                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+4. CONNECTOR / FILE GROUP
+================================================================================
+
+  ┌─ Connector / File ──────────────────────────────────────────────────────┐
+  │  Connector: [_________________________________]                          │
+  │  [ Settings ] [ Load ] [ Report ] [ DOC ]                               │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Connector field
+    Displays the name of the currently loaded connector / test file.
+    Read-only; updated automatically when a file is loaded.
+
+  [ Settings ]
+    Opens the Comm_settings.yaml configuration file in the system text
+    editor. Changes take effect on the next application launch.
+    See Section 13 for a full description of the settings file.
+
+  [ Load ]  ★ Primary action
+    Opens a file browser to select an Excel test file (.xlsx or .xlsm).
+    After loading:
+      • The pin table populates with all pins and their expected values
+      • The Test and Test_All buttons become active
+      • The connector name updates in the Connector field
+
+  [ Report ]
+    Saves the current pin table (including all test results) to an Excel
+    file. Use this after a test run to archive results.
+    A file-save dialog is shown; choose folder and file name.
+
+  [ DOC ]
+    Opens the HTML flow diagram for the currently selected debug scenario
+    in the default web browser. A local HTTP server starts automatically
+    in the background. Click DOC again to stop the server.
+
+
+================================================================================
+5. RUN CONTROLS GROUP
+================================================================================
+
+  ┌─ Run Controls ──────────────────────────────────────────────────────────┐
+  │  [ Test ]          [ Test_All ]          [ Stop ]                        │
+  │  Testing Pin: ---    Power: ---    Pullup: ---    Logic: ---             │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  [ Test ]
+    Runs tests only on the rows currently selected in the pin table.
+    Select rows with mouse click (Ctrl+click for multiple rows).
+    Disabled until a test file is loaded.
+
+  [ Test_All ]
+    Runs tests on every pin in the table sequentially, top to bottom.
+    Disabled until a test file is loaded.
+
+  [ Stop ]
+    Stops the running test after the current pin finishes.
+    Active only while a test is in progress.
+
+  Status bar (updated live during a test run):
+    Testing Pin  — ID of the pin currently under test
+    Power        — Pass / Fail result of the last power measurement
+    Pullup       — Pass / Fail result of the last pull-up measurement
+    Logic        — Pass / Fail result of the last logic measurement
+    All labels reset to "---" when a new test sequence starts.
+
+
+================================================================================
+6. LOG GROUP
+================================================================================
+
+  ┌─ Log ───────────┐
+  │  ☑ INF          │
+  │  ☑ SUC          │
+  │  ☑ WRN          │
+  │  ☑ ERR          │
+  │  ☐ DBG          │
+  │  [ Clear ]      │
+  └─────────────────┘
+
+  The checkboxes filter which message types appear in the Operational Log:
+
+    INF  — General information messages (hardware init, file loaded, etc.)
+    SUC  — Test pass events (green text)
+    WRN  — Warnings (yellow text) — tests failed, pins skipped
+    ERR  — Errors (red text) — hardware faults, file errors
+    DBG  — Verbose debug messages (grey text) — normally off
+
+  [ Clear ]
+    Clears all text from the Operational Log.
+    Does not affect test results in the pin table.
+
+
+================================================================================
+7. TEST / DEBUG GROUP
+================================================================================
+
+  ┌─ Test / Debug ────────────────────────────────────────────────┐
+  │  [ Comm Check ]   [ Simulation: On/Off ]   [ Next ]           │
+  │  [ IBIT ]         [ LocalHost ]            [ Debug: T/F ]     │
+  │  [ Stop IBIT ]    [ html file dropdown ]                      │
+  └───────────────────────────────────────────────────────────────┘
+
+  [ Comm Check ]
+    Sends a ping to the Controllino and reports success or failure in the
+    log. Use this to verify the hardware connection before running tests.
+
+  [ IBIT ]
+    Starts the Built-In Test (see Section 10). Tests all 50 pins on both
+    systems A and B for open/short faults.
+    Button turns GREEN when all 100 pins pass, RED if any fail.
+
+  [ Stop IBIT ]
+    Stops the I-BIT test after the current pin. Active only during I-BIT.
+
+  [ Simulation: On / Off ]  (toggle)
+    ON  — No hardware communication. Measurements return simulated random
+           values. Use for demonstration or office testing.
+    OFF — Real hardware measurements via Controllino and IO cards.
+    The current state is shown on the button label.
+    Setting is saved to Comm_settings.yaml automatically.
+
+  [ LocalHost ]  (toggle)
+    Switches IO card communication between:
+      Network mode  — Cards at 192.168.195.x (real hardware)
+      LocalHost     — Cards at 127.0.0.1 (local simulator)
+    Setting is saved to Comm_settings.yaml automatically.
+
+  [ Next ]
+    Used in Debug/Step mode only. Advances the test to the next checkpoint
+    when the test is paused waiting for user input. (See Section 15.)
+
+  [ Debug: True / False ]  (toggle)
+    Enables or disables step-by-step debug mode. When True, the test
+    pauses at each checkpoint and waits for the Next button.
+
+  HTML file dropdown
+    Selects which HTML flow diagram is opened by the DOC button.
+    Lists all .html files found in the application's web folder.
+
+
+================================================================================
+8. THE PIN TABLE
+================================================================================
+
+The pin table displays all pins from the loaded test file. It has 22 columns:
+
+  ┌──────────────┬─────────────────────────────────────────────────────────┐
+  │ Column       │ Description                                             │
+  ├──────────────┼─────────────────────────────────────────────────────────┤
+  │ ID           │ Unique pin identifier (row number in test file)         │
+  │ Connect      │ Connector identifier (e.g. J1, J2)                     │
+  │ Discrete Name│ Functional name of the signal (e.g. LG_HOOK_UP)        │
+  │ Signal Name  │ Electrical signal name                                  │
+  │ Plug         │ Physical plug designation (e.g. 1P2)                    │
+  │ Type         │ Pin type (Gnd/open, Open, RELAY, etc.)                  │
+  │ Pin          │ Physical pin number on the connector                    │
+  ├──────────────┼─────────────────────────────────────────────────────────┤
+  │ Power Expected│ Expected voltage (V) for power test                   │
+  │ Power Input  │ IO card command that applies the voltage (e.g.C1_AO2_10│
+  │ Power Measured│ Voltage actually measured during power test            │
+  │ Power Result │ Pass / Fail                                             │
+  │ Power Reason │ Explanation of the result                               │
+  ├──────────────┼─────────────────────────────────────────────────────────┤
+  │ PullUp Expected│ Expected voltage after pull-up is activated          │
+  │ PullUp Input │ IO card command for the pull-up signal                  │
+  │ PullUp Measured│ Voltage measured after pull-up                       │
+  │ PullUp Result│ Pass / Fail                                             │
+  │ PullUp Reason│ Explanation of the result                               │
+  ├──────────────┼─────────────────────────────────────────────────────────┤
+  │ Logic Pin Input│ IO card command for the logic stimulus               │
+  │ Logic Command│ Command sent to the IO card                             │
+  │ Logic Expected│ Expected digital state (High / Low)                   │
+  │ Logic DI Result│ Pass / Fail                                          │
+  │ Logic DI Reason│ Explanation of the result                            │
+  └──────────────┴─────────────────────────────────────────────────────────┘
+
+  ROW COLOURS:
+    Yellow (bright)  — This row is currently being tested
+    Green            — At least one test passed; no failures
+    Pink             — At least one test failed
+    Dark (alternating)— Row has not been tested yet in this session
+
+  RESULT CELL COLOURS:
+    Bright green text — "Pass"
+    Bright red text   — "Fail"
+
+  TOOLTIPS:
+    Hover the mouse over any cell to see the full text (useful for
+    truncated columns like Reason or Signal Name).
+
+  SORTING:
+    Click any column header to sort ascending; click again for descending.
+    A small arrow (↑ or ↓) shows the active sort column.
+
+  EDITING INPUT CELLS:
+    The following columns can be edited directly in the table:
+      Power Expected, Power Input, PullUp Expected, PullUp Input,
+      Logic Pin Input, Logic Command, Logic Expected
+    Double-click a cell to open the inline editor.
+    Changes take effect immediately for the next test run.
+
+  SELECTION:
+    Click a row to select it.
+    Ctrl+click to add rows to the selection.
+    Shift+click to select a range.
+    Selected rows are tested when [ Test ] is clicked.
+
+
+================================================================================
+9. TEST TYPES EXPLAINED
+================================================================================
+
+For each pin the tester determines which tests to run based on whether the
+corresponding Expected / Input columns are filled in the test file.
+A column left empty or set to "-" means that test is skipped for that pin.
+
+9.1 POWER TEST
+──────────────
+  Purpose: Verify that the correct DC voltage is present on the pin.
+
+  Procedure:
+    1. The mux matrix routes the pin to the measurement ADC.
+    2. If a Power_Input is specified (e.g. "C2_AO2_10"), the IO card
+       applies the stimulus voltage before measurement.
+    3. Voltage is measured via the Controllino analog input.
+    4. Measured value is compared to Power_Expected ± tolerance.
+    5. Result: Pass if within tolerance, Fail otherwise.
+
+  Power_Input format: C{card}_{type}{num}_{value}
+    Example: C2_AO2_10  → Card 2, Analog Output 2, set to 10V
+    Example: C3_DO5_1   → Card 3, Digital Output 5, set to HIGH
+
+  If Power_Input is empty, the voltage is measured passively (pin is
+  expected to be at the specified voltage by its own circuit).
+
+9.2 PULL-UP TEST
+────────────────
+  Purpose: Verify that a pull-up resistor network is functional.
+
+  Prerequisite: Power test must have passed AND Power_Expected must be 0V.
+  (If power is present on the line, the pull-up test is skipped.)
+
+  Procedure:
+    1. The pull-up pin (defined in PullUp_Input) is activated via the
+       IO card digital output.
+    2. The resulting voltage is measured.
+    3. Compared to PullUp_Expected ± tolerance.
+
+9.3 LOGIC TEST
+──────────────
+  Purpose: Verify discrete digital input/output functionality.
+
+  Procedure:
+    1. A digital command is sent to the IO card (Logic_Command).
+    2. The resulting digital state of the pin is read back as a DI.
+    3. Compared to Logic_Expected ("High" or "Low").
+
+
+================================================================================
+10. I-BIT TEST (BUILT-IN TEST)
+================================================================================
+
+The I-BIT test is an automated scan of all 50 connector pins on both
+system A and system B (100 measurements total). It does NOT require a
+test file to be loaded.
+
+Purpose:
+  Detect short-circuit or open-circuit faults across the full connector
+  before running individual pin tests.
+
+Procedure per pin:
+  1. Mux matrix routes the pin to the measurement ADC.
+  2. Voltage measured BEFORE pull-up (expected: ~0V).
+  3. Pull-up activated.
+  4. Voltage measured AFTER pull-up (expected: ~4V).
+  5. Both measurements compared to tolerances from settings.
+
+Results:
+  • IBIT button turns GREEN — all 100 pins passed both measurements.
+  • IBIT button turns RED   — one or more pins failed.
+  • Full per-pin results in the Operational Log.
+
+Runtime: Approximately 3–8 minutes depending on stabilization delays.
+
+To stop early: click [ Stop IBIT ].
+
+
+================================================================================
+11. LOG WINDOW
+================================================================================
+
+The Operational Log at the bottom of the screen records all application
+events in real time.
+
+  Message format:  [HH:MM:SS]  message text
+
+  Colour coding:
+    White / light grey  — INFO (INF): general events
+    Green               — SUCCESS (SUC): tests passed
+    Yellow / orange     — WARNING (WRN): tests failed, pins skipped
+    Red                 — ERROR (ERR): hardware faults, file errors
+    Dark grey           — DEBUG (DBG): verbose internal messages
+
+  The Log group checkboxes (INF / SUC / WRN / ERR / DBG) control which
+  categories are visible. Unchecking a category hides those messages.
+  Recommended settings during normal operation:
+    ☑ INF  ☑ SUC  ☑ WRN  ☑ ERR  ☐ DBG
+
+  [ Clear ] removes all log text. Test results in the pin table are
+  unaffected.
+
+
+================================================================================
+12. SAVING A REPORT
+================================================================================
+
+Click [ Report ] after a test run to save results to Excel.
+
+The report file contains:
+  • All 22 pin table columns
+  • All test results (Power, PullUp, Logic) and reason text
+  • A timestamp row at the top
+
+Recommended naming convention:
+  UUT_serial_ConnectorID_YYYY-MM-DD.xlsx
+  Example: SN1042_J1_2026-06-25.xlsx
+
+The report file can be opened in Microsoft Excel. Result columns (Pass/Fail)
+will contain the same text as shown in the application.
+
+
+================================================================================
+13. CONFIGURATION (Comm_settings.yaml)
+================================================================================
+
+Located in:  config\Comm_settings.yaml  (same folder as the EXE)
+Click [ Settings ] to open in a text editor.
+
+─── Board section ───────────────────────────────────────────────────────────
+  Board:
+    Type: ControllinoMega     # Hardware type (do not change)
+    Port: COM5                # Serial COM port of the Controllino USB cable
+    BaudRate: 115200          # Serial baud rate (do not change)
+    simulation: false         # true = simulation mode, false = real hardware
+
+  IMPORTANT: Change  Port  to match the actual COM port assigned by Windows.
+  To find the COM port: Device Manager → Ports (COM & LPT)
+
+─── UDP_Settings section ────────────────────────────────────────────────────
+  UDP_Settings:
+    Frequency_Hz: 20.0           # Communication rate to IO cards
+    Communication_Timeout: 2.0   # Seconds before a card is considered lost
+    localhost_mode: false         # true = use loopback addresses
+
+  Cards (C1–C5 shown; C6–C7 are disabled by default):
+    card_id:      1              # Card number (C1)
+    enabled:      true           # Include this card in communication
+    send_ip:      192.168.195.11 # IP address of the IO card
+    send_port:    2880           # UDP port to send commands to the card
+    receive_ip:   192.168.195.101# IP address of this PC (receiving responses)
+    receive_port: 1011           # UDP port to receive responses on
+
+  Cards_localhost section: same structure but all IPs = 127.0.0.1.
+  These settings are used automatically when localhost_mode = true.
+
+After editing Comm_settings.yaml, restart the application for changes to
+take effect.
+
+
+================================================================================
+14. SIMULATION AND LOCALHOST MODES
+================================================================================
+
+14.1 SIMULATION MODE
+  Activated by clicking [ Simulation: On ] in the Test/Debug group,
+  or by setting  Board.simulation: true  in Comm_settings.yaml.
+
+  In simulation mode:
+    • No serial communication with the Controllino occurs.
+    • Voltage measurements return random values within realistic ranges.
+    • Tests complete normally and produce Pass/Fail results.
+    • Use for demonstrations, training, or office testing without hardware.
+
+  The button label shows the current state:
+    "Simulation: On"  — simulation active (orange/yellow button)
+    "Simulation: Off" — real hardware active (default button)
+
+14.2 LOCALHOST MODE
+  Activated by clicking [ LocalHost ] in the Test/Debug group,
+  or by setting  UDP_Settings.localhost_mode: true  in Comm_settings.yaml.
+
+  In localhost mode:
+    • IO card commands are sent to 127.0.0.1 instead of the real card IPs.
+    • A local simulator responds to the commands.
+    • The Controllino (serial) still communicates normally unless Simulation
+      mode is also ON.
+    • Use for bench testing when IO cards are not present.
+
+
+================================================================================
+15. DEBUG / STEP MODE
+================================================================================
+
+Debug mode allows step-by-step execution of test procedures for verification
+or fault-finding.
+
+ACTIVATING:
+  Click [ Debug: False ] to toggle to [ Debug: True ].
+
+BEHAVIOUR WHEN ACTIVE:
+  The test pauses at internal checkpoints and writes status to a trace file.
+  The log shows:  "in node {N} Waiting for Next button press..."
+
+ADVANCING:
+  Click [ Next ] to proceed to the next checkpoint.
+  Repeat until the test completes.
+
+HTML VISUALIZATION:
+  1. Select an HTML file in the dropdown (bottom of Test/Debug group).
+  2. Click [ DOC ] to open the flow diagram in your browser.
+  3. The currently active node in the flow is highlighted automatically.
+  4. The browser polls for updates every 500 ms.
+
+TURNING OFF:
+  Click [ Debug: True ] to toggle back to [ Debug: False ].
+  The Next button has no effect when debug mode is off.
+
+
+================================================================================
+16. UNDERSTANDING TEST RESULTS
+================================================================================
+
+16.1 RESULT VALUES
+  Pass — The measured value is within the defined tolerance of the expected.
+  Fail — The measured value is outside tolerance.
+  ---  — The test was not run (column empty in the test file, or test was
+          skipped due to a prerequisite not being met).
+
+16.2 PULL-UP TEST SKIP CONDITIONS
+  The PullUp test is automatically skipped if:
+    • Power_Expected is not 0V (the pin has DC power on it)
+    • The Power test for that pin failed
+
+  The log will explain the skip with a WARNING message.
+
+16.3 TOLERANCES
+  The voltage tolerance is set in Comm_settings.yaml:
+    Test.voltage_degredation: 3.0   (default: ±3 V)
+
+  A measured voltage is considered Pass if:
+    |measured - expected| ≤ tolerance
+
+16.4 I-BIT PASS/FAIL CRITERIA
+  Before pull-up:  measured voltage ≤ tolerance from 0V (expected ~0V)
+  After pull-up:   |measured - 4.0V| ≤ tolerance
+
+16.5 COMMON FAILURE REASONS
+  "Measurement is out of tolerance"  — voltage differs from expected by
+    more than the configured tolerance. Check wiring and the UUT.
+
+  "Analog pin not found in pin map"  — the board configuration file does
+    not have a mapping for the required analog channel. Contact support.
+
+  "Failed to set mux bits"  — the Controllino did not respond correctly
+    to the matrix command. Check hardware connection (Comm Check).
+
+  "Relay did not operate"   — (I-BIT only) The general relay did not
+    close/open as expected. Check relay wiring.
+
+
+================================================================================
+17. TROUBLESHOOTING
+================================================================================
+
+  SYMPTOM                     │ LIKELY CAUSE          │ ACTION
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  Hardware warning at startup │ Wrong COM port         │ Open Settings, change
+                              │ or cable not seated    │ Board.Port to correct
+                              │                        │ COM; reconnect cable
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  Comm Check fails            │ Controllino not ready  │ Unplug/replug USB,
+                              │ or firmware issue      │ restart Controllino
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  "UDP binding error"         │ Port already in use    │ Close other IO Tester
+  on startup                  │ by another process     │ instances; reboot PC
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  All pins Fail               │ Simulation mode ON     │ Click Simulation: On
+                              │ Wrong connector map    │ to toggle it Off
+                              │ UUT not seated         │ Check fixture seating
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  Test / Test_All greyed out  │ No file loaded         │ Click Load first
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  Pull-up tests all skipped   │ Power_Expected ≠ 0     │ Check test file: PU
+                              │ in test file           │ only runs when Power
+                              │                        │ Expected = 0V
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  I-BIT button stays dark     │ IBIT already ran and   │ Normal — colour shows
+  after I-BIT                 │ test is complete       │ green=pass, red=fail
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  Application does not start  │ Missing config files   │ Verify config\ folder
+                              │                        │ is present next to EXE
+  ────────────────────────────┼───────────────────────┼──────────────────────
+  Log window is empty         │ All log filters off    │ Check INF/SUC/WRN/ERR
+                              │                        │ checkboxes in Log group
+
+
+================================================================================
+18. KEYBOARD AND MOUSE SHORTCUTS
+================================================================================
+
+  Pin Table:
+    Click row             — Select single row
+    Ctrl + Click          — Add / remove row from selection
+    Shift + Click         — Select a range of rows
+    Click column header   — Sort by that column (click again to reverse)
+    Double-click cell     — Open inline editor (editable columns only)
+    Hover over cell       — Show tooltip with full cell content
+
+  General:
+    There are no keyboard shortcuts for buttons — use the mouse.
+    The Next button (debug mode) can be clicked rapidly to step quickly.
+
+================================================================================
+  Quick Start Guide: Quick_Start_Guide.txt
+================================================================================
+
+REVISION HISTORY
+─────────────────────────────────────────────────────────────────────────────
+  Version 1.0 — June 2026 — Initial release

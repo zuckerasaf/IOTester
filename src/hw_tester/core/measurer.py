@@ -105,7 +105,7 @@ class Measurer:
         while time.time() < end_time:
             # Read voltage from hardware
             voltage = self.hardware.analog_read(analog_port)
-            print (f"in time {time.time()}  the voltage was {voltage} " )
+            # print (f"in time {time.time()}  the voltage was {voltage} " )
             readings.append(voltage)
             
             # Wait for next sample (if time remaining)

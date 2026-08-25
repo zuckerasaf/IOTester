@@ -110,11 +110,12 @@ class ControllinoIO:
                 self.log(f"[ControllinoIO] Successfully connected to board on {port}", "SUCCESS")
                 self.connected = True
             else:
+                self.log(f"[ControllinoIO WARNING] Failed to connect to {port}", "ERROR")
                 raise RuntimeError(f"Board not responding correctly. Got: {response}")
             
         except Exception as e:
             if allow_no_connection:
-                self.log(f"[ControllinoIO WARNING] Failed to connect to {port}: {str(e)}", "WARNING")
+                
                 self.log(f"[ControllinoIO] Running in no-connection mode (operations will be no-ops)", "INFO")
                 self.connected = False
             else:

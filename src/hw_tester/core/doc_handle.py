@@ -397,3 +397,82 @@ def create_doc_report_via_dialog() -> Optional[Path]:
 		return None
 
 	return create_doc_report(report_files, output_path)
+
+
+def create_fails_report_via_dialog(reports_dir: Optional[Path] = None) -> Optional[Path]:
+	"""
+	Select Excel report files and create a combined fails report.
+	
+	Args:
+		reports_dir: Directory to save the fails report. If None, prompts user.
+	
+	Returns:
+		Path to the created fails report, or None if canceled/no fails found.
+	"""
+	# Select Excel report files
+	report_files = select_report_files()
+	if not report_files:
+		return None
+	
+	# Collect all failed rows from all selected files
+	all_failed_rows: List[Dict[str, str]] = []
+	headers: List[str] = []
+	
+	for file_path in report_files:
+		try:
+			file_headers, data_rows = _load_report_rows(file_path)
+			
+			# Store headers from first valid file
+			if not headers and file_headers:
+				headers = file_headers
+			
+			# Filter rows that contain "Fail" in any result column
+			for row in data_rows:
+				power_result = row.get("Power_Result", "")
+				pullup_result = row.get("PullUp_Result", "")
+				logic_result = row.get("Logic_DI_Result", "")
+				
+				if "Fail" in power_result or "Fail" in pullup_result or "Fail" in logic_result:
+					all_failed_rows.append(row)
+		
+		except Exception as e:
+			# Log error but continue with other files
+			print(f"Error reading {file_path}: {e}")
+			continue
+	
+	# Check if any failed rows were found
+	if not all_failed_rows:
+		return None
+	
+	# Determine output directory
+	if reports_dir is None:
+		reports_dir = DEFAULT_OUTPUT_DIR
+	
+	reports_dir = Path(reports_dir)
+	reports_dir.mkdir(parents=True, exist_ok=True)
+	
+	# Create timestamped filename
+	timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+	output_filename = f"Fails_Report_{timestamp}.xlsx"
+	output_path = reports_dir / output_filename
+	
+	# Create Excel workbook
+	wb = openpyxl.Workbook()
+	ws = wb.active
+	ws.title = "Failed Tests"
+	
+	# Write headers
+	if headers:
+		ws.append(headers)
+	
+	# Write all failed rows
+	for row in all_failed_rows:
+		if headers:
+			ws.append([row.get(h, "") for h in headers])
+		else:
+			ws.append(list(row.values()))
+	
+	# Save workbook
+	wb.save(str(output_path))
+	
+	return output_path

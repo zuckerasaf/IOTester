@@ -28,7 +28,7 @@ scale:
 Paths:
   Path_1: .
   Path_2: pin_map.json
-  reports: C:\ArduinoProject\IO_Tester\tests\Results
+  reports: C:\temp
   ConnectorAddressMap: connector_Address_map.xlsx
   ConnectorAddressMap_A: connector_Address_A_map.xlsx
   ConnectorAddressMap_B: connector_Address_B_map.xlsx
@@ -39,6 +39,7 @@ Paths:
   powerdown_MTC_FWD: tests/DB/MTC_FWD/powerdown_MTC_FWD.json
   powerup_MTC_AFT: tests/DB/MTC_AFT/powerup_MTC_AFT.json
   powerdown_MTC_AFT: tests/DB/MTC_AFT/powerdown_MTC_AFT.json
+  database: C:\ArduinoProject\IO_Tester\tests\DB\MK3_Gunner
 ExcelColumns:
   ID: H
   Connect: A

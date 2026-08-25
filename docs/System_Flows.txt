@@ -1,0 +1,850 @@
+================================================================================
+IO TESTER - SYSTEM FLOWS DOCUMENTATION
+================================================================================
+Last Updated: June 25, 2026
+Version: 2.0
+
+This document describes the operational flows in the IO Tester application.
+The UI layer was migrated from Tkinter to Qt/PySide6 (completed by June 2026).
+Update this file when adding new features or modifying existing workflows.
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+ 1. Application Initialization Flow
+ 2. Pin Configuration Loading Flow
+ 3. Test Execution Flow (Power / Pullup / Logic)
+ 4. I-BIT Test Flow
+ 5. Hardware Communication Flow
+ 6. Mux Matrix Control Flow
+ 7. Voltage Measurement Flow
+ 8. UDP Card Control Flow
+ 9. User Interface Interaction Flow (Qt)
+10. Debug Mode Flow
+11. Error Handling Flow
+12. Shutdown Flow
+13. Data Flow Between Components
+14. Qt Threading & Thread-Safety Model
+15. Pin Table Row Highlighting Flow
+16. Power Test Detailed Flow
+
+================================================================================
+1. APPLICATION INITIALIZATION FLOW
+================================================================================
+
+START → main() in app.py
+  |
+  ├─→ LOAD SETTINGS
+  |     └─→ load_settings() from config/Comm_settings.yaml
+  |           ├─→ Board: Type, Port, BaudRate, simulation flag
+  |           ├─→ CardSettings: C1–C7 UDP IPs and ports
+  |           ├─→ Test: voltage_degredation tolerance
+  |           ├─→ Timeouts: pins_to_stabilize, etc.
+  |           ├─→ Measure_value: Scale_1 factor
+  |           └─→ Debug: per-section debug flags (Test_Sequence, Ibit_Test, …)
+  |
+  ├─→ HARDWARE INITIALIZATION
+  |     └─→ initialize_hardware(settings, log_callback=_buffer_log)
+  |           |
+  |           ├─→ Check Board->Type ("ControllinoMega", "none", …)
+  |           |
+  |           ├─→ Create ControllinoIO instance
+  |           |     ├─→ Open serial port (default COM5, 115200 baud)
+  |           |     ├─→ Wait 2 s for Arduino reset
+  |           |     ├─→ Clear input buffer
+  |           |     ├─→ Send ping command "?"
+  |           |     ├─→ Wait for "OK" response
+  |           |     └─→ IF fail AND simulation=True: continue in no-connection mode
+  |           |
+  |           ├─→ Load connector address mapping (Excel)
+  |           |     └─→ connector_Address_A_map.xlsx  (or B variant)
+  |           |
+  |           └─→ RETURN hardware object (or None if type=="none")
+  |
+  ├─→ LOAD PIN MAP AND BOARD CONFIG
+  |     ├─→ get_board_pin_map(settings)    → pin_map dict  (pin_map.json)
+  |     └─→ get_board_pin_config(settings) → board_config dict (board_pin_config.json)
+  |
+  ├─→ CREATE Qt APPLICATION
+  |     └─→ QApplication(sys.argv)
+  |
+  ├─→ CREATE MAIN WINDOW (Qt layer)
+  |     └─→ MainWindowQt (ui/qt/main_window_qt.py)
+  |           ├─→ Apply dark.css stylesheet
+  |           ├─→ Build layout:
+  |           |     ├─→ Left panel: PinTableQt (scrollable 22-column table)
+  |           |     ├─→ Bottom: Run Controls (Test, Test All, Stop, IBIT, …)
+  |           |     └─→ Right panel: LogView + Test/Debug controls
+  |           ├─→ Initialize _pending_callbacks dict (for QtTableAdapter.after())
+  |           └─→ Expose _schedule_callback() slot (invokable from any thread)
+  |
+  ├─→ CREATE MAIN CONTROLLER
+  |     └─→ MainController(main_window, hardware, settings, pin_map, board_config)
+  |           ├─→ Create Measurer(hardware, settings)
+  |           ├─→ Create PinPulser(hardware, settings)
+  |           ├─→ Create UDPCardManager(settings) → start_all()
+  |           |     ├─→ Bind UDP sockets for C1–C7
+  |           |     └─→ IF binding fails: show QMessageBox error
+  |           ├─→ Create TestHandle(hardware, settings, pin_map, board_config,
+  |           |                      measurer, card_manager, log_callback)
+  |           └─→ Wire all button signals to controller slots
+  |
+  ├─→ FLUSH BUFFERED INIT LOGS → append to LogView
+  |
+  └─→ START Qt EVENT LOOP
+        └─→ sys.exit(app.exec())
+
+================================================================================
+2. PIN CONFIGURATION LOADING FLOW
+================================================================================
+
+USER CLICKS "LOAD" BUTTON:
+  MainController.on_load()
+    ↓
+  QFileDialog.getOpenFileName() — filters: *.xlsx, *.xlsm
+    ↓
+  load_connector_from_excel(filepath)   [utils/read_excell.py]
+    |
+    ├─→ Open workbook with openpyxl
+    ├─→ Read "Connectors" worksheet (or first sheet)
+    ├─→ FOR each data row:
+    |     ├─→ Parse columns:
+    |     |     ID, Connect, Discrete_Name, Signal_Name, Plug, Type, Pin,
+    |     |     Power_Expected, Power_Input,
+    |     |     PullUp_Expected, PullUp_Input,
+    |     |     Logic_Pin_Input, Logic_Command, Logic_Expected
+    |     └─→ Build row dict (all string values)
+    └─→ RETURN List[dict]
+    ↓
+  main_window.table.set_rows(rows)   [PinTableQt → PinTableModel.set_rows()]
+    ├─→ beginResetModel()
+    ├─→ Convert each dict to list[str] ordered by COLUMNS tuple
+    ├─→ Build _row_id_map {pin_id → row_index}
+    └─→ endResetModel() — table repaints
+    ↓
+  Enable btn_test, btn_test_all
+    ↓
+  Log: "Loaded {count} pins from {filename}"
+
+EXCEL COLUMN MAPPING (22 display columns):
+  ID, Connect, Discrete_Name, Signal_Name, Plug, Type, Pin,
+  Power_Expected, Power_Input, Power_Measured, Power_Result, Power_Result_Reason,
+  PullUp_Expected, PullUp_Input, PullUp_Measured, PullUp_Result, PullUp_Result_Reason,
+  Logic_Pin_Input, Logic_Command, Logic_Expected, Logic_DI_Result, Logic_DI_Result_Reason
+
+================================================================================
+3. TEST EXECUTION FLOW (POWER / PULLUP / LOGIC)
+================================================================================
+
+3.1 SINGLE PIN TEST:
+
+USER SELECTS ROW(S) AND CLICKS "TEST":
+  MainController.on_test()
+    ↓
+  selected_ids = main_window.table.get_selected_ids()
+    ↓
+  IF empty → show warning → RETURN
+    ↓
+  all_rows = _get_table_rows_as_dicts()
+    ↓
+  clear_test_results()          — reset Power/PullUp/Logic columns to ""
+  table.clear_selection()       — avoid visual conflict with row colors
+    ↓
+  Create QtTableAdapter(main_window, controller)
+    ↓
+  threading.Thread(target=run_test, daemon=True).start()
+    |
+    └─→ test_handler.run_tests(selected_ids, all_rows,
+                                qt_table_adapter,    ← acts as "root"
+                                qt_table_adapter,    ← acts as pin_table
+                                _on_test_complete_threadsafe)
+
+INSIDE run_tests() — background thread:
+  FOR each pin_id in selected_ids:
+    |
+    ├─→ IF not self.running: break
+    |
+    ├─→ Look up pin_row from all_rows by ID
+    ├─→ Create Pin object from row data
+    |
+    ├─→ Highlight row yellow:
+    |     pin_table.set_testing_pin(pin.Id)   [see Section 15]
+    |     time.sleep(0.15)                     — gives Qt time to repaint
+    |
+    ├─→ Determine which tests to run:
+    |     run_power_test  = Power_Expected not empty or "-"
+    |     run_pullup_test = PullUp_Input not empty or "-"
+    |     run_logic_test  = Logic_Expected not empty or "-"
+    |
+    ├─→ clear_mux_bits(pin_map, hardware, log)
+    |
+    ├─→ IF run_power_test:
+    |     power_test(self, pin)               [core/test_power.py]
+    |     pin_table.update_row(pin.Id, {Power_Measured, Power_Result, …})
+    |                                          [via QTimer.singleShot → main thread]
+    |
+    ├─→ IF run_pullup_test (and power passed at 0V):
+    |     pullup_test(self, pin)              [core/test_pullUp.py]
+    |     pin_table.update_row(pin.Id, {PullUp_Measured, PullUp_Result, …})
+    |
+    ├─→ IF run_logic_test:
+    |     logic_test(self, pin, all_rows)     [core/test_logic.py]
+    |     pin_table.update_row(pin.Id, {Logic_DI_Result, …})
+    |
+    ├─→ time.sleep(0.3)                       — keep yellow visible briefly
+    └─→ pin_table.set_testing_pin(None)        — clear yellow highlight
+    ↓
+  _on_test_complete_threadsafe()
+    └─→ QMetaObject.invokeMethod(main_window, "_on_test_complete",
+                                  QueuedConnection)
+          └─→ re-enable buttons, clear run-status labels
+
+3.2 TEST ALL:
+  Same as above but selected_ids = ALL row IDs from the table.
+
+================================================================================
+4. I-BIT TEST FLOW
+================================================================================
+
+USER CLICKS "IBIT":
+  MainController.on_ibit()
+    ↓
+  test_handler.running_ibit = True
+    ↓
+  threading.Thread(target=_run_ibit_thread, daemon=True).start()
+
+INSIDE _run_ibit_thread() — background thread:
+  |
+  ├─→ test_handler.run_i_bit_test()
+  |     |
+  |     ├─→ is_simulation = settings['Board']['simulation']
+  |     ├─→ pinNumber = 51  (pins 1–50)
+  |     |
+  |     ├─→ ibit_A = measure_all_pins_system("a", 4.0, is_simulation, 51)
+  |     ├─→ ibit_B = measure_all_pins_system("b", 4.0, is_simulation, 51)
+  |     |
+  |     ├─→ Compute: total / passed / failed counts
+  |     ├─→ Log summary: "Ibit Circuit Test complete: N/100 pins PASSED"
+  |     ├─→ Log result:  "Ibit result: SUCCESS / FAILURE"
+  |     └─→ RETURN (passed_count, total_count, success)
+  |
+  └─→ Schedule UI update via log_callback
+
+measure_all_pins_system(system, voltage, isSimulate, pinNumber):
+  |
+  ├─→ voltage_measurements = []
+  ├─→ failed_pins = []
+  ├─→ all_tests_passed = True
+  ├─→ Read settings: voltage_degredation (tolerance), pins_to_stabilize
+  |
+  ├─→ relay_general_operate(True)   — close relay 15
+  |
+  ├─→ FOR current_pin in range(1, pinNumber):  [1..50]
+  |     |
+  |     ├─→ IF not running_ibit: break
+  |     |
+  |     ├─→ [try block — catches Exception with full traceback]
+  |     |
+  |     ├─→ clear_mux_bits()
+  |     |
+  |     ├─→ get_pin_pair_info_controlino(current_pin)
+  |     |     → (pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, …)
+  |     |
+  |     ├─→ Resolve voltage_pin_name and pullup_pin_name from board_config
+  |     ├─→ connector_pin_to_bits(current_pin, system)  → bits dict
+  |     ├─→ set_mux_bits(bits, …)                       → route pin to ADC
+  |     ├─→ Resolve analog_port from pin_map['A']
+  |     |
+  |     ├─→ STEP 3 — Measure voltage BEFORE pullup:
+  |     |     IF simulate: random ±0.05V
+  |     |     ELSE:        measurer.measure_voltage(analog_port) * voltage_scale
+  |     |
+  |     ├─→ STEP 4 — Validate ~0V (tolerance from settings):
+  |     |     Pass → log SUCCESS
+  |     |     Fail → append to failed_pins, all_tests_passed = False
+  |     |
+  |     ├─→ STEP 6 — Activate pullup:
+  |     |     hardware.digital_write(pullup_physical_pin, True)
+  |     |     time.sleep(pins_to_stabilize)
+  |     |
+  |     ├─→ relay_general_operate(True)   — re-close relay 15
+  |     |
+  |     ├─→ STEP 8 — Measure voltage AFTER pullup:
+  |     |     IF simulate: voltage ± 0.1V
+  |     |     ELSE:        measurer.measure_voltage(analog_port) * voltage_scale
+  |     |
+  |     ├─→ STEP 9 — Validate against expected voltage (4.0V ± tolerance):
+  |     |     Pass → log SUCCESS
+  |     |     Fail → append to failed_pins, all_tests_passed = False
+  |     |
+  |     ├─→ STEP 10 — Deactivate pullup:
+  |     |     time.sleep(pins_to_stabilize)
+  |     |     hardware.digital_write(pullup_physical_pin, False)
+  |     |     time.sleep(pins_to_stabilize)
+  |     |
+  |     └─→ [except Exception: log full traceback, record as failed pin]
+  |
+  ├─→ relay_general_operate(False)   — open relay 15
+  ├─→ clear_bits(bits, …)
+  ├─→ Log system summary
+  └─→ RETURN (voltage_measurements, all_tests_passed, failed_pins)
+
+LOG CALLBACK FLOW (IBIT → UI):
+  test_handler.log(msg, level)
+    └─→ _log_callback(msg, level)   [MainController]
+          |
+          ├─→ QMetaObject.invokeMethod → append to LogView (main thread)
+          |
+          └─→ IF "Ibit result:" in msg:
+                QTimer.singleShot(0, lambda: _apply_ibit_button_color(success))
+                  └─→ Sets btn_ibit background: green (#28a745) or red (#d73a49)
+
+STOP IBIT:
+  MainController.on_stop_ibit()
+    ↓
+  test_handler.running_ibit = False
+    ↓
+  Background thread exits its pin loop at next iteration check
+
+================================================================================
+5. HARDWARE COMMUNICATION FLOW
+================================================================================
+
+5.1 SERIAL COMMUNICATION (Controllino):
+
+  DIGITAL WRITE:
+    hardware.digital_write(port, value)
+      ├─→ IF not connected: return (no-op)
+      ├─→ Acquire thread lock
+      ├─→ Send: "W,{port},{1 or 0}\n"
+      ├─→ Read: serial.readline()
+      ├─→ Expect: "OK:W,{port},{value}"
+      └─→ Release lock
+
+  ANALOG READ:
+    hardware.analog_read(port)
+      ├─→ IF not connected: return simulated value
+      ├─→ Acquire thread lock
+      ├─→ Send: "R,{port}\n"
+      ├─→ Read: serial.readline()
+      ├─→ Expect: "OK:R,{port},{voltage}"
+      ├─→ Parse float
+      └─→ RETURN voltage (or 0.0 on error)
+
+  SERIAL PROTOCOL (Arduino firmware):
+    "?\n"               → "OK"                      (ping)
+    "W,{p},{v}\n"       → "OK:W,{p},{v}"            (digital write)
+    "R,{p}\n"           → "OK:R,{p},{voltage}"       (analog read)
+
+5.2 SIMULATION MODE:
+  settings['Board']['simulation'] == True
+    ├─→ digital_write: no-op
+    └─→ analog_read / measure_voltage:
+          └─→ Return random value in test-specific range
+                IBIT: 0 ± 0.05V (before pullup), voltage ± 0.1V (after)
+                Power: configured voltage ± variation
+
+================================================================================
+6. MUX MATRIX CONTROL FLOW
+================================================================================
+
+PURPOSE: Route one of 50 connector pins through a 16-bit MUX to the ADC.
+
+set_mux_bits(bits, current_pin, pin_map, hardware, settings, log):
+  |
+  ├─→ bits: dict {digital_pin_name → True/False}  e.g. {"D2": True, "D7": True}
+  ├─→ FOR each (name, value) in bits:
+  |     └─→ port = pin_map['D'][name]
+  |           hardware.digital_write(port, value)
+  └─→ RETURN True on success, False on error
+
+clear_mux_bits(pin_map, hardware, log):
+  └─→ Sets ALL digital outputs in pin_map['D'] to False (0V)
+
+connector_pin_to_bits(connector_pin_number, system):
+  ├─→ Reads connector_Address_{system}_map.xlsx
+  ├─→ Looks up row for pin number
+  ├─→ Returns bit dict: {D0..D15 column names → True/False}
+  └─→ RETURN bits dict
+
+relay_general_operate(operate: bool):
+  ├─→ Look up enable_Relay_general pin from board_config
+  ├─→ hardware.digital_write(pin, operate)
+  ├─→ time.sleep(pins_to_stabilize)
+  └─→ RETURN True / False (pin not found)
+
+================================================================================
+7. VOLTAGE MEASUREMENT FLOW
+================================================================================
+
+measurer.measure_voltage(analog_port):
+  |
+  ├─→ IF simulation:
+  |     └─→ RETURN simulated voltage (handles internally per measurer config)
+  |
+  ├─→ Sample loop over configured duration:
+  |     WHILE time < end_time:
+  |       reading = hardware.analog_read(analog_port)
+  |       readings.append(reading)
+  |       sleep(sample_interval)
+  |
+  ├─→ average = mean(readings)
+  ├─→ scaled  = average * scale_factor   (from settings['Measure_value']['Scale_1'])
+  └─→ RETURN scaled voltage
+
+PARAMETERS (settings.yaml):
+  Measure_value.Scale_1:  voltage divider / ADC calibration factor (default 1.0)
+  Timeouts.pins_to_stabilize: seconds to wait after relay/pin change (default 0.5)
+  Test.voltage_degredation:   tolerance in volts (default 3.0)
+
+================================================================================
+8. UDP CARD CONTROL FLOW
+================================================================================
+
+8.1 INITIALIZATION:
+  UDPCardManager(settings)
+    ├─→ Read CardSettings for each card C1–C7:
+    |     enabled, send_ip, send_port, receive_ip, receive_port
+    ├─→ Create UDPSender for each enabled card
+    └─→ start_all():
+          ├─→ Bind UDP socket for each card
+          └─→ Start receive thread
+
+8.2 DIGITAL OUTPUT:
+  card_manager.set_digital_output(card_id, do_number, state)
+    └─→ UDPSender(card_id).send(f"DO{do_number}={1 if state else 0}")
+
+8.3 ANALOG OUTPUT:
+  card_manager.set_analog_output(card_id, ao_number, voltage)
+    └─→ UDPSender(card_id).send(f"AO{ao_number}={voltage}")
+
+8.4 DIGITAL INPUT:
+  card_manager.get_digital_input(card_id, di_number)
+    ├─→ UDPSender(card_id).send(f"DI{di_number}?")
+    ├─→ Wait for response (background receive thread)
+    └─→ RETURN True/False
+
+8.5 LOCALHOST MODE (settings['CardSettings']['localhost'] == True):
+  └─→ All card IPs overridden to "127.0.0.1"
+        → LocalhostSimulator handles responses on loopback
+
+================================================================================
+9. USER INTERFACE INTERACTION FLOW (Qt)
+================================================================================
+
+The UI uses PySide6 (Qt6). The main window is MainWindowQt; all user events
+go through MainController slots.
+
+9.1 LOAD button → on_load() → see Section 2
+
+9.2 TEST button → on_test() → see Section 3.1
+
+9.3 TEST ALL button → on_test_all() → see Section 3.2
+
+9.4 STOP button:
+  on_stop()
+    ├─→ test_handler.running = False
+    └─→ Log: "Test stopped by user"
+          [background thread exits at next loop iteration]
+
+9.5 IBIT button → on_ibit() → see Section 4
+
+9.6 STOP IBIT button:
+  on_stop_ibit()
+    └─→ test_handler.running_ibit = False
+
+9.7 COMM CHECK button:
+  on_comm_check()
+    ├─→ hardware.ping()
+    ├─→ IF OK: Log "Communication OK"
+    └─→ ELSE:  Log "Communication FAILED"
+
+9.8 SIMULATION ON/OFF toggle:
+  on_simulation_toggle()
+    ├─→ Toggle settings['Board']['simulation']
+    ├─→ save_settings()
+    └─→ Update button label + color
+
+9.9 LOCALHOST toggle:
+  on_localhost_toggle()
+    ├─→ Toggle settings['CardSettings']['localhost']
+    ├─→ save_settings()
+    └─→ Update button label + color
+
+9.10 NEXT button (debug mode):
+  on_next()
+    └─→ test_handler.next_event.set()
+          [unblocks wait_debug() in the test thread]
+
+9.11 CLEAR LOG:
+  on_clear_log()
+    └─→ main_window.log.clear()
+
+9.12 REPORT button:
+  on_report()
+    ├─→ QFileDialog.getSaveFileName() — *.xlsx
+    ├─→ Build Excel workbook from table.get_all_rows()
+    └─→ Save file
+
+9.13 SETTINGS button:
+  on_settings()
+    └─→ Open Comm_settings.yaml in system editor
+
+9.14 PIN TABLE INTERACTIONS:
+  - Click column header → sort by that column (ascending/descending toggle)
+  - Double-click editable cell → inline editor (QLineEdit with blue border)
+  - Hover cell → tooltip showing full cell text
+  - Multi-row selection (Ctrl/Shift+click) for batch test
+
+================================================================================
+10. DEBUG MODE FLOW
+================================================================================
+
+Debug flags live under settings['Debug'] keyed by section name:
+  Test_Sequence, Ibit_Test, Power_Test, PullUp_Test, Logic_Test, …
+
+IF get_debug_setting(settings, "Test_Sequence"):
+
+  DURING test execution:
+    ├─→ test_handler.wait_debug(ID, "active")
+    |     ├─→ trace_writer.trace_step(ID, "active")
+    |     |     └─→ Write to web/trace.json
+    |     ├─→ time.sleep(0.05)   — allow file system sync
+    |     ├─→ Log: "in node {ID} Waiting for Next button press..."
+    |     └─→ next_event.wait()  — BLOCK until user clicks Next
+    |
+    ├─→ User clicks NEXT → next_event.set() → execution resumes
+    |
+    └─→ trace_writer.trace_step(ID, "done")
+
+HTML VISUALIZATION:
+  - Start HTTP server: serve_nocache.py on port 8000
+  - Open browser: http://localhost:8000/{html_file}
+  - JavaScript polls trace.json every 500ms
+  - Current node highlighted on the flowchart
+
+TRACE.JSON FORMAT:
+  [
+    {"id": 100, "status": "active", "timestamp": "2026-06-25 10:32:15"},
+    {"id": 100, "status": "done",   "timestamp": "2026-06-25 10:32:45"},
+    {"id": 101, "status": "active", "timestamp": "2026-06-25 10:32:45"},
+    ...
+  ]
+
+================================================================================
+11. ERROR HANDLING FLOW
+================================================================================
+
+11.1 HARDWARE CONNECTION ERROR:
+  initialize_hardware()
+    └─→ SerialException
+          ├─→ IF simulation=True:  log warning, continue (no-op hardware)
+          └─→ IF simulation=False: log error, auto-enable simulation, retry
+
+11.2 UDP BINDING ERROR:
+  card_manager.start_all()
+    └─→ OSError (port in use)
+          ├─→ Collect error per card
+          └─→ After all cards: IF errors → QMessageBox.critical()
+
+11.3 FILE NOT FOUND (Excel load):
+  load_connector_from_excel()
+    └─→ FileNotFoundError / openpyxl exception
+          ├─→ Log error
+          └─→ RETURN empty list
+
+11.4 TEST EXECUTION ERROR:
+  run_tests() per-pin try/except:
+    └─→ Exception
+          ├─→ Log: "Error processing pin {id}: {msg}\n{traceback.format_exc()}"
+          ├─→ voltage_measurements.append(0.0)
+          ├─→ failed_pins.append({…})
+          └─→ Continue to next pin
+
+11.5 MEASUREMENT ERROR:
+  measure_voltage() [TestHandle wrapper]:
+    └─→ Exception
+          ├─→ Log: "Measurement error on {pin_id}: {msg}"
+          └─→ RETURN 0.0
+
+11.6 SETTINGS LOAD ERROR:
+  load_settings()
+    └─→ yaml.YAMLError
+          ├─→ Print to console
+          └─→ RETURN default settings dict
+
+================================================================================
+12. SHUTDOWN FLOW
+================================================================================
+
+Window close event (X button or app.quit()):
+  MainWindowQt.closeEvent()
+    |
+    ├─→ STOP TESTS:
+    |     ├─→ test_handler.running = False
+    |     └─→ test_handler.running_ibit = False
+    |
+    ├─→ STOP UDP CARDS:
+    |     └─→ card_manager.stop_all()
+    |           └─→ FOR each card: stop thread, close socket
+    |
+    ├─→ CLEANUP HARDWARE:
+    |     └─→ IF hardware.connected:
+    |           ├─→ clear_mux_bits()
+    |           └─→ hardware.close()  [serial.close()]
+    |
+    ├─→ STOP HTTP SERVER (if running):
+    |     └─→ http_server_process.terminate()
+    |
+    └─→ QApplication.quit() → sys.exit()
+
+================================================================================
+13. DATA FLOW BETWEEN COMPONENTS
+================================================================================
+
+13.1 COMPONENT ARCHITECTURE:
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                     app.py  (Entry Point)                            │
+  │  - Load settings, pin_map, board_config                              │
+  │  - Initialize hardware                                               │
+  │  - Create QApplication, MainWindowQt, MainController                 │
+  └─────┬─────────────────────────────────────┬────────────────────────-─┘
+        │                                     │
+  ┌─────▼──────────────────┐     ┌────────────▼───────────────────────┐
+  │  MainWindowQt           │     │  MainController                    │
+  │  (ui/qt/main_window_qt) │◄────┤  (ui/qt/controllers/main_ctrl)    │
+  │                         │     │                                    │
+  │  - PinTableQt           │     │  - on_test(), on_ibit(), …         │
+  │  - LogView (QTextEdit)  │     │  - _log_callback()                 │
+  │  - Run Controls (Qt     │     │  - _on_test_complete()             │
+  │    buttons/labels)      │     │  - update_testing_pin()            │
+  │  - _pending_callbacks   │     │  - QtTableAdapter (bridge)         │
+  │  - _schedule_callback() │     │                                    │
+  └─────────────────────────┘     └────────────┬───────────────────────┘
+                                               │
+                          ┌────────────────────┘
+                          │
+              ┌───────────▼────────────────────────────────────┐
+              │            TestHandle  (core/test_handle.py)    │
+              │                                                 │
+              │  run_tests()          run_i_bit_test()          │
+              │  measure_all_pins_system()                      │
+              │  relay_general_operate()                        │
+              └───────┬────────────────┬────────────────────────┘
+                      │                │
+         ┌────────────▼──┐     ┌───────▼──────────────┐
+         │  Measurer      │     │  UDPCardManager       │
+         │  (core/meas.)  │     │  (core/udp_card_mgr)  │
+         │                │     │                       │
+         │ measure_volt() │     │ set_digital_output()  │
+         │ sim. mode      │     │ set_analog_output()   │
+         └────────┬───────┘     │ get_digital_input()   │
+                  │             └──────────┬────────────┘
+         ┌────────▼──────────────────────▼────────────┐
+         │              Hardware Layer                  │
+         │                                             │
+         │  ControllinoIO          UDPSender           │
+         │  (serial protocol)      (UDP sockets)       │
+         │  digital_write()        C1–C7 cards         │
+         │  analog_read()          DO / AO / DI        │
+         └─────────────────────────────────────────────┘
+
+13.2 PIN TABLE DATA FLOW:
+
+  Excel file
+    ↓ load_connector_from_excel()
+  List[dict]  (all string values)
+    ↓ PinTableQt.set_rows()
+  PinTableModel._rows  (List[List[str]])  +  _row_id_map {id→row_idx}
+    ↓ test run updates
+  PinTableModel.update_row(pin_id, {col: value})
+    ├─→ _rows[row_idx][col_idx] = value
+    └─→ dataChanged.emit() → delegate.paint() → repaint
+
+13.3 STATE SYNCHRONIZATION:
+  test_handler.running         — stops run_tests() loop
+  test_handler.running_ibit    — stops measure_all_pins_system() loop
+  test_handler.next_event      — threading.Event, set by on_next()
+  PinTableModel._testing_pin_id — which row is yellow (thread-safe via postEvent)
+  MainController.running       — mirrors test_handler.running for UI state
+
+================================================================================
+14. Qt THREADING & THREAD-SAFETY MODEL
+================================================================================
+
+All tests run in daemon background threads. Qt widgets must only be touched
+from the main thread. Three mechanisms keep this safe:
+
+14.1 QMetaObject.invokeMethod  (fire-and-forget to main thread):
+  Used for:  log appends, _on_test_complete, _on_ibit_complete
+  Pattern:
+    QMetaObject.invokeMethod(
+        target_widget,
+        "slot_name",
+        Qt.ConnectionType.QueuedConnection,
+        Q_ARG(str, value)
+    )
+
+14.2 QTimer.singleShot(0, callback)  (schedule on next event-loop tick):
+  Used for:  pin_table.update_row(), _apply_ibit_button_color()
+  NOTE: Must be called from the main thread OR the callback may be lost.
+        QtTableAdapter.after() uses invokeMethod to first reach the main thread,
+        then QTimer.singleShot fires from there.
+
+  QtTableAdapter.after(delay_ms, callback):
+    ├─→ Store callback in main_window._pending_callbacks[id]
+    └─→ QMetaObject.invokeMethod(main_window, "_schedule_callback",
+                                  QueuedConnection, delay_ms, callback_id)
+          └─→ main thread: QTimer.singleShot(delay_ms, callback)
+
+14.3 QApplication.postEvent  (thread-safe custom event):
+  Used for:  PinTableQt.set_testing_pin()  — row yellow highlight
+  Pattern:
+    QApplication.postEvent(widget, _SetTestingPinEvent(pin_id))
+      └─→ PinTableQt.customEvent() [main thread]:
+            ├─→ model.set_testing_pin(pin_id)
+            └─→ table.viewport().update()
+
+================================================================================
+15. PIN TABLE ROW HIGHLIGHTING FLOW
+================================================================================
+
+PURPOSE: Show a yellow background on the row currently being tested.
+         Must be thread-safe (called from background test thread).
+
+COMPONENTS:
+  _SET_TESTING_PIN_TYPE  — registered custom QEvent type (module-level, unique)
+  _SetTestingPinEvent    — QEvent subclass carrying pin_id
+  PinTableModel._testing_pin_id — which ID is highlighted (None = none)
+
+FLOW (background thread → yellow highlight on screen):
+
+  1. test_handle.run_tests() calls:
+       pin_table.set_testing_pin(pin.Id)
+         └─→ QtTableAdapter.set_testing_pin(pin_id)
+               └─→ PinTableQt.set_testing_pin(pin_id)
+                     └─→ QApplication.postEvent(self, _SetTestingPinEvent(pin_id))
+                           ← thread-safe: postEvent can be called from any thread
+
+  2. Qt event loop (main thread) delivers the event:
+       PinTableQt.customEvent(event):
+         ├─→ model.set_testing_pin(event.pin_id)
+         |     ├─→ self._testing_pin_id = pin_id
+         |     └─→ dataChanged.emit(all rows)  — triggers repaint
+         └─→ table.viewport().update()
+
+  3. PinTableEditDelegate.paint() is called for each visible cell:
+       bg = index.data(Qt.BackgroundRole)
+         └─→ PinTableModel._get_row_background()
+               ├─→ IF _testing_pin_id and pin_id == _testing_pin_id:
+               |     RETURN QBrush(QColor("#FFF59D"))   ← soft yellow
+               ├─→ ELIF Fail: RETURN pink
+               ├─→ ELIF Pass: RETURN green
+               └─→ ELSE:      RETURN zebra-stripe dark
+       painter.fillRect(option.rect, bg)   ← drawn BEFORE super().paint()
+         [super().paint() applies CSS text/border on top without redrawing background]
+
+  4. After test completes:
+       pin_table.set_testing_pin(None)  → clears yellow, row reverts to Pass/Fail color
+
+PRIORITY ORDER in _get_row_background():
+  1. Currently testing (yellow)  — highest
+  2. Any result is Fail  (pink)
+  3. Any result is Pass  (green)
+  4. Zebra stripe dark   (default)
+
+WHY painter.fillRect() BEFORE super().paint():
+  The CSS stylesheet defines QTableView::item { padding; border } which causes
+  QStyleSheetStyle to own CE_ItemViewItem rendering. It draws NO background
+  (no CSS background property set), so our fillRect() is not overwritten.
+  The stylesheet then draws text/border on top. Without fillRect(), the
+  QTableView { background: #0f141a } viewport color shows through instead.
+
+================================================================================
+16. POWER TEST DETAILED FLOW
+================================================================================
+
+power_test(test_handle, pin)   [core/test_power.py]:
+  |
+  ├─→ get_pin_pair_info_controlino(pin.Id)
+  |     └─→ Returns pin pair mapping (voltage_pin_key, pullup_pin_key, …)
+  |
+  ├─→ Resolve voltage_pin_name from board_config
+  ├─→ Resolve analog_port from pin_map['A'][voltage_pin_name]
+  |
+  ├─→ set_mux_bits(…)         — route connector pin to ADC
+  |
+  ├─→ Parse Power_Input (e.g. "C2_AO2_10"):
+  |     card_id=2, type="AO", output_num=2, value=10.0
+  |
+  ├─→ IF Power_Input present:
+  |     ├─→ Verify initial voltage ≈ 0V
+  |     ├─→ card_manager.set_analog_output(card_id, num, value)  — apply stimulus
+  |     ├─→ time.sleep(stabilize)
+  |     ├─→ measured = measurer.measure_voltage(analog_port)
+  |     └─→ card_manager.set_analog_output(card_id, num, 0.0)   — remove stimulus
+  |
+  ├─→ ELSE (passive pin — no stimulus):
+  |     └─→ measured = measurer.measure_voltage(analog_port)
+  |
+  ├─→ Compare measured vs pin.Power_Expected ± tolerance:
+  |     Pass → TestResult.PASS
+  |     Fail → TestResult.FAIL
+  |
+  ├─→ clear_mux_bits(…)
+  └─→ RETURN (measured_voltage, pass/fail, reason_string)
+
+Pullup test and Logic test follow similar patterns (core/test_pullUp.py,
+core/test_logic.py) with their respective pin inputs and expected values.
+
+================================================================================
+17. FUTURE / PLANNED FLOWS
+================================================================================
+
+17.1 RELAY / FUSE TEST (partially implemented)
+  - relay_general_operate() exists; full relay-fuse test procedure TBD
+
+17.2 SHORT CIRCUIT DETECTION (planned)
+  - Detect unexpected voltage on pins that should read 0V
+
+17.3 CONTINUITY TEST (planned)
+  - Check circuit continuity across connector pins
+
+17.4 AUTOMATED SCHEDULING (planned)
+  - Scheduled test runs at configured intervals
+  - Test history / trend tracking
+
+17.5 MULTI-BOARD TESTING (future)
+  - Test multiple boards simultaneously via parallel threads
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+
+Notes:
+  - Update this document when adding new features or modifying flows
+  - Document both normal operation and error paths
+  - Include timing information (delays, timeouts) where relevant
+  - Reference specific file names and class names for traceability
+
+================================================================================
+REVISION HISTORY
+================================================================================
+
+Version 1.0 (March 25, 2026):
+  - Initial creation, documented all major flows
+  - Based on Tkinter UI implementation
+
+Version 2.0 (June 25, 2026):
+  - Full rewrite to reflect Qt/PySide6 migration (Tkinter removed)
+  - Added Section 14: Qt Threading & Thread-Safety Model
+  - Added Section 15: Pin Table Row Highlighting Flow (yellow/green/pink)
+  - Added Section 16: Power Test Detailed Flow
+  - Updated I-BIT flow to reflect measure_all_pins_system() implementation
+  - Updated architecture diagram for Qt component hierarchy
+  - Removed Tkinter-specific references (root, after(), Treeview, ScrolledText)
+  - Marked Qt UI as complete (was "future feature" in v1.0)
+  - Documented QtTableAdapter bridge pattern
+  - Updated error handling to include traceback.format_exc() in IBIT exceptions
+  - Documented CSS background rendering fix (delegate paint() override)

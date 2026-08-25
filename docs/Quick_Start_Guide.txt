@@ -1,0 +1,127 @@
+================================================================================
+  IO TESTER — QUICK START GUIDE
+================================================================================
+  Version 1.0  |  June 2026
+================================================================================
+
+
+BEFORE YOU BEGIN — CHECKLIST
+─────────────────────────────────────────────────────────────────────────────
+  □  Controllino Mega is powered on and connected via USB (default: COM5)
+  □  IO Cards (C1–C5) are powered and connected to the test network
+  □  The Unit Under Test (UUT) is connected to the test fixture
+  □  The correct Excel test file (.xlsx) for this connector is available
+
+
+STEP 1 — LAUNCH THE APPLICATION
+─────────────────────────────────────────────────────────────────────────────
+  Double-click IO_Tester.exe
+
+  The application opens with a dark-themed window containing:
+    • Pin table (top, most of the screen)
+    • Run Controls bar (middle)
+    • Operational Log (bottom)
+
+  At startup the application will attempt to connect to the Controllino.
+  Watch the Operational Log — you should see:
+    [INFO]  Hardware initialized on COM5
+  If you see a WARNING about connection — see Troubleshooting on page 2.
+
+
+STEP 2 — VERIFY COMMUNICATION
+─────────────────────────────────────────────────────────────────────────────
+  Click  [ Comm Check ]  (bottom-right panel, "Test/Debug" group)
+
+  • Green flash in the log = Controllino responding correctly.
+  • ERROR in the log = cable or COM port issue (see Troubleshooting).
+
+
+STEP 3 — LOAD A TEST FILE
+─────────────────────────────────────────────────────────────────────────────
+  Click  [ Load ]  (bottom-left panel, "Connector / File" group)
+
+  Select the Excel file (.xlsx) for the connector you are testing.
+  The pin table will populate with all pins and their expected values.
+  The connector name appears in the "Connector:" field.
+
+  The  [ Test ]  and  [ Test_All ]  buttons become active.
+
+
+STEP 4 — RUN THE TESTS
+─────────────────────────────────────────────────────────────────────────────
+  TO TEST ALL PINS:
+    Click  [ Test_All ]
+
+    The tester will work through every pin automatically:
+      • The currently-tested row turns YELLOW
+      • Pass results turn GREEN  |  Fail results turn PINK
+      • The "Testing Pin / Power / Pullup / Logic" status bar updates live
+
+  TO TEST SELECTED PINS ONLY:
+    Click one or more rows in the pin table (Ctrl+click for multi-select)
+    Then click  [ Test ]
+
+  TO STOP EARLY:
+    Click  [ Stop ]  at any time — the current pin finishes and then stops.
+
+
+STEP 5 — READ THE RESULTS
+─────────────────────────────────────────────────────────────────────────────
+  Row colour at a glance:
+    YELLOW  — pin currently being tested
+    GREEN   — at least one test passed, none failed
+    PINK    — at least one test failed
+
+  Key columns to check:
+    Power_Result   / Power_Result_Reason
+    PullUp_Result  / PullUp_Result_Reason
+    Logic_DI_Result / Logic_DI_Result_Reason
+
+  Values are  Pass  or  Fail.  Hover over any cell to see the full text.
+
+
+STEP 6 — SAVE A REPORT
+─────────────────────────────────────────────────────────────────────────────
+  Click  [ Report ]
+
+  Choose a file name and location. An Excel file is saved containing all
+  pin data and test results for this session.
+
+
+RUNNING THE I-BIT TEST (Built-In Test)
+─────────────────────────────────────────────────────────────────────────────
+  The I-BIT test checks all 50 pins on both connector systems (A and B)
+  for short-circuit / open-circuit faults without using the test file.
+
+    1. Click  [ IBIT ]  (Test/Debug group)
+    2. The test runs automatically for ~100 pins; watch the log for progress
+    3. The IBIT button turns GREEN (all pass) or RED (failures detected)
+    4. Click  [ Stop IBIT ]  to abort early if needed
+
+
+TROUBLESHOOTING
+─────────────────────────────────────────────────────────────────────────────
+  "No communication" / hardware warning at startup
+    → Check USB cable to Controllino is seated
+    → Verify COM port: open Settings and confirm Board.Port = correct COM
+    → Try Comm Check button — if it fails, restart the Controllino
+
+  "UDP binding error" on startup
+    → Another instance of IO Tester may already be running — close it
+    → Check that no other program is using the card network ports
+
+  All pins reporting FAIL
+    → Check that "Simulation: Off" is shown (not On) in Test/Debug group
+    → Confirm the correct connector map Excel file was loaded
+    → Verify UUT is fully seated in the fixture
+
+  Test button stays greyed out
+    → No file has been loaded — click Load first
+
+  Need to run without hardware (demo / office use)
+    → Click  [ Simulation: Off ]  to toggle to  Simulation: On
+    → Tests will run with simulated voltages — no hardware required
+
+================================================================================
+  For full reference see:  User_Manual.txt
+================================================================================

@@ -3,7 +3,9 @@ Test Handler - Core test execution functions for HW Tester.
 Contains all test procedures: power, pullup, logic, I-bit, relay/fuse, and short circuit tests.
 """
 import time
+import random
 import threading
+import traceback
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -223,7 +225,6 @@ class TestHandle:
                     break
                 # Step 3: Measure voltage (before pullup)
                 if isSimulate:
-                    import random, time
                     time.sleep(0.1)
                     measured_voltage = random.uniform(-0.05, 0.05)
                 else:
@@ -277,7 +278,7 @@ class TestHandle:
                 time.sleep(pins_to_stabilize)
                 #clear_bits(bits, self.pin_map, self.hardware, self.log)
             except Exception as e:
-                self.log(f"Error processing pin {current_pin} on system {system}: {str(e)}", "ERROR")
+                self.log(f"Error processing pin {current_pin} on system {system}: {str(e)}\n{traceback.format_exc()}", "ERROR")
                 voltage_measurements.append(0.0)
                 failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
                 all_tests_passed = False

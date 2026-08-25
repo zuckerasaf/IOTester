@@ -42,7 +42,10 @@ def initialize_hardware(settings: dict, log_callback=None):
             # Allow no connection in simulation mode
             return ControllinoIO(port=port, baud_rate=baud, allow_no_connection=is_simulation, log_callback=log_callback)
         except Exception as e:
-            print(f"[HardwareFactory ERROR] Failed to initialize {board_type}: {str(e)}")
+            error_msg = f"Failed to initialize {board_type}: {str(e)}"
+            print(f"[HardwareFactory ERROR] {error_msg}")
+            if log_callback:
+                log_callback(error_msg, "ERROR")
             print(f"[HardwareFactory] Make sure:")
             print(f"  1. Board is connected to {port}")
             print(f"  2. ControllinoSerialInterface.ino is uploaded to the board")
