@@ -14,7 +14,7 @@ from typing import Optional, List, Dict
 
 from PySide6.QtCore import  Qt, QTimer, QMetaObject, Q_ARG
 # from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox, QInputDialog
 
 import openpyxl
 import yaml
@@ -279,6 +279,32 @@ class MainController:
         msg_box.setStandardButtons(QMessageBox.Ok)
         msg_box.exec()
     
+    def _show_confirmation(self, title: str, message: str) -> bool:
+        """
+        Show a confirmation dialog with OK and Cancel buttons.
+        
+        Args:
+            title: Dialog window title
+            message: Message text to display
+            
+        Returns:
+            True if OK was clicked, False if Cancel was clicked
+        """
+        msg_box = QMessageBox(self.main_window)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setIcon(QMessageBox.NoIcon)  # No icon for better text layout
+        
+        # Enable text word wrapping
+        msg_box.setTextFormat(Qt.PlainText)
+        
+        # Set OK and Cancel buttons
+        msg_box.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msg_box.setDefaultButton(QMessageBox.Ok)
+        
+        result = msg_box.exec()
+        return result == QMessageBox.Ok
+    
     def update_testing_pin(self, pin_id: str):
         """
         Update the testing pin label to show which pin is currently being tested.
@@ -493,7 +519,31 @@ class MainController:
                 reports_dir = Path.cwd() / "Results"
             
             reports_dir.mkdir(parents=True, exist_ok=True)
-            out_path = reports_dir / filename
+            
+            # Count tested pins (those with measurements)
+            tested_count = sum(1 for row in rows if row.get("Power_Result") != "No Result")
+            
+            # Show input dialog to confirm and edit filename
+            input_dialog = QInputDialog(self.main_window)
+            input_dialog.setWindowTitle("Test Report")
+            input_dialog.setLabelText(f"Tested Pins: {tested_count}/{len(rows)}\n\nEnter report filename:")
+            input_dialog.setTextValue(filename)
+            input_dialog.resize(600, 180)  # Set dialog size (width, height)
+            input_dialog.setOkButtonText("Save")  # Change OK button to Save
+            
+            ok = input_dialog.exec()
+            edited_filename = input_dialog.textValue()
+            
+            if not ok or not edited_filename.strip():
+                self.main_window.log.append("Report generation canceled by user", "INFO")
+                return
+            
+            # Use the edited filename
+            final_filename = edited_filename.strip()
+            if not final_filename.endswith('.xlsx'):
+                final_filename += '.xlsx'
+            
+            out_path = reports_dir / final_filename
             
             # Create Excel workbook and write rows
             wb = openpyxl.Workbook()
@@ -510,18 +560,9 @@ class MainController:
             
             wb.save(str(out_path))
             
-            # Count tested pins (those with measurements)
-            tested_count = sum(1 for row in rows if row.get("Power_Result") != "No Result")
-            
             self.main_window.log.append(
                 f"Report: {tested_count}/{len(rows)} pins tested - saved to {out_path}",
                 "SUCCESS"
-            )
-            
-            self._show_message(
-                "Test Report",
-                f"Tested Pins: {tested_count}/{len(rows)}\n\nReport saved to:\n{out_path}",
-                "information"
             )
             
         except Exception as e:

@@ -291,12 +291,36 @@ class PinTableModel(QAbstractTableModel):
     def set_testing_pin(self, pin_id: Optional[str]) -> None:
         """
         Set which pin is currently being tested (highlights row with yellow background).
+        Also clears result columns for the pin being tested.
 
         Args:
             pin_id: Pin ID currently being tested, or None to clear
         """
         print(f"[PinTableModel.set_testing_pin] Setting testing pin: {pin_id}")
         self._testing_pin_id = pin_id
+
+        # Clear result columns for the pin being tested
+        if pin_id:
+            # Find the row index for this pin_id
+            row_idx = None
+            for idx, row_data in enumerate(self._rows):
+                if row_data[0] == pin_id:  # ID is first column
+                    row_idx = idx
+                    break
+            
+            if row_idx is not None:
+                # Columns to clear
+                columns_to_clear = [
+                    "Power_Measured", "Power_Result", "Power_Result_Reason",
+                    "PullUp_Measured", "PullUp_Result", "PullUp_Result_Reason",
+                    "Logic_DI_Result", "Logic_DI_Result_Reason"
+                ]
+                
+                # Clear each column
+                for col_name in columns_to_clear:
+                    if col_name in self.COLUMNS:
+                        col_idx = self.COLUMNS.index(col_name)
+                        self._rows[row_idx][col_idx] = ""
 
         # Repaint all rows — no roles specified so Qt repaints everything
         if self._rows:
