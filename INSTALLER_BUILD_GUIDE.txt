@@ -1,0 +1,288 @@
+===============================================================================
+                    IO TESTER - WINDOWS INSTALLER GUIDE
+                         Professional Distribution Package
+===============================================================================
+
+This guide explains how to create a professional Windows installer for the 
+IO Tester application that you can distribute to customers.
+
+===============================================================================
+OVERVIEW
+===============================================================================
+
+The build process consists of two main steps:
+1. PyInstaller packages your Python application into a standalone executable
+2. Inno Setup creates a professional Windows installer (.exe) with:
+   - Start Menu shortcuts
+   - Desktop shortcut (optional)
+   - Proper installation/uninstallation
+   - Professional installer wizard
+   - Version tracking
+
+===============================================================================
+PREREQUISITES
+===============================================================================
+
+Before building the installer, ensure you have:
+
+1. Python Virtual Environment (.venv)
+   ✓ Already configured in your project
+   ✓ Contains all required dependencies
+
+2. Inno Setup (FREE)
+   Download from: https://jrsoftware.org/isdl.php
+   - Get the latest stable version (currently 6.x)
+   - Use default installation options
+   - No configuration needed after install
+
+3. Application Icon (OPTIONAL but recommended)
+   - Create or download a .ico file
+   - Save as "icon.ico" in project root
+   - See ICON_README.txt for resources
+   - If skipped, installer will use default Windows icon
+
+===============================================================================
+QUICK START - BUILD INSTALLER
+===============================================================================
+
+The simplest way to build the complete installer:
+
+1. Open Command Prompt or PowerShell in project root
+2. Run: build_installer.bat
+3. Wait for the build process to complete
+4. Find your installer in: installer_output\IOTester_Setup_v1.0.0.exe
+
+That's it! You can now distribute IOTester_Setup_v1.0.0.exe to customers.
+
+===============================================================================
+DETAILED BUILD PROCESS
+===============================================================================
+
+If you prefer to understand or customize each step:
+
+STEP 1: Build the Executable
+-----------------------------
+Run: build_exe.bat
+
+This uses PyInstaller to create a standalone executable in dist\IOTester\
+- Bundles Python interpreter
+- Includes all dependencies (PySide6, pyserial, etc.)
+- Packages configuration files
+- Creates folder with IOTester.exe and support files
+
+STEP 2: Build the Installer
+----------------------------
+Run: "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+This creates the Windows installer:
+- Packages the entire dist\IOTester\ folder
+- Creates installation wizard
+- Sets up Start Menu shortcuts
+- Adds uninstaller
+- Generates IOTester_Setup_v1.0.0.exe in installer_output\
+
+STEP 3: Distribute
+------------------
+Send installer_output\IOTester_Setup_v1.0.0.exe to customers
+- Single file, easy to distribute
+- Professional installation experience
+- ~50-100 MB size (typical for Python apps with Qt)
+
+===============================================================================
+CUSTOMIZATION
+===============================================================================
+
+To customize the installer, edit installer.iss:
+
+Change Application Name:
+  #define MyAppName "IO Tester"
+
+Change Version Number:
+  #define MyAppVersion "1.0.0"
+  (This appears in filename and Windows Programs list)
+
+Change Company/Publisher:
+  #define MyAppPublisher "Your Company Name"
+  #define MyAppURL "https://www.yourcompany.com/"
+
+Change Installation Directory:
+  DefaultDirName={autopf}\{#MyAppName}
+  (Default: C:\Program Files\IO Tester)
+
+Require/Don't Require Admin Rights:
+  PrivilegesRequired=lowest  ; Install for current user only (no admin)
+  PrivilegesRequired=admin   ; Require admin (for Program Files)
+
+Add License Agreement:
+  1. Create LICENSE.txt file
+  2. Uncomment line in [Files] section of installer.iss
+  3. Add to [Setup] section:
+     LicenseFile=LICENSE.txt
+
+===============================================================================
+TESTING THE INSTALLER
+===============================================================================
+
+Before distributing to customers:
+
+1. Build the installer using build_installer.bat
+
+2. Test installation:
+   - Run IOTester_Setup_v1.0.0.exe
+   - Follow installation wizard
+   - Verify Start Menu shortcut works
+   - Run the application
+   - Test main functionality
+
+3. Test configuration:
+   - Check that config files are in C:\Program Files\IO Tester\config\
+   - Verify settings are loaded correctly
+   - Test with actual hardware (if available)
+
+4. Test uninstallation:
+   - Go to Windows Settings > Apps > Installed Apps
+   - Find "IO Tester"
+   - Click Uninstall
+   - Verify all files are removed (except user data if you preserve it)
+
+5. Test on clean machine:
+   - Best practice: test on a VM or different computer
+   - Ensures all dependencies are included
+   - Verifies it works without Python installed
+
+===============================================================================
+DISTRIBUTION CHECKLIST
+===============================================================================
+
+Before sending to customers:
+
+[ ] Version number updated in installer.iss
+[ ] Company information updated in installer.iss
+[ ] Application icon added (optional but recommended)
+[ ] Built installer successfully
+[ ] Tested installation on clean machine
+[ ] Tested application functionality
+[ ] Tested uninstallation
+[ ] Prepared release notes/documentation
+[ ] Scanned for viruses (some antiviruses flag PyInstaller apps)
+[ ] File size is reasonable (<200 MB preferred)
+
+===============================================================================
+TROUBLESHOOTING
+===============================================================================
+
+Problem: "ISCC.exe not found"
+Solution: Install Inno Setup from https://jrsoftware.org/isdl.php
+          Or add Inno Setup to your system PATH
+
+Problem: Antivirus flags the installer
+Solution: This is common with PyInstaller. Options:
+          - Submit to antivirus vendor as false positive
+          - Code sign your installer (requires certificate)
+          - Use --noupx flag (already in build_exe.bat)
+          - Build on clean machine
+
+Problem: Application won't start after installation
+Solution: 
+          - Ensure all dependencies in installer.iss [Files] section
+          - Check PyInstaller warnings in build\IOTester\warn-IOTester.txt
+          - Test on machine without Python installed
+          - Check console output (set console=True in IOTester.spec temporarily)
+
+Problem: Configuration files not found
+Solution: Verify datas=[('src/hw_tester/config', 'config')] in IOTester.spec
+          Check that config files are in dist\IOTester\config\
+
+Problem: Large installer size
+Solution: 
+          - Normal for Python/Qt apps (50-150 MB is typical)
+          - Consider --onefile mode (set DIST_MODE=onefile in build_exe.bat)
+          - Remove unused dependencies from requirements
+          - Use UPX compression (not recommended, may trigger antivirus)
+
+===============================================================================
+VERSION CONTROL
+===============================================================================
+
+Files to commit to Git:
+  ✓ installer.iss
+  ✓ build_installer.bat
+  ✓ build_exe.bat
+  ✓ IOTester.spec
+  ✓ This documentation
+
+Files to exclude (.gitignore):
+  ✗ dist/
+  ✗ build/
+  ✗ installer_output/
+  ✗ *.exe
+  ✗ icon.ico (unless you want to version it)
+
+===============================================================================
+ADVANCED: CODE SIGNING (OPTIONAL)
+===============================================================================
+
+For professional distribution, consider code signing your installer:
+
+Benefits:
+  - Removes "Unknown Publisher" warnings
+  - Builds customer trust
+  - Reduces antivirus false positives
+
+Requirements:
+  - Code signing certificate ($100-400/year)
+  - SignTool from Windows SDK
+
+Process:
+  1. Obtain code signing certificate
+  2. Install certificate
+  3. Add to installer.iss [Setup] section:
+     SignTool=mysigntool
+  4. Define signing command in Inno Setup Tools menu
+
+Providers:
+  - DigiCert
+  - Sectigo
+  - GoDaddy
+
+===============================================================================
+UPDATES AND NEW VERSIONS
+===============================================================================
+
+When releasing a new version:
+
+1. Update version in installer.iss:
+   #define MyAppVersion "1.1.0"
+
+2. Update version in pyproject.toml:
+   version = "1.1.0"
+
+3. Optional: Add version check in application code
+
+4. Rebuild both executable and installer:
+   build_installer.bat
+
+5. Output will be: IOTester_Setup_v1.1.0.exe
+
+6. Distribute new version to customers
+
+Note: Inno Setup can detect and upgrade existing installations automatically
+
+===============================================================================
+SUPPORT AND RESOURCES
+===============================================================================
+
+Inno Setup Documentation:
+  https://jrsoftware.org/ishelp/
+
+PyInstaller Documentation:
+  https://pyinstaller.org/en/stable/
+
+Icon Resources:
+  See ICON_README.txt
+
+For project-specific issues:
+  Check docs/User_Manual.txt
+  Check docs/Quick_Start_Guide.txt
+
+===============================================================================
