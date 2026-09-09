@@ -196,6 +196,12 @@ class MainWindowQt(QMainWindow):
         self.cmb_debug_option.addItems(self._scan_html_files())
         g4l.addWidget(self.cmb_debug_option, 2, 1, 1, 2)  # row 2, col 1, span 1 row, span 2 cols
         
+        # Pin table column preset - same functionality as the Settings window preset selector
+        self.lbl_column_preset = QLabel("Preset:")
+        self.cmb_column_preset = QComboBox()
+        g4l.addWidget(self.lbl_column_preset, 3, 0)
+        g4l.addWidget(self.cmb_column_preset, 3, 1, 1, 2)  # row 3, col 1, span 1 row, span 2 cols
+
         controls_row.addWidget(g4, stretch=1)
 
         main.addLayout(controls_row, stretch=0)
@@ -218,6 +224,10 @@ class MainWindowQt(QMainWindow):
         
         # Wire combo box signal after controller is initialized
         self.cmb_debug_option.currentTextChanged.connect(self.controller.on_html_file_change)
+
+        # Populate and wire the column preset combo box after controller is initialized
+        self.controller.populate_column_preset_combo(self.cmb_column_preset)
+        self.cmb_column_preset.currentTextChanged.connect(self.controller.on_column_preset_change)
         
         # Storage for pending callbacks (for thread-safe updates)
         self._pending_callbacks = {}

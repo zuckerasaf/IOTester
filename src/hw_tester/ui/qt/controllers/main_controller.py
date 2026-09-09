@@ -14,7 +14,11 @@ from typing import Optional, List, Dict
 
 from PySide6.QtCore import  Qt, QTimer, QMetaObject, Q_ARG
 # from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout, QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox, QInputDialog
+from PySide6.QtWidgets import (
+    QApplication, QFileDialog, QMessageBox, QDialog, QTextEdit, QVBoxLayout,
+    QDialogButtonBox, QFormLayout, QLineEdit, QGroupBox, QInputDialog,
+    QScrollArea, QWidget, QGridLayout, QRadioButton, QLabel, QComboBox
+)
 
 import openpyxl
 import yaml
@@ -108,6 +112,11 @@ class MainController:
         else:
             self.main_window.btn_debug.setObjectName("")
         self.main_window.btn_debug.style().polish(self.main_window.btn_debug)
+
+        # Apply saved column show/hide state to the pin table
+        column_visibility = self.settings.get('UI', {}).get('ColumnVisibility', {})
+        if column_visibility:
+            self.main_window.table.set_column_visibility(column_visibility)
     
     def _init_hardware(self):
         """Initialize hardware connection."""
@@ -688,17 +697,22 @@ class MainController:
         dialog.setModal(True)
         dialog.setMinimumSize(900, 600)
 
-        layout = QVBoxLayout(dialog)
+        outer_layout = QVBoxLayout(dialog)
 
-        self.comm_table = CommSettingsTable(dialog)
+        scroll_area = QScrollArea(dialog)
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget(scroll_area)
+        layout = QVBoxLayout(scroll_content)
+
+        self.comm_table = CommSettingsTable(scroll_content)
         self._populate_comm_table(content)
 
-        board_group = QGroupBox("Board Settings", dialog)
+        board_group = QGroupBox("Board Settings", scroll_content)
         board_layout = QFormLayout(board_group)
         self.board_port_input = QLineEdit(board_group)
         board_layout.addRow("COM Port:", self.board_port_input)
 
-        paths_group = QGroupBox("Path Settings", dialog)
+        paths_group = QGroupBox("Path Settings", scroll_content)
         paths_layout = QFormLayout(paths_group)
         self.report_path_input = QLineEdit(paths_group)
         self.report_path_input.setPlaceholderText("e.g., C:\\Reports or leave empty for default")
@@ -708,18 +722,110 @@ class MainController:
         self.db_path_input.setPlaceholderText("e.g., C:\\TestData\\DB or leave empty for default")
         paths_layout.addRow("DB Path (Load):", self.db_path_input)
 
+        columns_group = self._build_column_visibility_group(scroll_content)
+
+        card_ip_group = QGroupBox("Card IP Settings", scroll_content)
+        card_ip_layout = QVBoxLayout(card_ip_group)
+        card_ip_layout.addWidget(self.comm_table)
+        card_ip_group.setFixedHeight(340)
+
         layout.addWidget(board_group)
         layout.addWidget(paths_group)
-        layout.addWidget(self.comm_table)
+        layout.addWidget(card_ip_group)
+        layout.addWidget(columns_group)
 
         self._populate_comm_board_fields(content)
+
+        scroll_area.setWidget(scroll_content)
+        outer_layout.addWidget(scroll_area)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel, parent=dialog)
         buttons.accepted.connect(lambda: self._save_comm_settings(dialog, comm_path))
         buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+        outer_layout.addWidget(buttons)
 
         dialog.exec()
+
+    def _build_column_visibility_group(self, dialog) -> QGroupBox:
+        """Build a group box with a preset selector and one toggle radio button per pin table column."""
+        group = QGroupBox("Pin Table Columns", dialog)
+        outer = QVBoxLayout(group)
+        group.setFixedHeight(340)
+
+        presets = self.settings.get('UI', {}).get('ColumnPresets', {})
+
+        preset_row = QFormLayout()
+        preset_combo = QComboBox(group)
+        preset_combo.addItems(["All"] + [name for name in presets.keys() if name != "All"])
+        preset_row.addRow("Preset:", preset_combo)
+        outer.addLayout(preset_row)
+
+        grid = QGridLayout()
+        grid.addWidget(QLabel("Column"), 0, 0)
+        grid.addWidget(QLabel("Show"), 0, 1)
+
+        grid_content = QWidget(group)
+        grid_content.setLayout(grid)
+        grid_scroll = QScrollArea(group)
+        grid_scroll.setWidgetResizable(True)
+        grid_scroll.setWidget(grid_content)
+        grid_scroll.setFixedHeight(280)
+        outer.addWidget(grid_scroll)
+
+        current_visibility = self.main_window.table.get_column_visibility()
+        saved_visibility = self.settings.get('UI', {}).get('ColumnVisibility', {})
+
+        self._column_visibility_radios: Dict[str, QRadioButton] = {}
+        model = self.main_window.table.model
+        for row, col_name in enumerate(model.COLUMNS, start=1):
+            display_name = model.DISPLAY_NAMES.get(col_name, col_name).replace("\n", " ")
+            grid.addWidget(QLabel(display_name), row, 0)
+
+            show_radio = QRadioButton("", group)
+            show_radio.setAutoExclusive(False)  # single toggle button, not mutually exclusive
+
+            is_visible = saved_visibility.get(col_name, current_visibility.get(col_name, True))
+            show_radio.setChecked(is_visible)
+
+            grid.addWidget(show_radio, row, 1)
+
+            self._column_visibility_radios[col_name] = show_radio
+
+        def apply_preset(name: str):
+            preset_values = presets.get(name, {})
+            for col_name, radio in self._column_visibility_radios.items():
+                radio.setChecked(preset_values.get(col_name, True))
+
+        preset_combo.currentTextChanged.connect(apply_preset)
+
+        return group
+
+    def populate_column_preset_combo(self, combo: QComboBox):
+        """Fill the main window's column preset combo box from settings, selecting the saved preset."""
+        presets = self.settings.get('UI', {}).get('ColumnPresets', {})
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItems(["All"] + [name for name in presets.keys() if name != "All"])
+        active_preset = self.settings.get('UI', {}).get('ActiveColumnPreset', 'All')
+        index = combo.findText(active_preset)
+        combo.setCurrentIndex(index if index >= 0 else 0)
+        combo.blockSignals(False)
+
+    def on_column_preset_change(self, name: str):
+        """Apply a pin table column preset live, same behavior as the Settings window preset selector."""
+        presets = self.settings.get('UI', {}).get('ColumnPresets', {})
+        preset_values = presets.get(name, {})
+        if not preset_values:
+            return
+
+        self.main_window.table.set_column_visibility(preset_values)
+
+        if "UI" not in self.settings:
+            self.settings["UI"] = {}
+        self.settings["UI"]["ColumnVisibility"] = dict(preset_values)
+        self.settings["UI"]["ActiveColumnPreset"] = name
+        save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
+        self.main_window.log.append(f"Applied '{name}' column preset", "INFO")
 
     def _populate_comm_table(self, content: str):
         """Load YAML content into the comm settings table."""
@@ -787,6 +893,15 @@ class MainController:
         db_path = self.db_path_input.text().strip()
         self.settings["Paths"]["database"] = db_path if db_path else "tests/DB"
 
+        # Update pin table column show/hide state in main settings
+        column_visibility = {
+            col_name: show_radio.isChecked()
+            for col_name, show_radio in self._column_visibility_radios.items()
+        }
+        if "UI" not in self.settings:
+            self.settings["UI"] = {}
+        self.settings["UI"]["ColumnVisibility"] = column_visibility
+
         try:
             comm_path.parent.mkdir(parents=True, exist_ok=True)
             comm_path.write_text(yaml.safe_dump(comm_data, sort_keys=False), encoding="utf-8")
@@ -799,7 +914,7 @@ class MainController:
             self._init_ui_state()
             self._show_message(
                 "Restart Required",
-                "For the changes to take effect, the application needs to be restarted.",
+                "For the changes of IPs and COMM to take effect, the application needs to be restarted.",
                 "information"
             )
             dialog.accept()

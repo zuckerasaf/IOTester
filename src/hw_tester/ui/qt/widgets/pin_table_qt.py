@@ -556,6 +556,30 @@ class PinTableQt(QWidget):
         """
         QApplication.postEvent(self, _SetTestingPinEvent(pin_id))
 
+    def set_column_visible(self, col_name: str, visible: bool) -> None:
+        """Show or hide a single column by name."""
+        if col_name in self.model.COLUMNS:
+            idx = self.model.COLUMNS.index(col_name)
+            self.table.setColumnHidden(idx, not visible)
+
+    def set_column_visibility(self, visibility: Dict[str, bool]) -> None:
+        """
+        Apply show/hide state to multiple columns.
+
+        Args:
+            visibility: Dict mapping column name to visible (True/False).
+                        Columns not present are left unchanged.
+        """
+        for col_name, visible in visibility.items():
+            self.set_column_visible(col_name, visible)
+
+    def get_column_visibility(self) -> Dict[str, bool]:
+        """Return current show/hide state for every column."""
+        return {
+            col: not self.table.isColumnHidden(idx)
+            for idx, col in enumerate(self.model.COLUMNS)
+        }
+
     def customEvent(self, event: QEvent) -> None:
         if event.type() == _SET_TESTING_PIN_TYPE:
             self.model.set_testing_pin(event.pin_id)

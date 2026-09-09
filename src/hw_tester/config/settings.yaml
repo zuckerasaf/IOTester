@@ -6,6 +6,100 @@ Debug:
   mode: false
 UI:
   UI_Type: Qt
+  ColumnPresets:
+    All:
+      ID: true
+      Connect: true
+      Discrete_Name: true
+      Signal_Name: true
+      Plug: true
+      Type: true
+      Pin: true
+      Power_Expected: true
+      Power_Input: true
+      Power_Measured: true
+      Power_Result: true
+      Power_Result_Reason: true
+      PullUp_Expected: true
+      PullUp_Input: true
+      PullUp_Measured: true
+      PullUp_Result: true
+      PullUp_Result_Reason: true
+      Logic_Pin_Input: true
+      Logic_Command: true
+      Logic_Expected: true
+      Logic_DI_Result: true
+      Logic_DI_Result_Reason: true
+    Connector:
+      ID: true
+      Connect: false
+      Discrete_Name: true
+      Signal_Name: true
+      Plug: true
+      Type: true
+      Pin: true
+      Power_Expected: true
+      Power_Input: true
+      Power_Measured: true
+      Power_Result: true
+      Power_Result_Reason: false
+      PullUp_Expected: true
+      PullUp_Input: true
+      PullUp_Measured: true
+      PullUp_Result: true
+      PullUp_Result_Reason: false
+      Logic_Pin_Input: true
+      Logic_Command: true
+      Logic_Expected: true
+      Logic_DI_Result: true
+      Logic_DI_Result_Reason: false
+    Cable:
+      ID: true
+      Connect: false
+      Discrete_Name: false
+      Signal_Name: false
+      Plug: false
+      Type: false
+      Pin: false
+      Power_Expected: false
+      Power_Input: false
+      Power_Measured: true
+      Power_Result: false
+      Power_Result_Reason: false
+      PullUp_Expected: true
+      PullUp_Input: true
+      PullUp_Measured: true
+      PullUp_Result: true
+      PullUp_Result_Reason: false
+      Logic_Pin_Input: false
+      Logic_Command: false
+      Logic_Expected: false
+      Logic_DI_Result: false
+      Logic_DI_Result_Reason: false
+  ColumnVisibility:
+    ID: true
+    Connect: false
+    Discrete_Name: true
+    Signal_Name: true
+    Plug: true
+    Type: true
+    Pin: true
+    Power_Expected: true
+    Power_Input: true
+    Power_Measured: true
+    Power_Result: true
+    Power_Result_Reason: false
+    PullUp_Expected: true
+    PullUp_Input: true
+    PullUp_Measured: true
+    PullUp_Result: true
+    PullUp_Result_Reason: false
+    Logic_Pin_Input: true
+    Logic_Command: true
+    Logic_Expected: true
+    Logic_DI_Result: true
+    Logic_DI_Result_Reason: false
+  ActiveColumnPreset: Connector
 IO_Box:
   Type: MTC_AFT
   AvailableTypes:

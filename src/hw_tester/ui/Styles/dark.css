@@ -378,3 +378,12 @@ QFileDialog {
 QFileDialog QLabel {
     color: #e6edf3;
 }
+
+/* QScrollArea's viewport/content widgets have no background rule of their own,
+   so Qt paints them white by default once any stylesheet is active - force dark. */
+QDialog QScrollArea,
+QDialog QScrollArea > QWidget,
+QDialog QScrollArea > QWidget > QWidget {
+    background: #1f2328;
+    border: none;
+}
