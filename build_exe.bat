@@ -102,6 +102,21 @@ if exist "src\hw_tester\ui\Styles\dark.css" (
     echo Source stylesheet missing, skipping dark.css
 )
 
+rem Build the Wiki (mkdocs site) and copy it next to the executable
+if exist ".venv\Scripts\python.exe" (
+    echo Building Wiki site with mkdocs...
+    .venv\Scripts\python.exe -m mkdocs build
+    if exist "site" (
+        if exist "%BUILD_OUTPUT_DIR%\site" rd /s /q "%BUILD_OUTPUT_DIR%\site"
+        echo Copying Wiki site to %BUILD_OUTPUT_DIR%\site...
+        xcopy /e /i /y "site" "%BUILD_OUTPUT_DIR%\site" >nul
+    ) else (
+        echo Wiki site build failed or produced no output, skipping copy.
+    )
+) else (
+    echo Virtual environment not found, skipping Wiki build.
+)
+
 echo.
 echo Build complete. Executable is here:
 echo %DIST_DIR%\%EXE_NAME%.exe

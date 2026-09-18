@@ -1,0 +1,41 @@
+You are helping me prepare documentation files for a MkDocs website.
+
+I have a collection of documents in the ./docs folder. The files may be in 
+mixed formats - Word, PDF, plain text, or Markdown. Some may already be 
+close to valid Markdown, others may need significant reformatting.
+
+Please do the following, in this order:
+
+STEP 1 - INVENTORY
+List every file you find in ./docs. For each file, identify:
+- The file name and format
+- A one-sentence summary of what the document covers
+- Whether it looks like a system doc, a design doc, a user guide, 
+  an API reference, or something else
+
+STEP 2 - ASSESS CONVERSION NEEDS
+For each file, tell me:
+- What needs to change to make it valid MkDocs-compatible Markdown
+- Whether headings, tables, code blocks, or images need attention
+- Any content that looks incomplete or unclear
+
+STEP 3 - CONVERT
+Convert each document to clean Markdown (.md), one file at a time.
+Follow these rules:
+- Use ATX-style headings (# H1, ## H2, ### H3)
+- Preserve all original content - do not summarize or remove anything
+- Format any code snippets inside triple backtick blocks with the 
+  correct language tag (e.g. ```python)
+- Convert any tables to Markdown table format
+- Flag any section where content is missing or ambiguous with a 
+  comment like: <!-- TODO: clarify this section -->
+
+STEP 4 - SUGGEST STRUCTURE
+Based on what you found, suggest a logical nav structure for mkdocs.yml.
+Group related documents under sensible section names.
+Output a ready-to-use nav: block I can paste into mkdocs.yml.
+
+Important rules:
+- If you cannot read a file, say so clearly - do not guess its contents
+- If a section is ambiguous, ask me before making assumptions
+- Do not invent or add content that was not in the original documents

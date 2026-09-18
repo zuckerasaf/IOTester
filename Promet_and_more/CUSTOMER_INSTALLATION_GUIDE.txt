@@ -1,0 +1,80 @@
+===============================================================================
+                    IO TESTER - INSTALLATION INSTRUCTIONS
+                         For Customers/End Users
+===============================================================================
+
+IMPORTANT: Windows Security May Block Installation
+===============================================================================
+
+Windows Defender or your antivirus may block IOTester_Setup.exe because it's 
+a new application. This is a FALSE POSITIVE - the software is safe.
+
+This happens with many legitimate applications that are not yet widely known.
+Follow the steps below to install safely.
+
+===============================================================================
+INSTALLATION STEPS - Windows 10/11
+===============================================================================
+
+If Windows SmartScreen appears:
+--------------------------------
+1. When you see "Windows protected your PC" message
+2. Click "More info"
+3. Click "Run anyway"
+4. Follow the installation wizard
+
+If Windows Defender blocks download:
+------------------------------------
+1. Open Windows Security (click shield icon in taskbar)
+2. Go to "Virus & threat protection"
+3. Click "Protection history"
+4. Find the IOTester_Setup.exe entry
+5. Click "Actions" → "Allow"
+6. Re-download or restore the file
+7. Run the installer
+
+If your antivirus blocks the file:
+----------------------------------
+1. Add an exception in your antivirus software:
+   - File: IOTester_Setup_v1.0.0.exe
+   - Location: Your downloads folder
+2. Temporarily disable antivirus during installation (not recommended)
+3. Contact your IT department for assistance
+
+===============================================================================
+ALTERNATIVE: Manual Installation (If installer is blocked)
+===============================================================================
+
+If you cannot run the installer, request the ZIP version:
+1. Extract IOTester.zip to a folder (e.g., C:\IOTester\)
+2. Run IOTester.exe from the extracted folder
+3. Create a desktop shortcut manually if needed
+
+===============================================================================
+WHY IS THIS HAPPENING?
+===============================================================================
+
+This software is built with Python and packaged with PyInstaller, which:
+- Bundles the entire Python runtime into a single executable
+- Is a legitimate tool used by thousands of developers
+- Sometimes triggers false positives because it's less common than traditional 
+  compiled software
+- Will become trusted as more users install it
+
+Our software is:
+✓ Safe and virus-free
+✓ Does not contain malware
+✓ Does not collect personal data
+✓ Open for inspection (source code available on request)
+
+===============================================================================
+NEED HELP?
+===============================================================================
+
+If you continue to have installation issues:
+- Contact your IT department
+- Request code-signed version (future releases)
+- Request ZIP version for manual installation
+- Contact us: [Your Support Email]
+
+===============================================================================

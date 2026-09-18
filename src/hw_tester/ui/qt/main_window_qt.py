@@ -190,11 +190,9 @@ class MainWindowQt(QMainWindow):
         g4l.addWidget(self.btn_next, 0, 2)
         g4l.addWidget(self.btn_debug, 1, 2)
         
-        # ComboBox spanning columns 1-2 (under Simulation/LocalHost and Next/Debug)
-        self.cmb_debug_option = QComboBox()
-        # Populate with HTML files from web directory
-        self.cmb_debug_option.addItems(self._scan_html_files())
-        g4l.addWidget(self.cmb_debug_option, 2, 1, 1, 2)  # row 2, col 1, span 1 row, span 2 cols
+        # Wiki button - opens the local MkDocs site (replaces the old HTML dropdown opener)
+        self.btn_wiki = QPushButton("Wiki")
+        g4l.addWidget(self.btn_wiki, 2, 1, 1, 2)  # row 2, col 1, span 1 row, span 2 cols
         
         # Pin table column preset - same functionality as the Settings window preset selector
         self.lbl_column_preset = QLabel("Preset:")
@@ -221,9 +219,6 @@ class MainWindowQt(QMainWindow):
         # Initialize controller to handle button logic
         self.controller = MainController(self)
         self.log.append("Controller initialized - Load button is ready.", "INFO")
-        
-        # Wire combo box signal after controller is initialized
-        self.cmb_debug_option.currentTextChanged.connect(self.controller.on_html_file_change)
 
         # Populate and wire the column preset combo box after controller is initialized
         self.controller.populate_column_preset_combo(self.cmb_column_preset)
@@ -232,43 +227,6 @@ class MainWindowQt(QMainWindow):
         # Storage for pending callbacks (for thread-safe updates)
         self._pending_callbacks = {}
         self._callback_counter = 0
-    
-    def _scan_html_files(self) -> list:
-        """
-        Scan the web directory for .html files.
-        
-        Returns:
-            List of HTML filenames (without path) plus "none" option
-        """
-        try:
-            # Get the web directory path relative to this file
-            # main_window_qt.py -> qt -> ui -> hw_tester -> web
-            web_dir = Path(__file__).resolve().parent.parent.parent / "web"
-            
-            print(f"[_scan_html_files] Scanning web directory: {web_dir}")
-            print(f"[_scan_html_files] Directory exists: {web_dir.exists()}")
-            
-            if not web_dir.exists():
-                print(f"[_scan_html_files] Web directory not found: {web_dir}")
-                return ["none"]
-            
-            # Find all .html files
-            html_paths = list(web_dir.glob("*.html"))
-            print(f"[_scan_html_files] Found {len(html_paths)} HTML files")
-            
-            # Extract just the filenames (without path)
-            html_files = [path.name for path in html_paths]
-            html_files.sort()
-            
-            print(f"[_scan_html_files] HTML files: {html_files}")
-            
-            # Add "none" at the beginning
-            return ["none"] + html_files
-        except Exception as e:
-            print(f"[_scan_html_files] Error scanning HTML files: {e}")
-            import traceback
-            traceback.print_exc()
-            return ["none"]
     
     @Slot()
     def _on_test_complete(self):

@@ -66,16 +66,16 @@ UI:
       Power_Measured: true
       Power_Result: false
       Power_Result_Reason: false
-      PullUp_Expected: true
-      PullUp_Input: true
-      PullUp_Measured: true
-      PullUp_Result: true
+      PullUp_Expected: false
+      PullUp_Input: false
+      PullUp_Measured: false
+      PullUp_Result: false
       PullUp_Result_Reason: false
-      Logic_Pin_Input: false
-      Logic_Command: false
-      Logic_Expected: false
-      Logic_DI_Result: false
-      Logic_DI_Result_Reason: false
+      Logic_Pin_Input: true
+      Logic_Command: true
+      Logic_Expected: true
+      Logic_DI_Result: true
+      Logic_DI_Result_Reason: true
   ColumnVisibility:
     ID: true
     Connect: false
@@ -159,3 +159,52 @@ Test_trshhold:
   P_T_R_Connection_Tolerance: 0.5
   I_T_R_Connection_Tolerance: 0.5
   L_T_R_Connection_Tolerance: 0.5
+Connectors:
+  A:
+    size: 50
+    offset: 0
+    input: true
+  B:
+    size: 37
+    offset: 0
+    input: true
+  C:
+    size: 25
+    offset: 0
+    input: true
+  D:
+    size: 25
+    offset: 25
+    input: false
+  E:
+    size: 15
+    offset: 0
+    input: true
+  F:
+    size: 15
+    offset: 15
+    input: false
+  G:
+    size: 15
+    offset: 30
+    input: false
+  H:
+    size: 9
+    offset: 0
+    input: true
+  I:
+    size: 9
+    offset: 9
+    input: true
+  J:
+    size: 9
+    offset: 18
+    input: false
+  K:
+    size: 9
+    offset: 27
+    input: false
+  L:
+    size: 9
+    offset: 36
+    input: false

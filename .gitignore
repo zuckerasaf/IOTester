@@ -31,6 +31,13 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# Keep our main spec file
+!IOTester.spec
+
+# Windows Installer (Inno Setup output)
+installer_output/
+*.exe
+*.msi
 
 # Installer logs
 pip-log.txt
@@ -215,6 +222,8 @@ src/hw_tester/web/~$IO_Tester_logic_Power_test.xlsm
 *.svg
 *.html
 *.xlsx
+*.zip
+*.pdf
 tests/DB/Demo/JDemo.xlsx
 tests/DB/MTC_AFT/J17_Armant_1.xlsx
 tests/DB/Demo/JDemo.xlsx
@@ -242,3 +251,4 @@ tests/Results/Base_Doc/template_docs/configuration.jpg
 tests/Results/IO_Tester_FRS_V1.txt
 tests/Results/P (127.0.0.1c$FileServerMasada) (P) - Shortcut.lnk
 tests/DB/Demo/JDemo.xlsx
+src/hw_tester/web/trace.json

@@ -56,6 +56,7 @@ Source: "docs\*.txt"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Documentation"; Filename: "{app}\docs"
+Name: "{group}\Wiki"; Filename: "{app}\site\index.html"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon

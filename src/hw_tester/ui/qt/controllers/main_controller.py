@@ -25,7 +25,7 @@ import yaml
 
 from hw_tester.utils.read_excell import load_connector_from_excel
 from hw_tester.hardware.pin import Connector, Pin, TestResult
-from hw_tester.utils.config_loader import load_settings, save_settings, get_board_pin_map, get_board_pin_config, resolve_config_path
+from hw_tester.utils.config_loader import load_settings, save_settings, get_board_pin_map, get_board_pin_config, resolve_config_path, get_project_root
 from hw_tester.core.test_handle import TestHandle
 from hw_tester.core.measurer import Measurer
 from hw_tester.core.pin_pulser import PinPulser
@@ -261,6 +261,7 @@ class MainController:
         self.main_window.btn_connection.clicked.connect(self.on_localhost_toggle)
         self.main_window.btn_debug.clicked.connect(self.on_debug_toggle)
         self.main_window.btn_next.clicked.connect(self.on_next)
+        self.main_window.btn_wiki.clicked.connect(self.on_wiki)
         self.main_window.btn_keepalive.clicked.connect(self.on_comm_check)
         self.main_window.btn_ibit.clicked.connect(self.on_ibit)
         self.main_window.btn_stop_ibit.clicked.connect(self.on_stop_ibit)
@@ -1166,6 +1167,27 @@ class MainController:
         self.next_event.set()
         self.main_window.log.append("Next button pressed - resuming execution", "INFO")
     
+    def on_wiki(self):
+        """Handle Wiki button click - open the local MkDocs documentation site."""
+        # Frozen EXE ships the built site/ folder next to the executable; dev mode uses the repo's mkdocs output.
+        exe_dir = Path(sys.argv[0]).resolve().parent
+        site_index = exe_dir / "site" / "index.html"
+        if not site_index.exists():
+            site_index = get_project_root() / "site" / "index.html"
+        if not site_index.exists():
+            self.main_window.log.append(f"Wiki site not found: {site_index}", "WARNING")
+            self._show_message(
+                "Wiki Not Found",
+                f"Documentation site not found at:\n{site_index}\n\nRun 'mkdocs build' to generate it.",
+                "warning"
+            )
+            return
+        try:
+            webbrowser.open(site_index.as_uri())
+            self.main_window.log.append(f"Opened Wiki: {site_index.as_uri()}", "SUCCESS")
+        except Exception as e:
+            self.main_window.log.append(f"Error opening Wiki: {str(e)}", "ERROR")
+    
     def on_comm_check(self):
         """
         Handle Comm Check button click - pulse all digital ports for the configured board.
@@ -1412,86 +1434,6 @@ class MainController:
         self.main_window.btn_stop_ibit.setEnabled(False)
         self.main_window.btn_ibit.setEnabled(True)
         self.main_window.log.append("I_Bit test sequence completed", "SUCCESS")
-    
-    def on_html_file_change(self, filename: str):
-        """
-        Handle HTML file selection change from debug options combo box.
-        Starts HTTP server and opens selected HTML file in browser.
-        
-        Args:
-            filename: Selected HTML filename or "none"
-        """
-        if filename == "none":
-            # Clear trace.json to remove old data
-            self._clear_trace_file()
-            
-            # Stop HTTP server if running
-            if self.http_server_process is not None:
-                self.main_window.log.append("Stopping HTTP server...", "INFO")
-                try:
-                    self.http_server_process.terminate()
-                    self.http_server_process.wait(timeout=3)
-                    self.http_server_process = None
-                    self.main_window.log.append("HTTP server stopped", "SUCCESS")
-                except Exception as e:
-                    self.main_window.log.append(f"Error stopping HTTP server: {str(e)}", "ERROR")
-            return
-        
-        # Get web directory path
-        # main_controller.py -> qt -> ui -> hw_tester -> web
-        web_dir = Path(__file__).resolve().parent.parent.parent.parent / "web"
-        
-        # Start HTTP server if not already running
-        if self.http_server_process is None:
-            self.main_window.log.append(f"Starting HTTP server (no-cache) in {web_dir}...", "INFO")
-            try:
-                # Use custom server script that disables caching for trace.json
-                server_script = web_dir / "serve_nocache.py"
-                # Start server in visible console window so we can see trace_writer and SSE logs
-                # This helps diagnose trace update issues
-                self.http_server_process = subprocess.Popen(
-                    [sys.executable, str(server_script)],
-                    cwd=str(web_dir)
-                )
-                # Give server time to start
-                time.sleep(0.5)
-                self.main_window.log.append("HTTP server started on port 8000 (trace.json caching disabled)", "SUCCESS")
-            except Exception as e:
-                self.main_window.log.append(f"Error starting HTTP server: {str(e)}", "ERROR")
-                self._show_message(
-                    "HTTP Server Error",
-                    f"Failed to start HTTP server:\\n{str(e)}",
-                    "critical"
-                )
-                return
-        
-        # Open HTML file in browser
-        url = f"http://localhost:8000/{filename}"
-        self.main_window.log.append(f"Opening {filename} in browser...", "INFO")
-        try:
-            webbrowser.open(url)
-            self.main_window.log.append(f"Opened {url} in default browser", "SUCCESS")
-        except Exception as e:
-            self.main_window.log.append(f"Error opening browser: {str(e)}", "ERROR")
-            self._show_message(
-                "Browser Error",
-                f"Failed to open browser:\\n{str(e)}",
-                "critical"
-            )
-    
-    def _clear_trace_file(self):
-        """Clear trace.json file to prevent displaying old data."""
-        try:
-            # main_controller.py -> qt -> ui -> hw_tester -> web
-            web_dir = Path(__file__).resolve().parent.parent.parent.parent / "web"
-            trace_file = web_dir / "trace.json"
-            
-            if trace_file.exists():
-                # Write empty array to trace.json
-                trace_file.write_text("[]")
-                self.main_window.log.append("Cleared trace.json", "DEBUG")
-        except Exception as e:
-            self.main_window.log.append(f"Error clearing trace.json: {str(e)}", "WARNING")
     
     def on_test(self):
         """Handle Test button click - Execute test sequence on selected pins."""

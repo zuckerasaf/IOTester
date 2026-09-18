@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 from hw_tester.core.test_power import power_test
 from hw_tester.core.test_pullUp import pullup_test
 from hw_tester.core.test_logic import logic_test
+from hw_tester.core.test_cable_one_box import Cable_test
 from hw_tester.hardware.pin import TestResult
 from hw_tester.hardware.controllino_io import connector_pin_to_bits
 from hw_tester.utils.general import (
@@ -68,13 +69,6 @@ class TestHandle:
             ID: Debug checkpoint ID
             status: Status of checkpoint ("active" or "done")
         """
-        from hw_tester.web.trace_writer import trace_step
-        
-        trace_step(ID, status)
-        
-        # Small delay to ensure trace.json is written and visible to browser
-        time.sleep(0.05)  # 50ms - enough for file system sync
-
         self.log(f"in node {ID} Waiting for Next button press to continue...", "INFO")
         self.next_event.wait()  # Wait for Next button press
         self.next_event.clear()  # Reset event for next pause
@@ -380,15 +374,23 @@ class TestHandle:
                 pullup_expected_str = pin_row.get("PullUp_Input", "").strip()
                 logic_Expected_str = pin_row.get("Logic_Expected", "").strip()
                 logic_Command_str = pin_row.get("Logic_Command", "").strip()
+                cable_test_Type_str = pin_row.get("Type", "").strip()
+                cable_test_Card_str = pin_row.get("Card", "").strip()
 
                 run_power_test = (power_expected_str != "" and power_expected_str != "-")
                 run_pullup_test = (pullup_expected_str != "" and pullup_expected_str != "-")
                 run_logic_test = (logic_Expected_str != "" and logic_Expected_str != "-")
+                run_cable_test = (cable_test_Type_str == "Cable" or cable_test_Card_str == "Cable")
+                if run_cable_test:
+                    self.log(f"Running Cable Test for pin {pin.Id}", "INFO")
+                    run_power_test = False
+                    run_pullup_test = False
+                    run_logic_test = False
                 
                 # Run tests
                 # Clear mux bits before setting new ones
                 clear_mux_bits(self.pin_map, self.hardware, self.log)
-                print(f"★★★ DEBUG: About to run tests - power={run_power_test}, pullup={run_pullup_test}, logic={run_logic_test}")
+                print(f"★★★ DEBUG: About to run tests - power={run_power_test}, pullup={run_pullup_test}, logic={run_logic_test}, cable={run_cable_test}")
                 if run_power_test:
                     print(f"★★★ DEBUG: Starting power test for pin {pin.Id}")
                     self.log(f"Running Power Test for pin {pin.Id}", "INFO")
@@ -474,7 +476,27 @@ class TestHandle:
                                 "Logic_DI_Result": lr,
                                 "Logic_DI_Result_Reason": r
                             }))
-                
+
+                if run_cable_test:
+                    logic_result = Cable_test(self, pin, all_rows)
+                    Logic_test_voltage,Logic_test_result,logic_test_message = logic_result
+                    pin.Logic_DI_Result = Logic_test_result
+                    self.log(
+                            f"Logic Test: Result={'PASS' if pin.Logic_DI_Result else 'FAIL'} - {logic_test_message}",
+                            "SUCCESS" if pin.Logic_DI_Result else "WARNING"
+                        )
+                        # Update table immediately after logic test
+                        # Capture values to avoid lambda closure issues
+                    pin_id_local = pin.Id
+                    logic_result_str = "Pass" if pin.Logic_DI_Result else "Fail"
+                    logic_reason = logic_test_message
+                    pin_row["Logic_DI_Result"] = logic_result_str
+                    pin_row["Logic_DI_Result_Reason"] = logic_reason
+                    root.after(0, lambda pid=pin_id_local, lr=logic_result_str, r=logic_reason:
+                            pin_table.update_row(pid, {
+                                "Logic_DI_Result": lr,
+                                "Logic_DI_Result_Reason": r
+                            }))
                 # Keep indicator visible for a moment so user can see it
                 time.sleep(0.3)
                 

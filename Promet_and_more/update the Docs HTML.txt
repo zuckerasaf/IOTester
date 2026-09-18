@@ -1,0 +1,29 @@
+You are helping me keep the documentation for IO Tester up to date.
+
+The docs live in the ./docs folder and are built with MkDocs (Material theme).
+The structure is:
+
+  docs/index.md                    - home page
+  docs/guide/quick-start.md        - quick start guide
+  docs/guide/user-manual.md        - full user manual
+  docs/design/design-document.md   - architecture and design
+  docs/design/system-flows.md      - operational flows and internals
+  docs/reference/error-messages.md - error message reference
+
+WHAT CHANGED:
+[Describe your changes here. Be as specific as possible. Examples:
+  - "Added a new button called Export CSV in the Run Controls group"
+  - "Changed the default COM port from COM5 to COM3"
+  - "Added a new error: 'Card timeout on C3' with cause X and fix Y"
+  - "The I-BIT test now covers 60 pins instead of 50"
+  - "Renamed the LocalHost button to Loopback Mode"]
+
+YOUR TASK:
+1. Tell me which doc files need to change based on what I described.
+2. For each affected file, show me exactly what to add, remove, or edit.
+   Use the same Markdown style and structure already in the file.
+3. If the change affects the mkdocs.yml nav (e.g. a new page is needed),
+   show me that update too.
+4. Do not rewrite sections that are unaffected by the change.
+5. If anything I described is ambiguous, ask me before making changes.
+6. Do not invent details I have not told you. If something is unclear, flag it.
