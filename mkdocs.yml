@@ -41,6 +41,10 @@ nav:
   - User Guide:
     - Quick Start: guide/quick-start.md
     - User Manual: guide/user-manual.md
+    - I-BIT Test: guide/ibit-test.md
+    - Power Test: guide/power-test.md
+    - PullUp Test: guide/pullup-test.md
+    - Logic Test: guide/logic-test.md
   - Design:
     - Design Document: design/design-document.md
     - System Flows: design/system-flows.md

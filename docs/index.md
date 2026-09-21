@@ -2,12 +2,17 @@
 
 IO Tester is a hardware verification application used to test the electrical integrity of connector pins on a unit under test (UUT). It drives stimulus signals through IO Spider cards and measures the resulting voltages through a Controllino Mega microcontroller, then compares them to expected values defined in a test Excel file.
 
-## Three test types are supported per pin
+## Four UUT test types are supported per pin
 
-- **Power Test** - measures DC voltage on the pin, the test can done be with Analog output command 
-- **Pull-Up Test** - activates a pull-up and measures the resulting voltage enbale , the test can done be with Digital output command  
-- **Logic Test** - connect 2 pins on the connecter and reads a digital \ analog  input incoder value 
+- **Power Test** - measures DC voltage on the pin, the test can include Analog Output (AO) command 
+- **Pull-Up Test** - activates a pull-up and measures the resulting voltage enbale , the test can include  Digital Output (DO) command  
+- **Logic Test** - create connetion betaeen pins on the connecter and reads the outcome Digital Input (DI) or Analog  Input (AI) or Incrametal Encoder (IE), the test can include  Digital Output (DO) command  
 - **Cable Test** - TBD
+
+## Two internal system tests
+
+- **Comm Test** - Checks communication with the Controllino board and IO Box. reports whether the hardware connection is available for testing.
+- **I-BIT Test** - Scans connector pins on systems A and B for circuit faults, then optionally checks the card fuses paths using the fuse-test cable. 
 
 Results are colour-coded in the pin table and can be exported to an Excel report.
 

@@ -17,33 +17,27 @@ if TYPE_CHECKING:
 
 def power_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
     """
-    Run power test on a pin.
-    
+    Run the power test for one connector pin.
+
     Test Procedure:
-    1. Get pair info (voltage_measure_pin, card enables, etc.) for connector pin
-    2. Convert connector pin number to bit pattern and set mux matrix (D0-D15)
-    3. Measure initial voltage on pair-specific analog pin
-    4. If Power_Input == "none" or empty:
-       - Compare initial measurement to Power_Expected
-       - Return result (pass/fail based on voltage tolerance)
-    5. If Power_Input is specified (e.g., "C2_AO2V10"):
-       - Verify initial measurement is ~0V (within tolerance)
-       - Parse Power_Input string to get card, event type (AO/DO), number, and value
-       - Activate card output (set AO voltage or DO state)
-       - Wait for signal stabilization
-       - Measure voltage again
-       - Deactivate card output (set to 0V or False)
-       - Compare measurement to Power_Expected
-       - Return result (pass/fail based on voltage tolerance)
+    1. Resolve the pin pair and analog measurement pin.
+    2. Route the connector pin through the mux matrix.
+    3. Measure the initial voltage.
+    4. If Power_Input is empty or "P"|"Power", compare the measurement with Power_Expected.
+    5. If Power_Input is configured, verify the initial voltage is near 0V.
+    6. Activate and verify the configured card AO or DO output.
+    7. Measure the voltage after activation and compare it with Power_Expected.
+    8. Deactivate and verify the card output before returning.
     
     Args:
-        pin: Pin object containing test parameters (Id, Power_Expected, Power_Input, etc.)
-        
+        test_handle: TestHandle instance providing hardware, settings, logging,
+            measurement, mux, and card-control dependencies.
+        pin: Pin object containing Id, Power_Expected, and optional Power_Input.
+
     Returns:
-        Tuple of (measured_voltage, success, message):
-            - measured_voltage: Final voltage reading in volts
-            - success: True if measurement within tolerance, False otherwise
-            - message: Descriptive message about test result or error
+        Tuple of (measured_voltage, success, message), where measured_voltage is
+        the final voltage in volts, success indicates whether validation passed,
+        and message describes the result or failure.
     """
 
     self = test_handle

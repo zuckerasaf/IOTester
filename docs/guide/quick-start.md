@@ -37,6 +37,8 @@ or in local host mode
 
 If you see a WARNING about connection, see [Troubleshooting](#troubleshooting) below.
 
+![IO Tester application layout](../assets/images/application-layout.svg)
+
 ---
 
 ## Step 2 - Verify communication
@@ -68,7 +70,6 @@ Click **[ Test_All ]**.
 The tester will work through every pin automatically:
 
 - The currently-tested row turns **YELLOW**
-- Pass results turn **GREEN** | Fail results turn **PINK**
 - The "Testing Pin / Power / Pullup / Logic" status bar updates live
 
 ### To test selected pins only

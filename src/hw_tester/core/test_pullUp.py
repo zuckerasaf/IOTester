@@ -16,38 +16,29 @@ if TYPE_CHECKING:
 
 def pullup_test(test_handle, pin: "Pin") -> tuple[float, bool, str]:
     """
-    Run pullup test on a pin.
-    
+    Run the pull-up test for one connector pin.
+
     Test Procedure:
-    1. Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
-    2. Convert connector pin number to bit pattern and set mux matrix (D0-D15)
-    3. Measure initial voltage on pair-specific analog pin
-    4. Verify initial measurement is ~0V (within tolerance)
-    5. Activate pullup_pin_key (set HIGH)
-    6. Wait for signal stabilization
-    7. Measure voltage again
-    8. Check that measured voltage matches PullUp_Expected (within tolerance), if not return with warning
-    9. Parse PullUp_Input data
-    10. If PullUp_Input == "G": deactivate pullup_pin_key (set LOW) and return
-    11. Else:
-        - Activate the DO (set_digital_output) according to data in PullUp_Input (card_id, do_number, state)
-        - Read the DO status (get_digital_output)
-        - Check DO was changed as requested, if not return with warning
-        - Measure voltage again
-        - Check that measured voltage is ~0V (within tolerance), if not return with warning
-        - Deactivate pullup_pin_key (set LOW)
-        - Deactivate the DO (set_digital_output)
-        - Read the DO status (get_digital_output)
-        - Check DO was changed as requested, if not return with warning
+    1. Resolve the pin pair, analog measurement pin, and pull-up pin.
+    2. Route the connector pin through the mux matrix.
+    3. Activate the configured pull-up behavior and wait for stabilization.
+    4. Verify the initial measurement is near 0V.
+    5. Close the general relay and measure the pull-up voltage.
+    6. Compare the voltage with PullUp_Expected.
+    7. If PullUp_Input is G or "Ground" verify the initial voltage is near 0V, deactivate the pull-up and finish.
+    8. Otherwise, activate and verify the configured card DO output.
+    9. Measure the resulting voltage and verify the expected state.
+    10. Deactivate the pull-up, relay, and card output, then verify cleanup.
     
     Args:
-        pin: Pin object containing test parameters (Id, PullUp_Expected, PullUp_Input, etc.)
-        
+        test_handle: TestHandle instance providing hardware, settings, logging,
+            measurement, mux, relay, and card-control dependencies.
+        pin: Pin object containing Id, PullUp_Expected, and PullUp_Input.
+
     Returns:
-        Tuple of (measured_voltage, success, message):
-            - measured_voltage: Final voltage reading in volts
-            - success: True if measurement within tolerance, False otherwise
-            - message: Descriptive message about test result or error
+        Tuple of (measured_voltage, success, message), where measured_voltage is
+        the final voltage in volts, success indicates whether validation passed,
+        and message describes the result or failure.
     """
 
     self = test_handle

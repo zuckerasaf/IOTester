@@ -119,6 +119,7 @@ scale:
   zero_voltage_threshold: 0.5
   Analog_voltage_threshold: 13.0
   logic_voltage_threshold: 4.0
+  fuse_voltage_test: 5.0
 Paths:
   Path_1: .
   Path_2: pin_map.json

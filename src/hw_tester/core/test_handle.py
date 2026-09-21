@@ -127,177 +127,36 @@ class TestHandle:
 
     
    
-    def run_i_bit_test(self) -> tuple[int, int, bool]:
-        """
-        Run I_Bit test (relay fuse tests + short circuit test).
-        This function is intended to be run in a separate thread.
-        """
-        is_simulation = self.settings.get('Board', {}).get('simulation', True)
-
-        pinNumber = 51 #51 
-        ibit_A = self.measure_all_pins_system("a",4.0, is_simulation, pinNumber)
-        ibit_B = self.measure_all_pins_system("b",4.0, is_simulation, pinNumber)
-        total_count = len(ibit_A[0]) + len(ibit_B[0])
-        failed_count = len(ibit_A[2]) + len(ibit_B[2])
-        passed_count = total_count - failed_count
-        success = (passed_count == total_count)
-        self.log(
-            f"Ibit Circuit Test complete: {passed_count}/{total_count} pins PASSED",
-            "SUCCESS" if success else "WARNING"
-        )
-        self.log(f"Ibit result: {'SUCCESS' if success else 'FAILURE'}", "SUCCESS" if success else "ERROR")
-        return passed_count, total_count, success
-    
-    def measure_all_pins_system(self, system: str, voltage: float, isSimulate: bool, pinNumber ) -> tuple[list[float], bool, list[dict]]:
-        """
-        System measurement - loop run with validation.
-        Test Procedure:
-        1. For each pin 1-50 in system "System": Get pair info (voltage_measure_pin, pullup_pin, card enables, etc.) for connector pin
-        2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - select the pin
-        3. Measure voltage on pair-specific analog pin
-        4. Validate measurements - pins should measure ~0V (within tolerance)
-        5. Write result to log: "Pin (number) on system 'System' (mux address) Volt measurement (voltage) - pass/fail"
-        6. Pullup activate
-        7. Wait 1 sec
-        8. Validate measurements - pins should measure input "Expected voltage" (within tolerance)
-        9. Write result to log: "Pin (number) on system 'System' (mux address) Volt measurement (voltage) - pass/fail"
-        10. Wait 1 sec - pullup deactivate, deselect the pin
-        11. Return result (array of 50 voltage measurement values + pass/fail status + failed pins list)
-        Args:
-            system: "A" or "B"
-            voltage: Expected voltage value on the specified pin
-            isSimulate: If True, simulate measurements
-        Returns:
-            tuple[list[float], bool, list[dict]]: 
-                - Array of 50 final voltage readings in volts
-                - True if all measurements pass validation, False otherwise
-                - List of failed pins with format: [{'pin': int, 'measured': float, 'expected': float}, ...]
-        """
-        voltage_measurements = []
-        failed_pins = []
-        voltage_scale = 1
-        tolerance = self.settings.get('Test', {}).get('voltage_degredation', 3.0)
-        pins_to_stabilize = self.settings.get('Timeouts', {}).get('pins_to_stabilize', 0.5)
-        all_tests_passed = True
-
-        if get_debug_setting(self.settings, "Ibit_Test"):
-            self.log(f"start I_Bit test for all the pins ", "INFO")
-            self.wait_debug(500, "active")
-        for current_pin in range(1, pinNumber):
-            if not self.running_ibit:
-                self.log("I_Bit test stopped by user", "WARNING")
-                break
-            
-            try:
-                # Step 0: Clear mux bits before next pin
-                clear_max= clear_mux_bits(self.pin_map, self.hardware, self.log)
-                if not clear_max:
-                    self.log(f"Failed to clear mux bits before testing pin {current_pin} on system {system}", "WARNING")
-                    break
-
-                # Step 1: Get pair info
-                pair_num, voltage_pin_key, voltage_pin_b_key, pullup_pin_key, card_enable_a_key, card_enable_b_key, relay_enable_a_key, relay_enable_b_key = get_pin_pair_info_controlino(current_pin)
-                voltage_pin_name = self.board_config.get(voltage_pin_key if system.upper() == "A" else voltage_pin_b_key, 'A0')
-                pullup_pin_name = self.board_config.get(pullup_pin_key, 'D23')
-                # Step 2: Set mux for this system
-                bits = connector_pin_to_bits(current_pin, system.lower())
-                success = set_mux_bits(bits, current_pin, self.pin_map, self.hardware, self.settings, self.log)
-                if not success:
-                    self.log(f"Failed to set mux bits for pin {current_pin}", "WARNING")
-                    voltage_measurements.append(0.0)
-                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
-                    all_tests_passed = False
-                    continue
-                analog_ports = self.pin_map.get('A', {})
-                analog_port = analog_ports.get(voltage_pin_name)
-                mux_addr = f"{system.upper()}:{current_pin}"  # Example mux address
-                if analog_port is None:
-                    self.log(f"Analog pin {voltage_pin_name} not found in pin map for pin {current_pin}", "WARNING")
-                    voltage_measurements.append(0.0)
-                    failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
-                    all_tests_passed = False
-                    break
-                # Step 3: Measure voltage (before pullup)
-                if isSimulate:
-                    time.sleep(0.1)
-                    measured_voltage = random.uniform(-0.05, 0.05)
-                else:
-                    measured_voltage = self.measurer.measure_voltage(analog_port) * voltage_scale
-                # Step 4: Validate ~0V
-                if abs(measured_voltage) <= tolerance:
-                    self.log(f"Pin {current_pin} on system {system} ({bits}) Volt measurement {measured_voltage:.3f}V - PASS (expected ~0V)", "SUCCESS")
-                else:
-                    self.log(f"Pin {current_pin} on system {system} ({bits}) Volt measurement {measured_voltage:.3f}V - FAIL (expected ~0V)", "WARNING")
-                    failed_pins.append({'pin': current_pin, 'measured': measured_voltage, 'expected': 0.0})
-                    all_tests_passed = False
-                
-                if get_debug_setting(self.settings, "Ibit_Test"):
-                    self.wait_debug(560, "active")
-                voltage_measurements.append(measured_voltage)
-                # Step 6: Pullup activate
-                digital_ports = self.pin_map.get('D', {})
-                pullup_physical_pin = digital_ports.get(pullup_pin_name)
-                if pullup_physical_pin is None:
-                    self.log(f"Pullup pin {pullup_pin_name} not found in pin map for pin {current_pin}", "WARNING")
-                    all_tests_passed = False
-                    continue
-                self.hardware.digital_write(pullup_physical_pin, True)
-                # Step 7: Wait 1 sec
-                time.sleep(pins_to_stabilize)
-
-                # Step 7.1: close Relay 15
-                relay_connect = self.relay_general_operate(True)
-                if relay_connect == False:
-                    return (0, False, f"the relay logic didnt operate")
-        
-                # Step 8: Measure voltage (after pullup)
-                if isSimulate:
-                    measured_voltage_pullup = voltage + random.uniform(-0.1, 0.1)
-                else:
-                    measured_voltage_pullup = self.measurer.measure_voltage(analog_port) * voltage_scale
-                # Step 9: Validate expected voltage
-                voltage_diff = abs(measured_voltage_pullup - voltage)
-                if voltage_diff <= tolerance:
-                    self.log(f"Pin {current_pin} on system {system} ({mux_addr}) Volt measurement {measured_voltage_pullup:.3f}V - PASS (expected {voltage}V)", "SUCCESS")
-                else:
-                    self.log(f"Pin {current_pin} on system {system} ({mux_addr}) Volt measurement {measured_voltage_pullup:.3f}V - FAIL (expected {voltage}V, diff: {voltage_diff:.3f}V)", "WARNING")
-                    failed_pins.append({'pin': current_pin, 'measured': measured_voltage_pullup, 'expected': voltage})
-                    all_tests_passed = False
-                
-                if get_debug_setting(self.settings, "Ibit_Test"):
-                    self.wait_debug(600, "active")
-                # Step 10: Wait 1 sec, pullup deactivate, deselect pin
-                time.sleep(pins_to_stabilize)
-                self.hardware.digital_write(pullup_physical_pin, False)
-                time.sleep(pins_to_stabilize)
-                #clear_bits(bits, self.pin_map, self.hardware, self.log)
-            except Exception as e:
-                self.log(f"Error processing pin {current_pin} on system {system}: {str(e)}\n{traceback.format_exc()}", "ERROR")
-                voltage_measurements.append(0.0)
-                failed_pins.append({'pin': current_pin, 'measured': 0.0, 'expected': 0.0})
-                all_tests_passed = False
-        
-        # Step 10: open Relay 15       
-        relay_connect = self.relay_general_operate(False)
-        if relay_connect == False:
-            return (0, False, f"the relay logic didnt operate")
-        result_msg = "SUCCESS" if all_tests_passed else "FAILED"
-        clear_bits(bits, self.pin_map, self.hardware, self.log)
-        self.log(f"System {system} measurement complete: {len(voltage_measurements)} pins measured - {result_msg} - {len(failed_pins)} failures", "SUCCESS" if all_tests_passed else "WARNING")
-        return voltage_measurements, all_tests_passed, failed_pins
-    
-    
-
     def run_tests(self, selected_ids, all_rows, root, pin_table, on_test_complete):
         """
-        Execute test sequence on selected pins.
-        
+        Execute the configured test sequence for the selected connector pins.
+
+        Test Procedure:
+        1. Check the running flag and stop cleanly if the user requests a stop.
+        2. Find each selected pin row and create a Pin object from its values.
+        3. Select tests from the row data:
+           - Power test when Power_Expected is populated.
+           - PullUp test when PullUp_Input is populated.
+           - Logic test when Logic_Expected is populated.
+           - Cable test when Type or Card is "Cable".
+        4. If a Cable test is selected, skip Power, PullUp, and Logic tests for
+           that row.
+        5. Clear the mux matrix before running the selected test functions.
+        6. Run power_test(), pullup_test(), logic_test(), or Cable_test() and
+           update the corresponding row results after each test.
+        7. Clear the testing indicator and schedule the completion callback.
+
         Args:
-            selected_ids: List of selected pin IDs to test
-            all_rows: All pin table rows
-            root: Tkinter root for after() calls
-            pin_table: Pin table view for updating results
-            on_test_complete: Callback function when tests complete
+            selected_ids: List of selected pin IDs to test.
+            all_rows: All pin table rows used to create Pin objects and select
+                the configured tests.
+            root: UI root object providing after() for thread-safe updates.
+            pin_table: Pin table view used for testing indicators and results.
+            on_test_complete: Callback invoked after all selected pins finish.
+
+        Returns:
+            None. Test results are written into the pin table and operational
+            log, then on_test_complete is scheduled on the UI thread.
         """
         from hw_tester.hardware.pin import Pin
         

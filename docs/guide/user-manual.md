@@ -6,13 +6,22 @@
 
 ## 1. Overview
 
-IO Tester is a hardware verification application used to test the electrical integrity of connector pins on a unit under test (UUT). It drives stimulus signals through IO cards (C1-C5) and measures the resulting voltages through a Controllino Mega microcontroller, then compares them to expected values defined in a test Excel file.
+IO Tester is a hardware verification application used to test the electrical integrity of connector pins on a unit under test (UUT). It drives stimulus signals through IO Spider cards and measures the resulting voltages through a Controllino Mega microcontroller, then compares them to expected values defined in a test Excel file.
 
-Three test types are supported per pin:
+## Four UUT test types are supported per pin
 
-- **Power Test** - measures DC voltage on the pin
-- **Pull-Up Test** - activates a pull-up and measures the resulting voltage
-- **Logic Test** - commands a digital output and reads a digital input
+- **Power Test** - measures DC voltage on the pin, the test can include Analog Output (AO) command 
+- **Pull-Up Test** - activates a pull-up and measures the resulting voltage enbale , the test can include  Digital Output (DO) command  
+- **Logic Test** - create connetion betaeen pins on the connecter and reads the outcome Digital Input (DI) or Analog  Input (AI) or Incrametal Encoder (IE), the test can include  Digital Output (DO) command  
+- **Cable Test** - TBD
+
+## Two internal system tests
+
+- **Comm Test** - Checks communication with the Controllino board and IO Box. reports whether the hardware connection is available for testing.
+- **I-BIT Test** - Scans connector pins on systems A and B for circuit faults, then optionally checks the card fuses paths using the fuse-test cable.
+
+The separate test guides describe each procedure, configuration field, result,
+and failure condition in detail.
 
 Results are colour-coded in the pin table and can be exported to an Excel report.
 
@@ -22,8 +31,8 @@ Results are colour-coded in the pin table and can be exported to an Excel report
 
 **Hardware:**
 
-- Controllino Mega connected via USB (serial COM port)
-- IO Cards C1-C5 connected to the test network (192.168.195.x)
+- Teste box (Controllino Mega) connected via USB (serial COM port)
+- IO Box Connected to the test network (192.168.195.x)
 - UUT connected to the test fixture
 
 **Software / OS:**
@@ -43,22 +52,16 @@ Results are colour-coded in the pin table and can be exported to an Excel report
 
 ## 3. Application layout
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  Pin Table  (scrollable, 22 columns)                                     │
-│  Rows colour: yellow=testing  green=pass  pink=fail  dark=not tested     │
-├──────────────────┬──────────────────────────┬───────┬────────────────────┤
-│ Connector / File │     Run Controls          │  Log  │  Test / Debug      │
-│ Settings  Load   │ Test  Test_All  Stop      │  INF  │ Comm Check  Sim    │
-│ Report    DOC    │ Testing Pin:  Power:  …   │  SUC  │ IBIT        Local  │
-│                  │                           │  WRN  │ Stop IBIT   Next   │
-│                  │                           │  ERR  │             Debug  │
-│                  │                           │  DBG  │        [html file] │
-│                  │                           │ Clear │                    │
-├──────────────────┴──────────────────────────┴───────┴────────────────────┤
-│  Operational Log                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+The Qt application window is organized into three vertical areas:
+
+1. **Pin Table** at the top, showing loaded connector pins and results.
+2. **Control groups** in the middle: Connector / File, Run Controls, Log, and Test/Debug.
+3. **Operational Log** at the bottom, showing live application and test messages.
+
+![IO Tester application layout](../assets/images/application-layout.svg)
+
+The layout contains the pin table at the top, four control groups in the
+middle, and the Operational Log across the bottom.
 
 ---
 
@@ -69,7 +72,8 @@ Results are colour-coded in the pin table and can be exported to an Excel report
 | **Settings** | Opens `Comm_settings.yaml` in the system text editor. Changes take effect on the next application launch. |
 | **Load** | Opens a file browser to select an Excel test file (`.xlsx` or `.xlsm`). Populates the pin table and enables Test / Test_All. |
 | **Report** | Saves the current pin table (including all test results) to an Excel file. |
-| **DOC** | Opens the HTML flow diagram for the currently selected debug scenario in the default web browser. A local HTTP server starts automatically. Click DOC again to stop the server. |
+| **DOC** | Opens a dialog to generate a Word document report from the available test data. |
+| **Fails** | Opens a dialog to create a combined Excel report containing rows with failed results. |
 
 The **Connector** field (read-only) displays the name of the currently loaded connector / test file.
 
@@ -121,7 +125,8 @@ The checkboxes filter which message types appear in the Operational Log:
 | **LocalHost** | Switches IO card communication between network mode (192.168.195.x) and loopback mode (127.0.0.1). Setting is saved automatically. |
 | **Next** | Used in Debug/Step mode only. Advances the test to the next checkpoint. |
 | **Debug: True/False** | Enables or disables step-by-step debug mode. |
-| **HTML file dropdown** | Selects which HTML flow diagram is opened by the DOC button. |
+| **Wiki** | Opens the local HTML documentation site generated from the Markdown guides. |
+| **Preset** | Selects the visible pin-table column preset. |
 
 ---
 
@@ -129,38 +134,36 @@ The checkboxes filter which message types appear in the Operational Log:
 
 The pin table displays all pins from the loaded test file. It has 22 columns:
 
-| Column | Description |
-|---|---|
-| ID | Unique pin identifier (row number in test file) |
-| Connect | Connector identifier (e.g. J1, J2) |
-| Discrete Name | Functional name of the signal |
-| Signal Name | Electrical signal name |
-| Plug | Physical plug designation (e.g. 1P2) |
-| Type | Pin type (Gnd/open, Open, RELAY, etc.) |
-| Pin | Physical pin number on the connector |
-| Power Expected | Expected voltage (V) for power test |
-| Power Input | IO card command that applies the voltage (e.g. C1_AO2_10) |
-| Power Measured | Voltage actually measured during power test |
-| Power Result | Pass / Fail |
-| Power Reason | Explanation of the result |
-| PullUp Expected | Expected voltage after pull-up is activated |
-| PullUp Input | IO card command for the pull-up signal |
-| PullUp Measured | Voltage measured after pull-up |
-| PullUp Result | Pass / Fail |
-| PullUp Reason | Explanation of the result |
-| Logic Pin Input | IO card command for the logic stimulus |
-| Logic Command | Command sent to the IO card |
-| Logic Expected | Expected digital state (High / Low) |
-| Logic DI Result | Pass / Fail |
-| Logic DI Reason | Explanation of the result |
+| Column | Description | Editable |
+|---|---|---|
+| ID | Unique pin identifier (row number in test file) | No |
+| Connect | Connector identifier (e.g. J1, J2) | No |
+| Discrete Name | Functional name of the signal | No |
+| Signal Name | Electrical signal name | No |
+| Plug | Physical plug designation (e.g. 1P2) | No |
+| Type | Pin type (Gnd/open, Open, RELAY, etc.) | No |
+| Pin | Physical pin number on the connector | No |
+| Power Expected | Expected voltage (V) for power test | Yes |
+| Power Input | IO card AO/DO command that applies the voltage | Yes |
+| Power Measured | Voltage actually measured during power test | No |
+| Power Result | Pass / Fail | No |
+| Power Reason | Explanation of the result | No |
+| PullUp Expected | Expected voltage after pull-up is activated | Yes |
+| PullUp Input | Pull-up value or IO card DO command | Yes |
+| PullUp Measured | Voltage measured after pull-up | No |
+| PullUp Result | Pass / Fail | No |
+| PullUp Reason | Explanation of the result | No |
+| Logic Pin Input | Related pin number used by the Logic test | Yes |
+| Logic Command | Command sent to the IO card | Yes |
+| Logic Expected | Expected DI, AI, or IE value | Yes |
+| Logic DI Result | Pass / Fail | No |
+| Logic DI Reason | Explanation of the result | No |
 
 ### Row colours
 
 | Colour | Meaning |
 |---|---|
 | Yellow (bright) | This row is currently being tested |
-| Green | At least one test passed; no failures |
-| Pink | At least one test failed |
 | Dark (alternating) | Row has not been tested yet in this session |
 
 ### Sorting
@@ -188,56 +191,32 @@ Changes take effect immediately for the next test run.
 
 ## 9. Test types explained
 
-For each pin the tester determines which tests to run based on whether the corresponding Expected / Input columns are filled in the test file. A column left empty or set to `-` means that test is skipped for that pin.
+For each selected pin, the tester chooses tests from the loaded row values:
 
-### 9.1 Power test
+| Row condition | Action |
+|---|---|
+| `Power_Expected` is populated and is not `-` | Run Power test |
+| `PullUp_Input` is populated and is not `-` | Consider PullUp test |
+| `Logic_Expected` is populated and is not `-` | Run Logic test |
+| `Type` is `Cable` or `Card` is `Cable` | Run Cable test and skip Power, PullUp, and Logic |
 
-**Purpose:** Verify that the correct DC voltage is present on the pin.
+An empty field or `-` skips that test. The PullUp test has an additional
+prerequisite: the Power test must pass and `Power_Expected` must be `0.0 V`.
 
-**Procedure:**
+See the dedicated guides for complete procedures:
 
-1. The mux matrix routes the pin to the measurement ADC.
-2. If a `Power_Input` is specified (e.g. `C2_AO2_10`), the IO card applies the stimulus voltage before measurement.
-3. Voltage is measured via the Controllino analog input.
-4. Measured value is compared to `Power_Expected` ± tolerance.
-5. Result: Pass if within tolerance, Fail otherwise.
-
-**Power_Input format:** `C{card}_{type}{num}_{value}`
-
-```
-C2_AO2_10  →  Card 2, Analog Output 2, set to 10V
-C3_DO5_1   →  Card 3, Digital Output 5, set to HIGH
-```
-
-If `Power_Input` is empty, the voltage is measured passively.
-
-### 9.2 Pull-up test
-
-**Purpose:** Verify that a pull-up resistor network is functional.
-
-**Prerequisite:** Power test must have passed AND `Power_Expected` must be 0V. If power is present on the line, the pull-up test is skipped.
-
-**Procedure:**
-
-1. The pull-up pin (defined in `PullUp_Input`) is activated via the IO card digital output.
-2. The resulting voltage is measured.
-3. Compared to `PullUp_Expected` ± tolerance.
-
-### 9.3 Logic test
-
-**Purpose:** Verify discrete digital input/output functionality.
-
-**Procedure:**
-
-1. A digital command is sent to the IO card (`Logic_Command`).
-2. The resulting digital state of the pin is read back as a DI.
-3. Compared to `Logic_Expected` ("High" or "Low").
+- [Power Test](power-test.md)
+- [PullUp Test](pullup-test.md)
+- [Logic Test](logic-test.md)
 
 ---
 
 ## 10. I-BIT test (built-in test)
 
-The I-BIT test is an automated scan of all 50 connector pins on both system A and system B (100 measurements total). It does **not** require a test file to be loaded.
+For the complete I-BIT procedure, fuse-test cable instructions, configuration,
+results, and troubleshooting, see the dedicated [I-BIT Test Guide](ibit-test.md).
+
+The I-BIT test is an automated scan of all 50 connector pins on both system A and system B (100 circuit measurements total). It does **not** require a test file to be loaded.
 
 **Purpose:** Detect short-circuit or open-circuit faults across the full connector before running individual pin tests.
 
@@ -249,10 +228,19 @@ The I-BIT test is an automated scan of all 50 connector pins on both system A an
 4. Voltage measured AFTER pull-up (expected: ~4V).
 5. Both measurements compared to tolerances from settings.
 
+After the circuit scan, the application displays a fuse-test prompt:
+
+- **Continue** - connect the fuse-test cable to system A and run the fuse test.
+- **Ignore** - skip the fuse test; the skipped fuse result is treated as passed.
+
+The fuse test runs only on system A. It uses the dedicated
+`pullup_fuse_test` board pin and compares the post-pull-up voltage with
+`scale.fuse_voltage_test`.
+
 **Results:**
 
-- IBIT button turns **GREEN** - all 100 pins passed both measurements.
-- IBIT button turns **RED** - one or more pins failed.
+- IBIT button turns **GREEN** - all circuit checks passed and the fuse test passed or was ignored.
+- IBIT button turns **RED** - one or more circuit checks failed or the fuse test failed.
 - Full per-pin results in the Operational Log.
 
 Runtime: approximately 3-8 minutes depending on stabilization delays.
@@ -385,12 +373,10 @@ in node {N} Waiting for Next button press...
 
 **Advancing:** Click **[ Next ]** to proceed to the next checkpoint. Repeat until the test completes.
 
-**HTML visualization:**
+**Documentation and reports:**
 
-1. Select an HTML file in the dropdown (bottom of Test/Debug group).
-2. Click **[ DOC ]** to open the flow diagram in your browser.
-3. The currently active node in the flow is highlighted automatically.
-4. The browser polls for updates every 500 ms.
+- Click **[ DOC ]** in the Connector / File group to generate a Word document report.
+- Click **[ Wiki ]** in the Test/Debug group to open the local HTML documentation site.
 
 **Turning off:** Click **[ Debug: True ]** to toggle back to **[ Debug: False ]**.
 
@@ -406,12 +392,23 @@ in node {N} Waiting for Next button press...
 | Fail | The measured value is outside tolerance. |
 | --- | The test was not run (column empty in the test file, or skipped due to a prerequisite). |
 
-### 16.2 Pull-up test skip conditions
+### 16.2 Test selection and test skip conditions
 
-The PullUp test is automatically skipped if:
+Power, PullUp, and Logic tests are selected from populated row fields. The
+PullUp test is then automatically skipped if:
 
+- `PullUp_Input` is empty or `-`
 - `Power_Expected` is not 0V (the pin has DC power on it)
 - The Power test for that pin failed
+
+The Logic test is skipped when:
+
+- `Logic_Expected` is empty or `-`, so the row does not select a Logic test.
+- `Logic_Pin_Input` is empty or set to `none`; the Logic function logs that no
+  related pin was specified and returns a successful skip.
+
+Rows marked as Cable tests skip Power, PullUp, and Logic and use the Cable test
+path instead.
 
 The log will explain the skip with a WARNING message.
 
@@ -430,8 +427,22 @@ A measured voltage is considered Pass if: `|measured - expected| ≤ tolerance`
 
 - Before pull-up: measured voltage ≤ tolerance from 0V
 - After pull-up: `|measured - 4.0V| ≤ tolerance`
+- Fuse test, when Continue is selected: before fuse pull-up is approximately 0V and after fuse pull-up is within tolerance of `scale.fuse_voltage_test`
+- Fuse test, when Ignore is selected: fuse result is treated as passed
 
-### 16.5 Common failure reasons
+### 16.5 Comm Test pass/fail criteria
+
+The Comm Test passes only when both communication checks succeed:
+
+- Every configured Controllino digital port accepts the pulse sequence.
+- Every enabled IO card responds successfully to its network ping.
+
+The Comm Test fails when a digital port reports an invalid state, a pulse
+operation raises an error, an enabled IO card does not respond, or no enabled
+UDP cards are available. The Comm Check button turns green for success and red
+when the overall result fails.
+
+### 16.6 Common failure reasons
 
 | Reason | Description |
 |---|---|
@@ -439,6 +450,7 @@ A measured voltage is considered Pass if: `|measured - expected| ≤ tolerance`
 | "Analog pin not found in pin map" | The board configuration does not have a mapping for the required analog channel. |
 | "Failed to set mux bits" | The Controllino did not respond correctly to the matrix command. Run Comm Check. |
 | "Relay did not operate" | (I-BIT only) The general relay did not close/open as expected. Check relay wiring. |
+| Fuse test fails | Check the system-A fuse cable, `pullup_fuse_test`, and `scale.fuse_voltage_test`, or choose Ignore when the fuse test is not required. |
 
 ---
 
@@ -452,6 +464,8 @@ A measured voltage is considered Pass if: `|measured - expected| ≤ tolerance`
 | All pins Fail | Simulation mode ON / wrong connector map / UUT not seated | Toggle Simulation: Off; check fixture seating |
 | Test / Test_All greyed out | No file loaded | Click Load first |
 | Pull-up tests all skipped | `Power_Expected` ≠ 0 in test file | PullUp only runs when Power Expected = 0V |
+| Logic test fails immediately | Related pin is missing or has no passing Power result | Check `Logic_Pin_Input` and run the related pin's Power test first |
+| Fuse prompt appears | Circuit IBIT has completed | Connect the system-A fuse cable and choose Continue, or choose Ignore to skip |
 | I-BIT button stays dark | Test is complete | Normal - colour shows green=pass, red=fail |
 | Application does not start | Missing config files | Verify `config\` folder is present next to EXE |
 | Log window is empty | All log filters off | Check INF/SUC/WRN/ERR checkboxes in Log group |

@@ -18,30 +18,33 @@ if TYPE_CHECKING:
 
 def logic_test(test_handle, pin: "Pin", pin_table_rows: list) -> tuple[float, bool, str]:
     """
-    Run logic test on a pin.
-    
+    Run the logic test for one connector pin and its related pin.
+
     Test Procedure:
-    1. Get pair info (voltage_measure_pin, card enables, etc.) for connector pin
-    2. Convert connector pin number to bit pattern and set mux matrix (D0-D15) - system A
-    3. Read the pin number from the "Logic_Pin_Input" = will be defined as "second Pin"
-    4. Create "second Pin" according to the pin table and the second pin number
-    5. Check if "second Pin" power_result != pass or Power_Measured != "0" with tolerance, report wrong logic pin input data and return
-    6. Convert "second Pin" pin number to bit pattern and set mux matrix (D0-D15) - system B
-    7. Activate the two proper relays for pin and "second Pin"
-    8. Parse "Logic_Expected" data
-    9. Read the DI status (get_digital_input)
-    10. Check the read status as defined in the Logic_Expected, if not return with warning
-    11. Deactivate the Relay cards
-    12. Return result (status)
-    
+    1. Resolve and route the primary pin on system A.
+    2. Read the related pin number from Logic_Pin_Input.
+    3. Find the related pin in the loaded pin table.
+    4. Verify that the related pin has a passing Power result.
+    5. Validate the measured power combination for the requested logic type.
+    6. Resolve and route the related pin on system B.
+    7. Activate and verify any card output specified by Logic_Command.
+    8. Parse Logic_Expected for a DI, AI, or IE input.
+    9. Read the card input and compare it with the expected value.
+    10. Deactivate configured outputs and clear the mux matrix.
+
     Args:
-        pin: Pin object containing test parameters (Id, Logic_Pin_Input, Logic_Expected, etc.)
-        pin_table_rows: All rows from pin table (for looking up second pin data)
-        
+        test_handle: TestHandle instance providing hardware, settings, logging,
+            mux, relay, and card-control dependencies.
+        pin: Pin object containing Id, Logic_Pin_Input, Logic_Command, and
+            Logic_Expected values.
+        pin_table_rows: Loaded pin-table rows used to find the related pin and
+            verify its Power result.
+
     Returns:
-        Tuple of (measured_voltage, success, message):
-            - success: True if status matches expected, False otherwise
-            - message: Descriptive message about test result or error
+        Tuple of (measured_voltage, success, message). The voltage value is
+        currently 0.0 because the result is based on the card input state;
+        success is True when the state matches Logic_Expected; message describes
+        the result or failure.
     """
 
     self = test_handle

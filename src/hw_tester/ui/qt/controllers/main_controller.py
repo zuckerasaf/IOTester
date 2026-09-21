@@ -33,7 +33,7 @@ from hw_tester.core.udp_card_manager import UDPCardManager
 from hw_tester.hardware.controllino_io import ControllinoIO
 from hw_tester.hardware.hardware_factory import initialize_hardware
 from hw_tester.ui.qt.widgets.pin_table_qt import CommSettingsTable
-# from hw_tester.core.test_handle import run_i_bit_test
+from hw_tester.core.test_Ibit import ibit_test
 
 
 class MainController:
@@ -314,6 +314,37 @@ class MainController:
         
         result = msg_box.exec()
         return result == QMessageBox.Ok
+
+    def _request_fuse_test_prompt(self) -> bool:
+        """Ask on the Qt thread whether the system-A fuse test should run."""
+        decision = {"run": False}
+        completed = threading.Event()
+        callback_id = f"fuse_test_prompt_{id(completed)}"
+
+        def show_prompt():
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle("Connect Fuse Test Cable")
+            msg_box.setText(
+                "Connect the fuse test cable to system A, then choose Continue.\n\n"
+                "Choose Ignore to skip the fuse test."
+            )
+            msg_box.setIcon(QMessageBox.NoIcon)
+            continue_button = msg_box.addButton("Continue", QMessageBox.AcceptRole)
+            msg_box.addButton("Ignore", QMessageBox.DestructiveRole)
+            msg_box.exec()
+            decision["run"] = msg_box.clickedButton() is continue_button
+            completed.set()
+
+        self.main_window._pending_callbacks[callback_id] = show_prompt
+        QMetaObject.invokeMethod(
+            self.main_window,
+            "_schedule_callback",
+            Qt.ConnectionType.QueuedConnection,
+            Q_ARG(int, 0),
+            Q_ARG(str, callback_id),
+        )
+        completed.wait()
+        return decision["run"]
     
     def update_testing_pin(self, pin_id: str):
         """
@@ -1387,13 +1418,13 @@ class MainController:
         self.main_window.btn_stop_ibit.setEnabled(True)
         
         # Run Ibit test in background thread using TestHandle
-        def run_i_bit_test():
+        def run_ibit_thread():
             success = False
             if self.test_handler:
-                _, _, success = self.test_handler.run_i_bit_test()
+                _, _, success = ibit_test(self.test_handler, self._request_fuse_test_prompt)
             self._update_ibit_button_color_threadsafe(success)
             self._on_ibit_complete_threadsafe()
-        threading.Thread(target=run_i_bit_test, daemon=True).start()
+        threading.Thread(target=run_ibit_thread, daemon=True).start()
     
     def on_stop_ibit(self):
         """
