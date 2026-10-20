@@ -2,9 +2,25 @@
 
 The Logic test validates a card input by connecting a primary pin to a related pin and checking the expected DI, AI, or IE value. It is selected when the row contains a `Logic_Expected` value that is not empty and is not `-`.
 
+## DOS
+- The "logic expected" value is not empty
+- Powerup test result pin A and pin B = True and 
+- for DI and EI connection the valid configuraion is :
+  - both Pin A and Pin B power measured value need to be below 4V (configuration) and 
+  - pin A power measured value = 0 and pin A power measured value > 0 or 
+  - pin B power measured value = 0 and pin B power measured value > 0
+- for AI connection the valid configuraion is :
+  - both Pin A and Pin B power measured value need to be below 13V (configuration) and 
+  - pin A power measured value > 0 and pin A power measured value < 13V or 
+  - pin B power measured value > 0 and pin B power measured value < 13V
+ 
+
+
 ## Procedure
 
 `logic_test()` performs these steps:
+
+![Logic test flow](../assets/images/logic_pro.JPG)
 
 1. Resolve and route the primary pin on system A.
 2. Read the related pin number from `Logic_Pin_Input`.
@@ -78,5 +94,4 @@ The static Logic test flow is available in
 
 This documentation copy contains the embedded flow diagram without live trace
 updates or application-server dependencies.
-
 

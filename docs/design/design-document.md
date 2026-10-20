@@ -17,7 +17,7 @@ This document describes the current architecture of the application as implement
 ### 2.1 Primary goals
 
 - Test connector pins and associated fixture paths automatically.
-- Detect power, pull-up, and logic faults with a consistent pass/fail model.
+- Detect power, pull-up, logic, and cable-continuity faults with a consistent pass/fail model.
 - Bridge hardware control, UI workflow, and test execution logic cleanly.
 - Work with hardware simulation where physical boards are unavailable.
 - Save reports in Excel or other export-friendly formats.
@@ -47,15 +47,10 @@ This document describes the current architecture of the application as implement
 - Hardware abstraction layer for Controllino/Arduino boards
 - Measurement routines for voltage and continuity operations
 - Mux matrix / pin-selection logic for selecting specific connector pins
-- Test execution engine for power, pull-up, and logic checks
+- Test execution engine for power, pull-up, logic, and cable checks
 - Report generation and operational logs
 - UDP card communication and simulation support
 
-### Out of scope
-
-- Full remote deployment across multiple workstations
-- Cloud-based reporting or centralized dashboards
-- Generalized hardware support beyond the Controllino/Arduino ecosystem used by the project
 
 ---
 
@@ -109,10 +104,11 @@ The test and measurement logic resides in the core components:
 - `src/hw_tester/core/test_power.py`
 - `src/hw_tester/core/test_pullUp.py`
 - `src/hw_tester/core/test_logic.py`
+- `src/hw_tester/core/test_cable_one_box.py`
 - `src/hw_tester/core/udp_card_manager.py`
 - `src/hw_tester/core/pin_pulser.py`
 
-These classes coordinate selection of a connector pin, trigger of measurement or logic checks, state transitions for pass/fail processing, and management of hardware and test execution flows.
+These classes coordinate selection of a connector pin, trigger of measurement, logic, or cable checks, state transitions for pass/fail processing, and management of hardware and test execution flows.
 
 ### 5.4 Hardware abstraction layer
 
@@ -210,47 +206,9 @@ The application loads Excel-based connector definitions, which include per-pin m
 
 ## 8. User workflow
 
-### 8.1 Startup sequence
+The operator workflow is: start the application, load a connector Excel file, run pin tests (Power, PullUp, Logic, Cable) on selected rows or all rows, optionally run the built-in I-BIT (circuit and fuse checks), and export a report.
 
-1. Application loads the initial settings.
-2. Qt app creates the main window.
-3. The controller initializes hardware, using real board logic or simulation mode.
-4. Board config and pin map are loaded.
-5. Test components are initialized.
-6. UI controls and log states are prepared.
-
-### 8.2 Load connector workflow
-
-1. User selects an Excel connector file.
-2. The application parses the file.
-3. Connector metadata is mapped into UI rows.
-4. The pin table is populated with testable pin definitions.
-5. Test actions become active once valid data is loaded.
-
-### 8.3 Execute pin test workflow
-
-1. User selects one or multiple rows or chooses Test_All.
-2. The system identifies the selected pin or set of pins.
-3. The board config, mux settings, and analog mapping are used to route the test.
-4. The Measurer reads the relevant analog or digital state.
-5. The test engine applies pass/fail logic.
-6. UI status labels and row colors are updated.
-7. Results are written to the log and stored in memory for reporting.
-
-### 8.4 Built-in I-BIT testing
-
-The I-BIT test is a broader diagnostic mode that runs against many pins automatically. It iterates through the board's pin systems, clears the mux state, selects each pin, reads expected measurements, checks tolerances, and logs the result.
-
-This mode is designed to detect systemic issues such as:
-
-- short circuits
-- open circuits
-- wiring failures
-- unexpected leakage or stuck states
-
-### 8.5 Report generation
-
-The UI exposes report generation so the operator can export test results. This captures the outcome of a session for later review, customer output, or QA tracking.
+The step-by-step flows are maintained in one place, to avoid duplication and drift: see [System Flows – Operator workflow summary](system-flows.md#operator-workflow-summary), which links to the detailed flows for startup, connector loading, test execution, I-BIT, and reporting.
 
 ---
 
@@ -266,7 +224,8 @@ The UI exposes report generation so the operator can export test results. This c
 ### 9.2 Test execution
 
 - The application must perform per-pin and multi-pin test runs.
-- It must support power, pull-up, and logic validation.
+- It must support power, pull-up, logic, and cable-continuity validation.
+- Cable validation must check configured connector roles and supported input-to-output mappings before routing pins.
 - It must update live status while a test is running.
 - It must allow early stopping.
 
@@ -343,32 +302,19 @@ Because board pin maps and communication settings can affect test behavior, conf
 
 ---
 
-## 13. Future enhancements
-
-Possible roadmap items include:
-
-- Split the UI controller into smaller feature-specific controllers
-- Add a cleaner domain model for test results
-- Improve automated test coverage for hardware-to-logic flows
-- Add export/report templating and historical trend analysis
-- Support broader hardware families and board definitions
-- Improve packaging and deployment configuration for multiple OS environments
-- Add remote diagnostics or networked QA dashboards
-
----
-
-## 14. Summary
+## 13. Summary
 
 The IO Tester application is a configuration-driven, Qt-based hardware validation framework designed to test connectors and fixture paths quickly and consistently. It combines hardware abstraction, pin-map logic, measurements, automated tests, and report generation in a single desktop workflow.
 
 ---
 
-## 15. Relevant source files
+## 14. Relevant source files
 
 - `src/hw_tester/app.py`
 - `src/hw_tester/ui/qt/main_window_qt.py`
 - `src/hw_tester/ui/qt/controllers/main_controller.py`
 - `src/hw_tester/core/test_handle.py`
+- `src/hw_tester/core/test_cable_one_box.py`
 - `src/hw_tester/core/measurer.py`
 - `src/hw_tester/hardware/hardware_factory.py`
 - `src/hw_tester/hardware/controllino_io.py`

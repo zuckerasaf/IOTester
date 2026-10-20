@@ -11,12 +11,17 @@ from PySide6.QtWidgets import (
 
 from hw_tester.ui.qt.controllers import MainController
 from hw_tester.ui.qt.widgets import LogViewQt, PinTableQt
+from hw_tester.utils.config_loader import load_settings
 
 
 class MainWindowQt(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("HW Tester (Qt)")
+        app_info = load_settings().get("IO_Tester", {})
+        app_name = app_info.get("Name", "HW Tester")
+        app_version = app_info.get("Version", "")
+        title = f"{app_name} v{app_version}" if app_version else app_name
+        self.setWindowTitle(title)
         self.resize(1700, 800)
 
         # Stylesheet is loaded at app level in _main() for proper QMessageBox styling

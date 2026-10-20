@@ -12,27 +12,25 @@ from hw_tester.utils.general import (
 )
 
 
-def ibit_test(test_handle, fuse_test_prompt=None) -> tuple[int, int, bool]:
+def ibit_test(test_handle, fuse_test_prompt=None, ibit_test_prompt=None) -> tuple[int, int, bool]:
     """
     Run the I-BIT circuit and fuse tests.
 
     Test Procedure:
-    1. Read the simulation mode from the test settings.
-    2. Run measure_all_pins_system() for system A, testing pins 1 through 50.
-    3. Run measure_all_pins_system() for system B, testing pins 1 through 50.
-    4. Count the total tested pins and failed pins from both systems.
-     5. Ask whether the fuse-test cable is connected.
-     6. Run Fuses_test() on system A when the user chooses Continue.
-     7. Skip the fuse test and treat it as passed when the user chooses Ignore.
-     8. Log the circuit-test and fuse-test results.
-     9. Return success only when the circuit test and the selected fuse-test
-         outcome pass.
+    1. Ask whether to run the circuit checks, when a prompt callback is supplied.
+    2. Run measure_all_pins_system() for systems A and B if not skipped.
+    3. Ask whether the fuse-test cable is connected.
+    4. Run Fuses_test() on system A when the user chooses Continue.
+    5. Skip the fuse test and treat it as passed when the user chooses Ignore.
+    6. Return success when all selected checks pass.
 
     Args:
         test_handle: TestHandle instance providing hardware, settings, logging,
             measurement, relay, and mux-control dependencies.
         fuse_test_prompt: Optional callback that returns True to run the fuse
             test or False to skip it.
+        ibit_test_prompt: Optional callback that returns True to run the circuit
+            checks or False to skip them and continue to the fuse-test prompt.
 
     Returns:
         Tuple of (passed_count, total_count, success):
@@ -44,17 +42,24 @@ def ibit_test(test_handle, fuse_test_prompt=None) -> tuple[int, int, bool]:
     is_simulation = self.settings.get('Board', {}).get('simulation', True)
 
     pin_number = 51
-    ibit_a = measure_all_pins_system(self, "a", 4.0, is_simulation, pin_number)
-    ibit_b = measure_all_pins_system(self, "b", 4.0, is_simulation, pin_number)
-    total_count = len(ibit_a[0]) + len(ibit_b[0])
-    failed_count = len(ibit_a[2]) + len(ibit_b[2])
-    passed_count = total_count - failed_count
-    success = passed_count == total_count
-    self.log(
-        f"Ibit Circuit Test complete: {passed_count}/{total_count} pins PASSED",
-        "SUCCESS" if success else "WARNING"
-    )
-    self.log(f"Ibit result: {'SUCCESS' if success else 'FAILURE'}", "SUCCESS" if success else "ERROR")
+    run_ibit_test = ibit_test_prompt() if ibit_test_prompt else True
+    passed_count = 0
+    total_count = 0
+    circuit_success = True
+    if run_ibit_test:
+        ibit_a = measure_all_pins_system(self, "a", 4.0, is_simulation, pin_number)
+        ibit_b = measure_all_pins_system(self, "b", 4.0, is_simulation, pin_number)
+        total_count = len(ibit_a[0]) + len(ibit_b[0])
+        failed_count = len(ibit_a[2]) + len(ibit_b[2])
+        passed_count = total_count - failed_count
+        circuit_success = passed_count == total_count
+        self.log(
+            f"Ibit Circuit Test complete: {passed_count}/{total_count} pins PASSED",
+            "SUCCESS" if circuit_success else "WARNING"
+        )
+        self.log(f"Ibit result: {'SUCCESS' if circuit_success else 'FAILURE'}", "SUCCESS" if circuit_success else "ERROR")
+    else:
+        self.log("Ibit circuit test ignored by user", "WARNING")
 
 
     run_fuse_test = fuse_test_prompt() if fuse_test_prompt else True
@@ -66,7 +71,7 @@ def ibit_test(test_handle, fuse_test_prompt=None) -> tuple[int, int, bool]:
     if not fuse_test[1]:
         self.log(f"Fuse test failed; faulty fuses: {fuse_test[2]}", "ERROR")
 
-    success = passed_count == total_count and fuse_test[1]
+    success = circuit_success and fuse_test[1]
     return passed_count, total_count, success
 
 
@@ -210,7 +215,7 @@ def Fuses_test(test_handle, system: str, voltage: float, isSimulate: bool, pinNu
 
     Test Procedure:
     1. For each pin in the requested system, clear the mux matrix.
-     2. Resolve the pin's analog measurement pin from the board map and use
+    2. Resolve the pin's analog measurement pin from the board map and use
          the dedicated ``pullup_fuse_test`` pin from the board configuration.
     3. Convert the connector pin to mux bits and route it to the measurement path.
     4. Measure the pin before the fuse-test pull-up and validate that it is

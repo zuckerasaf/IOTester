@@ -345,6 +345,39 @@ class MainController:
         )
         completed.wait()
         return decision["run"]
+
+    def _request_ibit_test_prompt(self) -> bool:
+        """Ask on the Qt thread whether the I-BIT circuit checks should run."""
+        decision = {"run": False}
+        completed = threading.Event()
+        callback_id = f"ibit_test_prompt_{id(completed)}"
+
+        def show_prompt():
+            msg_box = QMessageBox(self.main_window)
+            msg_box.setWindowTitle("Ibit Required")
+            msg_box.setText(
+                "Before running the Ibit test, please ensure that no hardware "
+                "(IO Box, cables, etc.) is connected.\n\n"
+                "Choose Ignore to skip the Ibit circuit test and continue to "
+                "the fuse test."
+            )
+            msg_box.setIcon(QMessageBox.NoIcon)
+            continue_button = msg_box.addButton("Continue", QMessageBox.AcceptRole)
+            msg_box.addButton("Ignore", QMessageBox.DestructiveRole)
+            msg_box.exec()
+            decision["run"] = msg_box.clickedButton() is continue_button
+            completed.set()
+
+        self.main_window._pending_callbacks[callback_id] = show_prompt
+        QMetaObject.invokeMethod(
+            self.main_window,
+            "_schedule_callback",
+            Qt.ConnectionType.QueuedConnection,
+            Q_ARG(int, 0),
+            Q_ARG(str, callback_id),
+        )
+        completed.wait()
+        return decision["run"]
     
     def update_testing_pin(self, pin_id: str):
         """
@@ -1072,10 +1105,12 @@ class MainController:
         if 'UDP_Settings' not in self.settings:
             self.settings['UDP_Settings'] = {}
         self.settings['UDP_Settings']['localhost_mode'] = localhost_enabled
+        restart_required = False
         
         try:
             # Save updated settings to split files
             save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
+            restart_required = not localhost_enabled
             self.main_window.log.append(
                 f"Settings saved with localhost_mode={localhost_enabled}",
                 "SUCCESS"
@@ -1130,6 +1165,13 @@ class MainController:
                 "Configuration Error",
                 f"Failed to change localhost mode:\n{str(e)}",
                 "critical"
+            )
+
+        if restart_required:
+            self._show_message(
+                "Restart Required",
+                "Restart the application for IO Box mode to take effect.",
+                "information"
             )
     
     def on_debug_toggle(self):
@@ -1400,11 +1442,6 @@ class MainController:
             return
 
         self.main_window.log.append("Starting I_Bit short circuit test...", "INFO")
-        self._show_message(
-            "Ibit Required",
-            "Before running the Ibit test, please ensure that no hardware (IO Box, cables, etc.) is connected.",
-            "information"
-        )
         self.running_ibit = True
         if self.test_handler:
             self.test_handler.running_ibit = True
@@ -1421,7 +1458,11 @@ class MainController:
         def run_ibit_thread():
             success = False
             if self.test_handler:
-                _, _, success = ibit_test(self.test_handler, self._request_fuse_test_prompt)
+                _, _, success = ibit_test(
+                    self.test_handler,
+                    self._request_fuse_test_prompt,
+                    self._request_ibit_test_prompt,
+                )
             self._update_ibit_button_color_threadsafe(success)
             self._on_ibit_complete_threadsafe()
         threading.Thread(target=run_ibit_thread, daemon=True).start()
@@ -1588,7 +1629,14 @@ class MainController:
         # Clear test result labels
         self.clear_test_results()
         
-        self.main_window.log.append("Test sequence completed", "SUCCESS")
+        failures = getattr(self.test_handler, "last_sequence_failures", [])
+        if failures:
+            completion_message = f"Test sequence completed: {len(failures)} failure(s)"
+            completion_level = "WARNING"
+        else:
+            completion_message = "Test sequence completed: no failures"
+            completion_level = "SUCCESS"
+        self.main_window.log.append(completion_message, completion_level)
         
         # Automatically generate report after test completion
         self.on_report()

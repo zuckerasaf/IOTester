@@ -2,9 +2,14 @@
 
 The Power test validates the voltage supplied to one connector pin. It is selected when the row contains a `Power_Expected` value that is not empty and is not `-`.
 
+## DOS
+- The "Power expected" value is not empty 
+
 ## Procedure
 
 `power_test()` performs these steps:
+
+![Power test flow](../assets/images/Powerup_Pro.JPG)
 
 1. Resolve the connector pin pair and analog measurement pin.
 2. Convert the pin number to mux bits and route the pin to the measurement path.

@@ -38,6 +38,8 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Board Presentation: presentation.md
+  - Release Notes: release_note.md
   - User Guide:
     - Quick Start: guide/quick-start.md
     - User Manual: guide/user-manual.md
@@ -45,11 +47,18 @@ nav:
     - Power Test: guide/power-test.md
     - PullUp Test: guide/pullup-test.md
     - Logic Test: guide/logic-test.md
+    - Cable Test: guide/cable-test.md
   - Design:
     - Design Document: design/design-document.md
     - System Flows: design/system-flows.md
   - Reference:
     - Error Messages: reference/error-messages.md
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/image-zoom.js
 
 extra:
   generator: false

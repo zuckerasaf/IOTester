@@ -2,9 +2,16 @@
 
 The PullUp test validates the pull-up path and its related card output for one connector pin. It is selected when the row contains a `PullUp_Input` value that is not empty and is not `-`.
 
+## DOS
+- Powerup test result = True and 
+- Powerup expected value = 0 and 
+- The "Pullup expected" value is not empty 
+
 ## Procedure
 
 `pullup_test()` performs these steps:
+
+![Pull-up test flow](../assets/images/Pullup_pro.JPG)
 
 1. Resolve the connector pin pair, analog measurement pin, and pull-up pin.
 2. Convert the pin number to mux bits and route the pin to the measurement path.

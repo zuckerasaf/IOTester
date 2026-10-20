@@ -1,6 +1,6 @@
 IO_Tester:
   Name: HW Tester
-  Version: 1.0.0
+  Version: 2.0.0
   Description: A tool for testing and validating hardware pin configurations.
 Debug:
   mode: false
@@ -164,48 +164,60 @@ Connectors:
   A:
     size: 50
     offset: 0
-    input: true
+    Type: input
+    onebox_cableTest: false
   B:
     size: 37
     offset: 0
-    input: true
+    Type: input
+    onebox_cableTest: false
   C:
     size: 25
     offset: 0
-    input: true
+    Type: input
+    onebox_cableTest: true
   D:
     size: 25
     offset: 25
-    input: false
+    Type: output
+    onebox_cableTest: true
   E:
     size: 15
     offset: 0
-    input: true
+    Type: input
+    onebox_cableTest: true
   F:
     size: 15
     offset: 15
-    input: false
+    Type: output
+    onebox_cableTest: true
   G:
     size: 15
     offset: 30
-    input: false
+    Type: output
+    onebox_cableTest: true
   H:
     size: 9
     offset: 0
-    input: true
+    Type: input
+    onebox_cableTest: true
   I:
     size: 9
     offset: 9
-    input: true
+    Type: output
+    onebox_cableTest: true
   J:
     size: 9
     offset: 18
-    input: false
+    Type: output
+    onebox_cableTest: true
   K:
     size: 9
     offset: 27
-    input: false
+    Type: output
+    onebox_cableTest: true
   L:
     size: 9
     offset: 36
-    input: false
+    Type: output
+    onebox_cableTest: true

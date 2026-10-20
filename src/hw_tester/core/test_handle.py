@@ -56,6 +56,7 @@ class TestHandle:
         # Control flags for stopping tests
         self.running = False
         self.running_ibit = False
+        self.last_sequence_failures = []
         
         # Threading event for debug control
         self.next_event = threading.Event()
@@ -159,6 +160,8 @@ class TestHandle:
             log, then on_test_complete is scheduled on the UI thread.
         """
         from hw_tester.hardware.pin import Pin
+
+        self.last_sequence_failures = []
         
         debug = get_debug_setting(self.settings, "Test_Sequence")
         if debug:
@@ -182,6 +185,7 @@ class TestHandle:
                 
                 if not pin_row:
                     self.log(f"running test - Pin {pin_id} not found in table", "ERROR")
+                    self.last_sequence_failures.append(f"{pin_id}: pin row not found")
                     continue
                 
                 # Step 2: Create Pin object from row data
@@ -259,6 +263,8 @@ class TestHandle:
                     clear_mux_bits(self.pin_map, self.hardware, self.log)
                     pin.Power_Measured = power_voltage
                     pin.Power_Result = power_success
+                    if not power_success:
+                        self.last_sequence_failures.append(f"{pin.Id}: Power")
                     self.log(
                         f"Power Test: Expected={pin.Power_Expected}V, Measured={pin.Power_Measured}V, Result={'PASS' if pin.Power_Result else 'FAIL'} - {power_message}",
                         "SUCCESS" if pin.Power_Result else "WARNING"
@@ -287,6 +293,8 @@ class TestHandle:
                         clear_mux_bits(self.pin_map, self.hardware, self.log)
                         pin.PullUp_Measured = pullup_voltage
                         pin.PullUp_Result = pullup_success
+                        if not pullup_success:
+                            self.last_sequence_failures.append(f"{pin.Id}: PullUp")
                         self.log(
                             f"PullUp Test: Expected={pin.PullUp_Expected}V, Measured={pin.PullUp_Measured}V, Result={'PASS' if pin.PullUp_Result else 'FAIL'} - {pullup_message}",
                             "SUCCESS" if pin.PullUp_Result else "WARNING"
@@ -319,6 +327,8 @@ class TestHandle:
                     logic_result = logic_test(self, pin, all_rows)
                     Logic_test_voltage,Logic_test_result,logic_test_message = logic_result
                     pin.Logic_DI_Result = Logic_test_result
+                    if not Logic_test_result:
+                        self.last_sequence_failures.append(f"{pin.Id}: Logic")
                     self.log(
                             f"Logic Test: Result={'PASS' if pin.Logic_DI_Result else 'FAIL'} - {logic_test_message}",
                             "SUCCESS" if pin.Logic_DI_Result else "WARNING"
@@ -340,8 +350,10 @@ class TestHandle:
                     logic_result = Cable_test(self, pin, all_rows)
                     Logic_test_voltage,Logic_test_result,logic_test_message = logic_result
                     pin.Logic_DI_Result = Logic_test_result
+                    if not Logic_test_result:
+                        self.last_sequence_failures.append(f"{pin.Id}: Cable")
                     self.log(
-                            f"Logic Test: Result={'PASS' if pin.Logic_DI_Result else 'FAIL'} - {logic_test_message}",
+                            f"Cable Test: Result={'PASS' if pin.Logic_DI_Result else 'FAIL'} - {logic_test_message}",
                             "SUCCESS" if pin.Logic_DI_Result else "WARNING"
                         )
                         # Update table immediately after logic test
@@ -367,11 +379,13 @@ class TestHandle:
             except ValueError as e:
                 error_msg = f"running test - Pin data error for {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")
+                self.last_sequence_failures.append(f"{pin_id}: {error_msg}")
                 if hasattr(pin_table, 'set_testing_pin'):
                     pin_table.set_testing_pin(None)
             except Exception as e:
                 error_msg = f"running test - Unexpected error processing {pin_id}: {str(e)}"
                 self.log(error_msg, "ERROR")
+                self.last_sequence_failures.append(f"{pin_id}: {error_msg}")
                 if hasattr(pin_table, 'set_testing_pin'):
                     pin_table.set_testing_pin(None)
         

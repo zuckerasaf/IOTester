@@ -1,0 +1,136 @@
+/* Keep the sidebars (nav + table of contents) independently scrollable. */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar {
+    height: calc(100vh - 3rem);
+    overflow: hidden;
+  }
+
+  .md-sidebar__scrollwrap {
+    max-height: calc(100vh - 3.5rem);
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+  }
+}
+
+.md-typeset img {
+  cursor: zoom-in;
+}
+
+.image-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  background: rgb(0 0 0 / 80%);
+  cursor: zoom-out;
+}
+
+.image-zoom-overlay[hidden] {
+  display: none;
+}
+
+.image-zoom-overlay img {
+  flex: none;
+  max-width: none;
+  max-height: none;
+}
+
+.presentation-deck {
+  scroll-snap-type: y mandatory;
+}
+
+.presentation-slide {
+  box-sizing: border-box;
+  display: flex;
+  min-height: min(76vh, 52rem);
+  flex-direction: column;
+  justify-content: center;
+  margin: 1.5rem 0;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  overflow: hidden;
+  scroll-margin-top: 2rem;
+  scroll-snap-align: start;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 1rem;
+  background: var(--md-code-bg-color);
+}
+
+.presentation-slide--title {
+  color: var(--md-primary-bg-color);
+  background: linear-gradient(135deg, var(--md-primary-fg-color), var(--md-accent-fg-color));
+}
+
+.presentation-slide--title h2,
+.presentation-slide--title a {
+  color: inherit;
+}
+
+.presentation-kicker {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.presentation-slide h2 {
+  max-width: 52rem;
+  margin-top: 0;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.1;
+}
+
+.presentation-slide p,
+.presentation-slide li {
+  max-width: 54rem;
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  line-height: 1.6;
+}
+
+.presentation-slide img {
+  max-height: 34vh;
+  object-fit: contain;
+}
+
+.presentation-slide--title img {
+  align-self: flex-start;
+  max-width: min(100%, 42rem);
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+}
+
+.presentation-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.presentation-nav a,
+.presentation-index a {
+  display: inline-block;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.presentation-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+  .presentation-slide {
+    min-height: 80vh;
+  }
+}

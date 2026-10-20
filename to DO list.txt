@@ -1,0 +1,3 @@
+TO do october 20
+3. make sure the Run controls update raw is delete each time we start the runing 
+

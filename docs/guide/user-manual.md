@@ -1,6 +1,6 @@
 # User Manual
 
-**Version 1.0 | June 2026**
+**Version 2.0.0 | September 2026**
 
 ---
 
@@ -13,7 +13,7 @@ IO Tester is a hardware verification application used to test the electrical int
 - **Power Test** - measures DC voltage on the pin, the test can include Analog Output (AO) command 
 - **Pull-Up Test** - activates a pull-up and measures the resulting voltage enbale , the test can include  Digital Output (DO) command  
 - **Logic Test** - create connetion betaeen pins on the connecter and reads the outcome Digital Input (DI) or Analog  Input (AI) or Incrametal Encoder (IE), the test can include  Digital Output (DO) command  
-- **Cable Test** - TBD
+- **Cable Test** - checks continuity from a source connector pin to expected pins on one or more output connectors, and detects unexpected connections.
 
 ## Two internal system tests
 
@@ -95,6 +95,7 @@ The **status bar** (updated live during a test run) shows:
 - **Logic** - Pass / Fail result of the last logic measurement
 
 All labels reset to "---" when a new test sequence starts.
+When the sequence finishes, the Operational Log reports whether failures were recorded.
 
 ---
 
@@ -122,7 +123,7 @@ The checkboxes filter which message types appear in the Operational Log:
 | **IBIT** | Starts the Built-In Test (see [Section 10](#10-i-bit-test-built-in-test)). Button turns GREEN (all pass) or RED (any fail). |
 | **Stop IBIT** | Stops the I-BIT test after the current pin. Active only during I-BIT. |
 | **Simulation: On/Off** | Toggles simulation mode. ON = simulated random voltages, no hardware needed. OFF = real hardware. Setting is saved automatically. |
-| **LocalHost** | Switches IO card communication between network mode (192.168.195.x) and loopback mode (127.0.0.1). Setting is saved automatically. |
+| **LocalHost / IO Box** | Switches IO card communication between network mode (192.168.195.x) and loopback mode (127.0.0.1). Setting is saved automatically. Switching from LocalHost to IO Box displays a restart-required message; restart IO Tester for IO Box mode to take effect. |
 | **Next** | Used in Debug/Step mode only. Advances the test to the next checkpoint. |
 | **Debug: True/False** | Enables or disables step-by-step debug mode. |
 | **Wiki** | Opens the local HTML documentation site generated from the Markdown guides. |
@@ -141,7 +142,7 @@ The pin table displays all pins from the loaded test file. It has 22 columns:
 | Discrete Name | Functional name of the signal | No |
 | Signal Name | Electrical signal name | No |
 | Plug | Physical plug designation (e.g. 1P2) | No |
-| Type | Pin type (Gnd/open, Open, RELAY, etc.) | No |
+| Type | Pin type (Gnd/open, Open, RELAY, or `Cable`) | No |
 | Pin | Physical pin number on the connector | No |
 | Power Expected | Expected voltage (V) for power test | Yes |
 | Power Input | IO card AO/DO command that applies the voltage | Yes |
@@ -153,9 +154,9 @@ The pin table displays all pins from the loaded test file. It has 22 columns:
 | PullUp Measured | Voltage measured after pull-up | No |
 | PullUp Result | Pass / Fail | No |
 | PullUp Reason | Explanation of the result | No |
-| Logic Pin Input | Related pin number used by the Logic test | Yes |
+| Logic Pin Input | Related pin for Logic tests; source connector name for Cable tests | Yes |
 | Logic Command | Command sent to the IO card | Yes |
-| Logic Expected | Expected DI, AI, or IE value | Yes |
+| Logic Expected | Expected DI, AI, or IE value; for Cable, allowed output connector pins | Yes |
 | Logic DI Result | Pass / Fail | No |
 | Logic DI Reason | Explanation of the result | No |
 
@@ -208,6 +209,49 @@ See the dedicated guides for complete procedures:
 - [Power Test](power-test.md)
 - [PullUp Test](pullup-test.md)
 - [Logic Test](logic-test.md)
+- [Cable Test](cable-test.md)
+
+### Cable Test: connector continuity
+
+A Cable Test is selected when the row's `Type` or `Card` field is `Cable`. It
+replaces Power, PullUp, and Logic tests for that row. The source connector is
+read from `Logic_Pin_Input`; the source pin number is taken from the trailing
+number in the row's `ID` (for example, `J1-01` means pin 1). Connector sizes,
+offsets, and input/output roles are read from the active `Connectors` settings.
+
+Enter the allowed output pins in `Logic_Expected`, using a connector name and
+parenthesized, comma-separated pin numbers:
+
+```text
+K(1),L(1)
+G(11,13,14,15)
+```
+
+The test scans **every pin** on each output connector named in `Logic_Expected`.
+Listed pins are expected to be connected; other pins on those connectors are
+expected to remain disconnected.
+
+| Input connector | Supported output connector combinations |
+|---|---|
+| `C` | `D`, `G`, `K`, `K` + `L` |
+| `E` | `F`, `F` + `G`, `F` + `L`, `J`, `J` + `K`, `J` + `K` + `L` |
+| `H` | `I`, `I` + `J`, `I` + `J` + `K`, `I` + `J` + `K` + `L` |
+
+Before routing, the test requires the source connector to have `Type: input`,
+each target connector to have `Type: output`, and the connector combination to
+appear in the table above. Invalid connector roles or combinations fail with a
+`Wrong connector configuration` message.
+
+The source pin is routed through the mux, then the pull-up and general relay are
+activated. Each output pin is routed and measured. Expected connected pins are
+compared with `scale.fuse_voltage_test`; other scanned pins are compared with
+`scale.zero_voltage_threshold`. Both comparisons use `scale.voltage_tolerance`.
+The Operational Log records a voltage and Pass/Fail result for every scanned
+pin. The Cable result and reason are written to the Logic result fields in the
+pin table. Pull-up, relay, and mux cleanup are attempted on every return path.
+
+For configuration examples and full failure conditions, see the [Cable Test
+Guide](cable-test.md).
 
 ---
 
@@ -274,7 +318,7 @@ Click **[ Report ]** after a test run to save results to Excel.
 The report file contains:
 
 - All 22 pin table columns
-- All test results (Power, PullUp, Logic) and reason text
+- All test results (Power, PullUp, Logic, and Cable) and reason text
 - A timestamp row at the top
 
 **Recommended naming convention:**
@@ -357,6 +401,10 @@ In localhost mode:
 - The Controllino (serial) still communicates normally unless Simulation mode is also ON.
 - Use for bench testing when IO cards are not present.
 
+When switching from LocalHost to IO Box using the connection button, the
+application displays a **Restart Required** message. Restart IO Tester for the
+IO Box connection mode to take effect.
+
 ---
 
 ## 15. Debug / step mode
@@ -409,6 +457,9 @@ The Logic test is skipped when:
 
 Rows marked as Cable tests skip Power, PullUp, and Logic and use the Cable test
 path instead.
+
+After the selected rows finish, the Operational Log reports whether the run
+recorded failures and, when applicable, the failure count.
 
 The log will explain the skip with a WARNING message.
 

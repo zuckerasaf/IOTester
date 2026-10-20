@@ -23,6 +23,11 @@ if "%DIST_MODE%"=="" set DIST_MODE=onedir
 
 echo Building %DIST_MODE% distribution for %EXE_NAME%
 
+rem Kill any running instance so PyInstaller can overwrite the output files
+echo Stopping running %EXE_NAME% processes...
+taskkill /F /T /IM %EXE_NAME%.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+
 set DIST_ARGS=--noupx --windowed --name %EXE_NAME%
 if /i "%DIST_MODE%"=="onefile" (
     set DIST_ARGS=%DIST_ARGS% --onefile

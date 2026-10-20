@@ -1,8 +1,26 @@
 # System Flows
 
-**Version 3.0 | Last Updated: September 17, 2026**
-
 This document describes the operational flows in the IO Tester application. The application is implemented as a Qt/PySide6 desktop client. Update this file when adding new features or modifying existing workflows.
+
+---
+
+## Operator workflow summary
+
+This is the single source of truth for the end-to-end user workflow. The [design document](design-document.md#8-user-workflow) links here instead of duplicating it. Detailed flows are in the sections referenced below.
+
+| Step | Operator action | What the system does | Details |
+|---|---|---|---|
+| 1. Startup | Launch the application | Loads settings, initializes hardware (real board or simulation), loads pin map and board config, creates the Qt window and controller, wires buttons | Section 1 |
+| 2. Load connector | Click **LOAD** and pick an Excel file | Parses the file, maps connector metadata to table rows, populates the pin table, enables **TEST** and **TEST ALL** | Section 2 |
+| 3. Run pin tests | Select rows and click **TEST**, or click **TEST ALL** | Per pin: highlights the row, clears the mux, runs the applicable Power / PullUp / Logic / Cable test, applies pass/fail logic, updates row colors, logs results | Sections 3, 16 |
+| 4. I-BIT | Click **IBIT** (no connector file needed) | Prompted circuit check on systems A and B, then prompted fuse check on system A; stops at the next pin when **STOP IBIT** is pressed | Section 4 |
+| 5. Report | Click **REPORT** | Exports all table rows to a timestamped Excel file after the operator confirms the filename | Section 9 |
+
+Notes:
+
+- **TEST** and **TEST ALL** require a loaded connector; otherwise a "Not connected" warning is shown.
+- Cable rows (`Type` or `Card` is `Cable`) run only the Cable Test and skip Power, PullUp, and Logic tests (Section 3.3). It reads the input connector from `Logic_Pin_Input` and allowed output pins from `Logic_Expected` (for example, `G(11,13,14,15)`), validates connector roles and combinations before routing, scans all pins on each named output connector, and deactivates the pull-up and relay during cleanup.
+- I-BIT detects short circuits, open circuits, wiring failures, and unexpected leakage or stuck states.
 
 ---
 
@@ -66,7 +84,9 @@ START → main() in app.py
 USER CLICKS "LOAD":
   MainController.on_load()
     ↓
-  QFileDialog.getOpenFileName() — filters: *.xlsx, *.xlsm
+  QFileDialog.getOpenFileName() — start dir: Paths.database (default tests/DB); filters: *.xlsx *.xls, all files
+    ↓
+  Connector name = file stem → shown in connector field
     ↓
   load_connector_from_excel(filepath)
     ├─→ Open workbook with openpyxl
@@ -96,13 +116,15 @@ Logic_Pin_Input, Logic_Command, Logic_Expected, Logic_DI_Result, Logic_DI_Result
 
 ---
 
-## 3. Test execution flow (Power / Pullup / Logic)
+## 3. Test execution flow (Power / Pullup / Logic / Cable)
 
 ### 3.1 Single pin test
 
 ```
 USER SELECTS ROW(S) AND CLICKS "TEST":
   MainController.on_test()
+    ↓
+  IF not connected (no connector loaded) → warning → RETURN
     ↓
   selected_ids = main_window.table.get_selected_ids()
     ↓
@@ -124,6 +146,8 @@ INSIDE run_tests() — background thread:
     |     run_power_test  = Power_Expected not empty or "-"
     |     run_pullup_test = PullUp_Input not empty or "-"
     |     run_logic_test  = Logic_Expected not empty or "-"
+    |     run_cable_test  = Type == "Cable" or Card == "Cable"
+    |     if run_cable_test, disable power, pull-up, and logic tests for this row
     ├─→ clear_mux_bits(pin_map, hardware, log)
     ├─→ IF run_power_test:
     |     power_test(self, pin)
@@ -134,12 +158,51 @@ INSIDE run_tests() — background thread:
     ├─→ IF run_logic_test:
     |     logic_test(self, pin, all_rows)
     |     pin_table.update_row(pin.Id, {Logic_DI_Result, …})
+    ├─→ IF run_cable_test:
+    |     Cable_test(self, pin, all_rows)
+    |     pin_table.update_row(pin.Id, {Logic_DI_Result, Logic_DI_Result_Reason})
     └─→ pin_table.set_testing_pin(None) — clear yellow highlight
 ```
 
 ### 3.2 Test all
 
 Same as above but `selected_ids` = ALL row IDs from the table.
+
+### 3.3 Cable Test
+
+```text
+run_tests() identifies a cable row (Type or Card == "Cable")
+  ↓
+Cable_test(test_handle, pin, all_rows)
+  ├─→ Read source connector from Logic_Pin_Input and source pin from ID
+  ├─→ Parse Logic_Expected connector groups and comma-separated pin numbers
+  ├─→ Validate connector Type values from settings:
+  |     source must be Type: input; targets must be Type: output
+  ├─→ Validate the supported input-to-output connector combination
+  ├─→ Resolve pin mapping, route source pin, activate pull-up and general relay
+  ├─→ FOR each named output connector:
+  |     └─→ Scan every connector pin through the mux and measure voltage
+  ├─→ Compare listed pins to fuse_voltage_test and unlisted pins to zero_voltage_threshold
+  ├─→ Log each pin's voltage and pass/fail result
+  └─→ Deactivate pull-up and relay; clear mux on every return path
+```
+
+`Logic_Expected` examples:
+
+```text
+K(1),L(1)
+G(11,13,14,15)
+```
+
+Supported connector combinations are validated by the cable test:
+
+| Input | Output connector combinations |
+|---|---|
+| `C` | `D`, `G`, `K`, `K` + `L` |
+| `E` | `F`, `F` + `G`, `F` + `L`, `J`, `J` + `K`, `J` + `K` + `L` |
+| `H` | `I`, `I` + `J`, `I` + `J` + `K`, `I` + `J` + `K` + `L` |
+
+Connector roles, sizes, and offsets are read from the active `Connectors` settings. An invalid role or unsupported combination returns a failed test with a `Wrong connector configuration` message before routing the test pins.
 
 ---
 
@@ -149,17 +212,20 @@ Same as above but `selected_ids` = ALL row IDs from the table.
 USER CLICKS "IBIT":
   MainController.on_ibit()
     ↓
-  test_handler.running_ibit = True
+  test_handler.running_ibit = True  (ignored with a warning if already running)
     ↓
-  threading.Thread(target=_run_ibit_thread, daemon=True).start()
+  threading.Thread(target=run_ibit_thread, daemon=True).start()
 
-INSIDE _run_ibit_thread():
-  ├─→ test_handler.run_i_bit_test()
+INSIDE run_ibit_thread():
+  ├─→ ibit_test(test_handler, _request_fuse_test_prompt, _request_ibit_test_prompt)
+  |     ├─→ Prompt: run circuit checks? (No → skip to fuse prompt)
   |     ├─→ ibit_A = measure_all_pins_system("a", 4.0, is_simulation, 51)
   |     ├─→ ibit_B = measure_all_pins_system("b", 4.0, is_simulation, 51)
   |     ├─→ Compute: total / passed / failed counts
-  |     └─→ Log summary and result: SUCCESS or FAILURE
-  └─→ Schedule UI update via log_callback
+  |     ├─→ Prompt: run fuse test? (Continue → Fuses_test("a", …) on system A only)
+  |     └─→ Log summary and result: SUCCESS or FAILURE (circuit AND fuse must pass)
+  ├─→ Update IBIT button color by result
+  └─→ _on_ibit_complete (UI thread): reset buttons, log "I_Bit test sequence completed"
 
 measure_all_pins_system(system, voltage, isSimulate, pinNumber):
   ├─→ relay_general_operate(True)    — close relay 15
@@ -187,7 +253,11 @@ MainController.on_stop_ibit()
 test_handler.running_ibit = False
   ↓
 Background thread exits its pin loop at next iteration check
+  ↓
+Buttons reset and clear_mux_bits() is called so all mux pins are shut down
 ```
+
+See the [I-BIT guide](../guide/ibit-test.md) for the per-pin circuit and fuse steps.
 
 ---
 
@@ -305,19 +375,35 @@ UDPCardManager(settings)
 
 ### 8.2 Operations
 
-```python
-# Digital output
-card_manager.set_digital_output(card_id, do_number, state)
-  # Sends: "DO{do_number}={1 if state else 0}"
+Each card runs two threads (`UDPSender`): a send loop that transmits the 32-byte `SendData` packet cyclically, and a receive loop that parses the 64-byte `ReceiveData` packet. `set_*` methods only update the outgoing packet in memory; `get_*` methods read the latest received packet. No per-command request/response is used.
 
-# Analog output
-card_manager.set_analog_output(card_id, ao_number, voltage)
-  # Sends: "AO{ao_number}={voltage}"
+All methods live in `UDPCardManager` (`udp_card_manager.py`) and take `card_id` (1–7). Setters return `False` if the card is not found; getters return `None`.
 
-# Digital input
-card_manager.get_digital_input(card_id, di_number)
-  # Sends: "DI{di_number}?" → waits for response → RETURN True/False
-```
+| Group | Method | Description |
+|---|---|---|
+| Digital output (1–32) | `set_digital_output(card_id, do_number, state)` | Set one DO on/off |
+| | `set_digital_outputs(card_id, do_list)` | Set listed DOs on, all others off |
+| | `get_digital_output(card_id, do_number)` | Read DO state (always `True` in simulation) |
+| TTL output (1–16) | `set_ttl_output(card_id, ttl_number, state)` | Set one TTL on/off |
+| | `set_ttl_outputs(card_id, ttl_list)` | Set listed TTLs on, all others off |
+| | `get_ttl_output(card_id, ttl_number)` | Read TTL state |
+| Analog output (0–7, ±13.5 V) | `set_analog_output(card_id, ao_number, voltage)` | Set one AO voltage |
+| | `set_multiple_analog_outputs(card_id, {ao: voltage})` | Set several AOs |
+| | `get_analog_output(card_id, ao_number)` | Read AO setpoint |
+| Matrix | `set_matrix_dimensions(card_id, rows, columns)` | Set matrix size (0–8 each) |
+| | `get_matrix_dimensions(card_id)` | Read matrix size |
+| | `get_Matrix_rows(card_id, row_number=None)` | Read one 8-bit row (1–8) or all rows |
+| Digital input (1–64) | `get_digital_input(card_id, di_number)` | Read one DI |
+| | `get_digital_inputs_active(card_id)` | List of active DIs |
+| Analog input (1–16) | `get_analog_input(card_id, ai_number)` | Read AI voltage (fixed 5.0 V in simulation) |
+| Encoder (1–2) | `get_encoder_words(card_id, encoder_id)` | Both 16-bit words of an encoder |
+| | `get_encoder_word(card_id, encoder_id, word_index)` | One 16-bit word (index 1 or 2) |
+| Utility | `clear_all_outputs(card_id=None)` | Clear outputs on one card or all |
+| | `is_communication_active(card_id)` | Card communication status |
+| | `get_all_communication_status()` | Status of all cards |
+| | `get_statistics(card_id=None)` | Packet statistics |
+| | `print_data_binary(card_id)` | Dump received data in binary (debug) |
+| Lifecycle | `start_all()` / `stop_all()` / `stop_card(card_id)` | Start or stop card threads |
 
 ### 8.3 Localhost mode
 
@@ -342,7 +428,8 @@ All user events go through `MainController` slots.
 | LOCALHOST | `on_localhost_toggle()` → toggle + save | - |
 | NEXT | `on_next()` → `test_handler.next_event.set()` | Section 10 |
 | CLEAR LOG | `on_clear_log()` → `main_window.log.clear()` | - |
-| REPORT | `on_report()` → build Excel from table rows | - |
+| REPORT | `on_report()` → build Excel from table rows; filename `<connector>_<timestamp>.xlsx` confirmed in a dialog, saved to `Paths.reports` (default `Results/`) | - |
+| DOC | `on_doc()` → generate Word report via `create_doc_report_via_dialog()` | - |
 | SETTINGS | `on_settings()` → open `Comm_settings.yaml` in system editor | - |
 
 **Pin table interactions:**
@@ -362,30 +449,13 @@ Debug flags live under `settings['Debug']` keyed by section name: `Test_Sequence
 
 ```
 test_handler.wait_debug(ID, "active")
-  ├─→ trace_writer.trace_step(ID, "active")  → write to web/trace.json
-  ├─→ Log: "in node {ID} Waiting for Next button press..."
+  ├─→ Log: "in node {ID} Waiting for Next button press to continue..."
   └─→ next_event.wait()  — BLOCK until user clicks Next
 
-User clicks NEXT → next_event.set() → execution resumes
-trace_writer.trace_step(ID, "done")
+User clicks NEXT → on_next() → next_event.set() → wait_debug() clears the event and execution resumes
 ```
 
-**HTML visualization:**
-
-- Start HTTP server: `serve_nocache.py` on port 8000
-- Open browser: `http://localhost:8000/{html_file}`
-- JavaScript polls `trace.json` every 500ms
-- Current node is highlighted on the flowchart
-
-**trace.json format:**
-
-```json
-[
-  {"id": 100, "status": "active", "timestamp": "2026-06-25 10:32:15"},
-  {"id": 100, "status": "done",   "timestamp": "2026-06-25 10:32:45"},
-  {"id": 101, "status": "active", "timestamp": "2026-06-25 10:32:45"}
-]
-```
+**Flow diagrams:** live HTML visualization (trace.json, local HTTP server on port 8000, node highlighting) is no longer active. Follow progress through the log messages and the node IDs; the static flow diagrams are in the test guides (for example [Power test](../guide/power-test.md#power-test-flow-viewer)).
 
 ---
 
@@ -416,8 +486,6 @@ Window close event (X button or app.quit()):
     |     IF hardware.connected:
     |       clear_mux_bits()
     |       hardware.close()  → serial.close()
-    ├─→ STOP HTTP SERVER (if running):
-    |     http_server_process.terminate()
     └─→ QApplication.quit() → sys.exit()
 ```
 
@@ -446,8 +514,9 @@ Window close event (X button or app.quit()):
                             │
                 ┌───────────▼────────────────────────────────────┐
                 │            TestHandle  (core/test_handle.py)    │
-                │  run_tests()  run_i_bit_test()                  │
-                │  measure_all_pins_system()                      │
+                │  run_tests()                                    │
+                │  (I-BIT: ibit_test() in core/test_Ibit.py)      │
+                │  measure_all_pins_system(), Fuses_test()        │
                 └───────┬────────────────┬────────────────────────┘
                         │                │
            ┌────────────▼──┐     ┌───────▼──────────────┐
@@ -481,7 +550,8 @@ PinTableModel.update_row(pin_id, {col: value})
 | Variable | Controls |
 |---|---|
 | `test_handler.running` | Stops `run_tests()` loop |
-| `test_handler.running_ibit` | Stops `measure_all_pins_system()` loop |
+| `test_handler.running_ibit` | Stops the `measure_all_pins_system()` / `Fuses_test()` loops |
+| `MainController.running_ibit` | UI-side I-BIT flag; `on_ibit()` / `on_stop_ibit()` set it together with `test_handler.running_ibit`, and it blocks a second concurrent I-BIT start |
 | `test_handler.next_event` | `threading.Event`, set by `on_next()` |
 | `PinTableModel._testing_pin_id` | Which row is yellow (thread-safe via `postEvent`) |
 
@@ -599,16 +669,7 @@ PullUp test and Logic test follow similar patterns in `core/test_pullUp.py` and 
 |---|---|
 | Relay / Fuse test | Partially implemented - `relay_general_operate()` exists; full procedure TBD |
 | Short circuit detection | Planned - detect unexpected voltage on pins that should read 0V |
-| Continuity test | Planned - check circuit continuity across connector pins |
+| Cable / continuity test | Implemented - `Cable_test()` scans configured output connectors, validates expected and unexpected continuity, and reports results in the Logic result fields |
 | Automated scheduling | Planned - scheduled test runs at configured intervals |
 | Multi-board testing | Future - test multiple boards simultaneously via parallel threads |
 
----
-
-## Revision history
-
-| Version | Date | Changes |
-|---|---|---|
-| 1.0 | March 25, 2026 | Initial creation. All major flows documented based on Tkinter UI implementation. |
-| 2.0 | June 25, 2026 | Full rewrite for Qt/PySide6 migration. Added Qt threading model, row highlighting flow, power test detail. Removed all Tkinter references. |
-| 3.0 | September 17, 2026 | Refreshed metadata to match current repository state. Corrected simulation toggle guidance. Verified against Qt implementation. |
