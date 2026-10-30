@@ -1,0 +1,29 @@
+J1: Target_J1.xlsx  card1=49, total=49, DI rows=49
+J2: Target_J2.xlsx  card1=35, card2=13, total=48, DI rows=48
+J3: Target_J3.xlsx  card1=14, card2=19, card3=5, total=38, DI rows=38
+J4: Target_J4.xlsx  card1=10, card3=14, total=24, DI rows=24
+J5: Target_J5.xlsx  card1=5, total=5, DI rows=4
+J6: Target_J6.xlsx  card3=18, total=18, DI rows=15
+J7: Target_J7.xlsx  card3=12, card4=7, total=19, DI rows=19
+J8: Target_J8.xlsx  card4=24, total=24, DI rows=24
+J9: Target_J9.xlsx  card3=8, total=8, DI rows=8
+J10: Target_J10.xlsx  card2=11, total=11, DI rows=10
+J11: Target_J11.xlsx  card3=8, total=8, DI rows=8
+J13: Target_J13.xlsx  card3=5, total=5, DI rows=5
+J14: Target_J14.xlsx  card2=7, total=7, DI rows=4
+J15: Target_J15.xlsx  card3=10, total=10, DI rows=10
+J18: Target_J18.xlsx  card3=7, total=7, DI rows=7
+J19: Target_J19.xlsx  card4=10, total=10, DI rows=8
+J20: Target_J20.xlsx  card4=6, total=6, DI rows=6
+J22: Target_J22.xlsx  card4=4, total=4, DI rows=4
+J23: Target_J23.xlsx  card4=36, total=36, DI rows=36
+J26: Target_J26.xlsx  card3=7, total=7, DI rows=7
+
+Open_Issues.xlsx: 284 row(s)
+  Spider Card #1: 1 x Included in J1 file, connector cell empty in source
+  Spider Card #1: 51 x Unassigned row: empty connector, not between two rows of the same J#
+  Spider Card #2: 94 x Unassigned row: empty connector, not between two rows of the same J#
+  Spider Card #2: 1 x Included in J10 file, connector cell empty in source
+  Spider Card #3: 56 x Unassigned row: empty connector, not between two rows of the same J#
+  Spider Card #4: 80 x Unassigned row: empty connector, not between two rows of the same J#
+  Spider Card #4: 1 x Included in J19 file, connector cell empty in source

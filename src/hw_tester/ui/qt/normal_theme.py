@@ -33,7 +33,7 @@ PHASE_COLORS = {
 }
 
 
-def build_stylesheet(arrow_url: str) -> str:
+def build_stylesheet(arrow_url: str, check_url: str = "") -> str:
     banner = ""
     for phase, (bg, border, text, bar) in PHASE_COLORS.items():
         banner += f"""
@@ -78,7 +78,7 @@ QComboBox#field QAbstractItemView {{
 }}
 
 QPushButton#startButton, QPushButton#stopButton {{
-    min-height: 64px; border-radius: 16px; color: #FFFFFF; font-size: 26px; font-weight: bold; border: none;
+    min-height: 72px; max-height: 72px; border-radius: 16px; color: #FFFFFF; font-size: 26px; font-weight: bold; border: none;
 }}
 QPushButton#startButton {{ background: {GREEN}; }}
 QPushButton#startButton:hover {{ background: {GREEN_HOVER}; }}
@@ -104,6 +104,27 @@ QFrame#tile[state="fail"] QLabel {{ color: {FAIL_TEXT}; }}
 QLabel#tileCaption {{ font-size: 15px; font-weight: 600; }}
 QLabel#tileNumber {{ font-size: 40px; font-weight: bold; }}
 
+QCheckBox#selectAll {{ font-size: 15px; font-weight: bold; color: {TEXT}; spacing: 10px; padding: 4px 0; }}
+QCheckBox#selectAll::indicator, QTableWidget#reportsTable::indicator {{
+    width: 22px; height: 22px; border: 2px solid {TEXT}; border-radius: 6px; background: {CARD_BG};
+}}
+QCheckBox#selectAll::indicator:hover, QTableWidget#reportsTable::indicator:hover {{ border-color: {BLUE}; }}
+QCheckBox#selectAll::indicator:checked, QTableWidget#reportsTable::indicator:checked {{
+    background: {BLUE}; border-color: {BLUE}; image: url({check_url});
+}}
+QPushButton#linkButton {{ background: transparent; border: none; color: {BLUE}; font-size: 14px; font-weight: 600; }}
+QPushButton#linkButton:hover {{ text-decoration: underline; }}
+QTableWidget#reportsTable {{
+    background: {CARD_BG}; alternate-background-color: {BG_WINDOW}; color: {TEXT};
+    border: 1px solid {CARD_BORDER}; border-radius: 8px; font-size: 14px; outline: 0;
+}}
+QTableWidget#reportsTable::item {{ padding: 6px 4px; }}
+QTableWidget#reportsTable::item:selected {{ background: {BLUE}; color: #FFFFFF; }}
+QTableWidget#reportsTable QHeaderView::section {{
+    background: {BG_WINDOW}; color: {TEXT_MUTED}; border: none; border-bottom: 1px solid {CARD_BORDER};
+    padding: 6px 4px; font-weight: bold;
+}}
+
 QPushButton#setupButton {{
     min-height: 44px; background: {CARD_BG}; color: {TEXT}; border: 2px solid {FIELD_BORDER};
     border-radius: 12px; font-size: 16px; font-weight: 600;
@@ -114,7 +135,7 @@ QPushButton#setupButton[result="pass"] {{ background: {PASS_BG}; border-color: {
 QPushButton#setupButton[result="fail"] {{ background: {FAIL_BG}; border-color: {FAIL_BORDER}; color: {FAIL_TEXT}; }}
 
 QPushButton#reportButton {{ min-height: 60px; background: {CARD_BG}; color: {TEXT}; border: 2px solid {FIELD_BORDER};
-    border-radius: 14px; font-size: 15px; font-weight: 600;
+    border-radius: 14px; font-size: 14px; font-weight: 600; padding: 0 4px;
 }}
 QPushButton#reportButton:hover {{ background: {BG_WINDOW}; }}
 QPushButton#reportButton:disabled {{ color: {FIELD_BORDER}; border-color: {CARD_BORDER}; }}

@@ -4,6 +4,7 @@ Main controller for the Qt UI - handles all button callbacks and business logic.
 from pathlib import Path
 from datetime import datetime
 import platform
+import os
 import re
 import subprocess
 import sys
@@ -108,6 +109,46 @@ class MainController:
         debug_text = "Debug: True" if self.debug_mode else "Debug: False"
         self.main_window.btn_debug.setText(debug_text)
         self.sync_normal_status()
+        self.refresh_report_list()
+
+    def _reports_dir(self) -> Path:
+        setting = self.settings.get('Paths', {}).get('reports', None)
+        return Path(setting) if setting else Path.cwd() / "Results"
+
+    def refresh_report_list(self):
+        """Fill the Normal layout's report list from the Report Path (newest first)."""
+        panel = getattr(self.main_window, "normal_panel", None)
+        if panel is None:
+            return
+        reports_dir = self._reports_dir()
+        reports = []
+        try:
+            files = [p for p in reports_dir.glob("*.xlsx") if not p.name.startswith("~$")]
+        except OSError:
+            files = []
+        suffixes = (("_Not_Complete", "Not Complete"), ("_Fail", "Fail"), ("_Pass", "Pass"))
+        for path in files:
+            stem = path.stem
+            result = "—"
+            for tag, label in suffixes:
+                if stem.endswith(tag):
+                    result, stem = label, stem[: -len(tag)]
+                    break
+            try:
+                when = datetime.fromtimestamp(path.stat().st_mtime)
+            except OSError:
+                continue
+            # The date/time has its own column, so drop a trailing _YYYYMMDD_HHMMSS from the name
+            stem = re.sub(r"_\d{8}_\d{6}$", "", stem)
+            reports.append((str(path), stem, result, when))
+        reports.sort(key=lambda r: r[3], reverse=True)
+        panel.reports_list.set_reports(str(reports_dir), reports)
+
+    def open_report_file(self, path: str):
+        try:
+            os.startfile(path)
+        except Exception as e:
+            self.main_window.log.append(f"Cannot open report {path}: {e}", "ERROR")
 
     def sync_normal_status(self):
         """Mirror simulation / IO Box / LocalHost state into the Normal layout status chips."""
@@ -262,8 +303,10 @@ class MainController:
         self.main_window.normal_btn_report_excel.clicked.connect(self.on_report)
         self.main_window.normal_panel.btn_comm_check.clicked.connect(self.on_comm_check)
         self.main_window.normal_panel.btn_ibit.clicked.connect(self.on_normal_ibit)
-        self.main_window.normal_btn_report_word.clicked.connect(self.on_doc)
-        self.main_window.normal_panel.btn_report_fails.clicked.connect(self.on_fails)
+        self.main_window.normal_panel.reports_list.btn_refresh.clicked.connect(self.refresh_report_list)
+        self.main_window.normal_panel.reports_list.open_requested.connect(self.open_report_file)
+        self.main_window.normal_btn_report_word.clicked.connect(self.on_normal_doc)
+        self.main_window.normal_panel.btn_report_fails.clicked.connect(self.on_normal_fails)
         self.main_window.normal_btn_wiki.clicked.connect(self.on_wiki)
         
         # Group 3: Log controls
@@ -658,7 +701,7 @@ class MainController:
             rows.append(row)
         return rows
     
-    def on_report(self):
+    def on_report(self, *_, suffix: str = ""):
         """
         Handle Report button click - generate Excel report with all pin table data.
         
@@ -689,7 +732,7 @@ class MainController:
             
             # Build timestamped filename
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{safe_name}_{ts}.xlsx"
+            filename = f"{safe_name}_{ts}{'_' + suffix if suffix else ''}.xlsx"
             
             # Determine reports directory from settings or default Results folder
             reports_dir_setting = self.settings.get('Paths', {}).get('reports', None)
@@ -745,6 +788,7 @@ class MainController:
                 f"Report: {tested_count}/{len(rows)} pins tested - saved to {out_path}",
                 "SUCCESS"
             )
+            self.refresh_report_list()
             
         except Exception as e:
             error_msg = f"Error generating report: {e}"
@@ -755,7 +799,7 @@ class MainController:
                 "critical"
             )
     
-    def on_doc(self):
+    def on_doc(self, *_, report_files=None):
         """
         Handle DOC button click - generate Word document report.
         
@@ -770,7 +814,7 @@ class MainController:
             reports_dir = Path(reports_dir_setting) if reports_dir_setting else Path.cwd() / "Results"
             reports_dir.mkdir(parents=True, exist_ok=True)
 
-            output_path = create_doc_report_via_dialog(reports_dir)
+            output_path = create_doc_report_via_dialog(reports_dir, report_files)
             
             if output_path:
                 self.main_window.log.append(f"DOC report saved to {output_path}", "SUCCESS")
@@ -791,7 +835,27 @@ class MainController:
                 "critical"
             )
     
-    def on_fails(self):
+    def _checked_reports_or_warn(self, what: str):
+        """Normal layout: reports ticked in the list, or None (with a message) if nothing is ticked."""
+        paths = [Path(p) for p in self.main_window.normal_panel.reports_list.checked_paths()]
+        if not paths:
+            self._show_message(
+                what, "Tick one or more reports in the Reports list first.", "information")
+            return None
+        return paths
+
+    def on_normal_doc(self):
+        paths = self._checked_reports_or_warn("Word report")
+        if paths:
+            self.on_doc(report_files=paths)
+
+    def on_normal_fails(self):
+        paths = self._checked_reports_or_warn("Fail report")
+        if paths:
+            self.on_fails(report_files=paths)
+            self.refresh_report_list()
+
+    def on_fails(self, *_, report_files=None):
         """
         Handle Fails button click - generate combined fails report.
         
@@ -811,7 +875,7 @@ class MainController:
                 # Use workspace Results folder
                 reports_dir = Path.cwd() / "Results"
             
-            output_path = create_fails_report_via_dialog(reports_dir)
+            output_path = create_fails_report_via_dialog(reports_dir, report_files)
             
             if output_path:
                 self.main_window.log.append(f"Fails report saved to {output_path}", "SUCCESS")
@@ -1810,8 +1874,14 @@ class MainController:
             completion_level = "SUCCESS"
         self.main_window.log.append(completion_message, completion_level)
         
-        # Automatically generate report after test completion
-        self.on_report()
+        # Automatically generate report after test completion, tagged with the outcome
+        if phase == Phase.STOPPED or self._normal_counts()[0] < self._normal_counts()[1]:
+            suffix = "Not_Complete"
+        elif phase == Phase.FAILED:
+            suffix = "Fail"
+        else:
+            suffix = "Pass"
+        self.on_report(suffix=suffix)
     
     def on_stop_t(self):
         """Handle Stop button click - stop running test."""

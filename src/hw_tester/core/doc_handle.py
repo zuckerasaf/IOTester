@@ -386,9 +386,11 @@ def prompt_output_path(default_dir: Optional[Path] = None) -> Optional[Path]:
 	return Path(output_path) if output_path else None
 
 
-def create_doc_report_via_dialog(reports_dir: Optional[Path] = None) -> Optional[Path]:
-	"""Select files via dialog and create the Word report (dialogs open in reports_dir)."""
-	report_files = select_report_files(reports_dir)
+def create_doc_report_via_dialog(reports_dir: Optional[Path] = None,
+								 report_files: Optional[List[Path]] = None) -> Optional[Path]:
+	"""Create the Word report from report_files, or pick them via dialog (opens in reports_dir)."""
+	if not report_files:
+		report_files = select_report_files(reports_dir)
 	if not report_files:
 		return None
 
@@ -399,18 +401,21 @@ def create_doc_report_via_dialog(reports_dir: Optional[Path] = None) -> Optional
 	return create_doc_report(report_files, output_path)
 
 
-def create_fails_report_via_dialog(reports_dir: Optional[Path] = None) -> Optional[Path]:
+def create_fails_report_via_dialog(reports_dir: Optional[Path] = None,
+								   report_files: Optional[List[Path]] = None) -> Optional[Path]:
 	"""
 	Select Excel report files and create a combined fails report.
 	
 	Args:
 		reports_dir: Directory to save the fails report. If None, prompts user.
+		report_files: Reports to use. If empty, the user picks them via dialog.
 	
 	Returns:
 		Path to the created fails report, or None if canceled/no fails found.
 	"""
 	# Select Excel report files
-	report_files = select_report_files(reports_dir)
+	if not report_files:
+		report_files = select_report_files(reports_dir)
 	if not report_files:
 		return None
 	

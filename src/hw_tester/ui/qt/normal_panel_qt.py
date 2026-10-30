@@ -6,8 +6,9 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QPointF, QRectF, QSize, QTimer, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
-    QButtonGroup, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QProgressBar,
-    QPushButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget,
+    QAbstractItemView, QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
+    QProgressBar, QPushButton, QSizePolicy, QStackedWidget, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget,
 )
 
 from hw_tester.ui.qt import normal_theme as theme
@@ -15,6 +16,7 @@ from hw_tester.ui.qt import normal_theme as theme
 PANEL_TITLE = "GDU Tester"
 PANEL_SUBTITLE = "Gunner Display Unit"
 PANEL_WIDTH = 560
+REPORTS_WIDTH = 480
 
 
 class Phase(Enum):
@@ -87,6 +89,23 @@ def _chevron_url() -> str:
     return path.as_posix()
 
 
+def _check_url() -> str:
+    """White tick PNG used inside the filled checkbox indicators."""
+    path = Path(tempfile.gettempdir()) / "hw_tester_check.png"
+    pm = QPixmap(32, 32)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor("#FFFFFF"), 4)
+    pen.setCapStyle(Qt.RoundCap)
+    pen.setJoinStyle(Qt.RoundJoin)
+    p.setPen(pen)
+    p.drawPolyline(QPolygonF([QPointF(7, 17), QPointF(13, 23), QPointF(25, 9)]))
+    p.end()
+    pm.save(str(path))
+    return path.as_posix()
+
+
 class StepCard(QFrame):
     def __init__(self, heading: str):
         super().__init__()
@@ -126,6 +145,118 @@ class CounterTile(QFrame):
         _repolish(self)
 
 
+class ReportsList(QFrame):
+    """Right-hand list of saved reports: name, result and date/time."""
+
+    open_requested = Signal(str)  # full path of the double-clicked report
+
+    RESULT_COLORS = {"Pass": theme.PASS_TEXT, "Fail": theme.FAIL_TEXT, "Not Complete": "#6B4300"}
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("card")
+        self.setFixedWidth(REPORTS_WIDTH - 20)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(14, 12, 14, 12)
+        lay.setSpacing(6)
+        head = QHBoxLayout()
+        label = QLabel("REPORTS")
+        label.setObjectName("cardHeading")
+        head.addWidget(label)
+        head.addStretch()
+        self.btn_refresh = QPushButton("Refresh")
+        self.btn_refresh.setObjectName("linkButton")
+        head.addWidget(self.btn_refresh)
+        lay.addLayout(head)
+        self.folder_label = QLabel("")
+        self.folder_label.setObjectName("bannerSub")
+        lay.addWidget(self.folder_label)
+
+        self.select_all = QCheckBox("Select / deselect all")
+        self.select_all.setObjectName("selectAll")
+        self.select_all.setTristate(False)
+        self.select_all.clicked.connect(self._on_select_all)
+        lay.addWidget(self.select_all)
+
+        self.table = QTableWidget(0, 3)
+        self.table.setObjectName("reportsTable")
+        self.table.setHorizontalHeaderLabels(["Name", "Result", "Date / time"])
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setShowGrid(False)
+        self.table.setAlternatingRowColors(True)
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.cellDoubleClicked.connect(self._on_double_click)
+        self.table.itemChanged.connect(self._sync_select_all)
+        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.table.setMinimumHeight(150)
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+        lay.addWidget(self.table, 1)
+        hint = QLabel("Tick reports for Word / Fail report · double-click to open")
+        hint.setObjectName("bannerSub")
+        lay.addWidget(hint)
+
+    def set_reports(self, folder: str, reports: list):
+        """reports: list of (path, display name, result, datetime) newest first."""
+        keep = set(self.checked_paths())
+        self.folder_label.setText(folder)
+        self.table.setRowCount(len(reports))
+        for row, (path, name, result, when) in enumerate(reports):
+            name_item = QTableWidgetItem(name)
+            name_item.setData(Qt.UserRole, path)
+            name_item.setToolTip(path)
+            name_item.setFlags(name_item.flags() | Qt.ItemIsUserCheckable)
+            name_item.setCheckState(Qt.Checked if path in keep else Qt.Unchecked)
+            result_item = QTableWidgetItem(result)
+            result_item.setTextAlignment(Qt.AlignCenter)
+            color = self.RESULT_COLORS.get(result)
+            if color:
+                result_item.setForeground(QColor(color))
+                font = result_item.font()
+                font.setBold(True)
+                result_item.setFont(font)
+            self.table.setItem(row, 0, name_item)
+            self.table.setItem(row, 1, result_item)
+            self.table.setItem(row, 2, QTableWidgetItem(when.strftime("%Y-%m-%d  %H:%M")))
+        self._sync_select_all()
+
+    def _on_select_all(self, checked: bool):
+        state = Qt.Checked if checked else Qt.Unchecked
+        self.table.blockSignals(True)
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if item:
+                item.setCheckState(state)
+        self.table.blockSignals(False)
+
+    def _sync_select_all(self, *_):
+        """Tick the master box only when every row is ticked."""
+        total = self.table.rowCount()
+        self.select_all.blockSignals(True)
+        self.select_all.setChecked(total > 0 and len(self.checked_paths()) == total)
+        self.select_all.blockSignals(False)
+
+    def checked_paths(self) -> list:
+        """Full paths of the reports the user ticked, in list order."""
+        paths = []
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if item and item.checkState() == Qt.Checked:
+                paths.append(item.data(Qt.UserRole))
+        return paths
+
+    def _on_double_click(self, row: int, _col: int):
+        item = self.table.item(row, 0)
+        if item:
+            self.open_requested.emit(item.data(Qt.UserRole))
+
+
 def _repolish(widget: QWidget):
     widget.style().unpolish(widget)
     widget.style().polish(widget)
@@ -149,29 +280,38 @@ class NormalPanel(QWidget):
         super().__init__()
         self.setObjectName("normalPage")
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet(theme.build_stylesheet(_chevron_url()))
+        self.setStyleSheet(theme.build_stylesheet(_chevron_url(), _check_url()))
         self._phase = Phase.READY
         self._total = 0
         self._done = 0
 
         outer = QHBoxLayout(self)
+        outer.setSpacing(16)
         outer.addStretch()
         column = QWidget()
         column.setFixedWidth(PANEL_WIDTH)
         outer.addWidget(column)
+        self.reports_list = ReportsList()
+        right = QWidget()
+        right.setFixedWidth(REPORTS_WIDTH)
+        right_lay = QVBoxLayout(right)
+        right_lay.setContentsMargins(0, 10, 20, 10)
+        right_lay.setSpacing(20)
+        right_lay.addWidget(self.reports_list, 1)
+        outer.addWidget(right)
         outer.addStretch()
 
         root = QVBoxLayout(column)
         root.setContentsMargins(20, 10, 20, 10)
-        root.setSpacing(10)
+        root.setSpacing(20)
 
         root.addLayout(self._build_header())
         root.addWidget(self._build_step0())
         root.addWidget(self._build_step1())
         root.addWidget(self._build_action_button())
         root.addWidget(self._build_step2())
-        root.addWidget(self._build_step3())
         root.addStretch()
+        right_lay.addWidget(self._build_step3())
 
         self.start_button.clicked.connect(self.start_clicked)
         self.stop_button.clicked.connect(self.stop_clicked)
@@ -241,6 +381,7 @@ class NormalPanel(QWidget):
         combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         combo.setMinimumContentsLength(10)
         combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        combo.setPlaceholderText("Select data")
         label.setBuddy(combo)
         card.body.addWidget(label)
         card.body.addWidget(combo)
@@ -407,7 +548,7 @@ class NormalPanel(QWidget):
             b = QPushButton(text)
             b.setObjectName("reportButton")
             b.setIcon(_icon(draw, 40, theme.TEXT))
-            b.setIconSize(QSize(28, 28))
+            b.setIconSize(QSize(22, 22))
             b.setToolTip(tip)
             b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             setattr(self, attr, b)
