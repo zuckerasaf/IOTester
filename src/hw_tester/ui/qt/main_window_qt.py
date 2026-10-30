@@ -6,9 +6,10 @@ from PySide6.QtGui import QFont, QCloseEvent
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QComboBox, QLineEdit, QCheckBox,
-    QGroupBox, QLabel, QSizePolicy, QSpacerItem, QApplication
+    QGroupBox, QLabel, QSizePolicy, QSpacerItem, QApplication, QStackedWidget
 )
 
+from hw_tester.ui.qt.normal_panel_qt import NormalPanel
 from hw_tester.ui.qt.controllers import MainController
 from hw_tester.ui.qt.widgets import LogViewQt, PinTableQt
 from hw_tester.utils.config_loader import load_settings
@@ -22,12 +23,23 @@ class MainWindowQt(QMainWindow):
         app_version = app_info.get("Version", "")
         title = f"{app_name} v{app_version}" if app_version else app_name
         self.setWindowTitle(title)
-        self.resize(1700, 800)
+        self.resize(620, 900)
 
         # Stylesheet is loaded at app level in _main() for proper QMessageBox styling
 
-        root = QWidget()
-        self.setCentralWidget(root)
+        # Two layouts: "Normal" (simplified) and "Engineering" (full, the original one)
+        # Hidden pages are ignored by layouts, so the Normal page can shrink the window freely
+        self.layout_stack = QWidget()
+        self._pages_layout = QVBoxLayout(self.layout_stack)
+        self._pages_layout.setContentsMargins(0, 0, 0, 0)
+        self.setCentralWidget(self.layout_stack)
+
+        self.normal_page = self._build_normal_page()
+        root = QWidget()  # Engineering page
+        self.engineering_page = root
+        self._pages_layout.addWidget(self.normal_page)
+        self._pages_layout.addWidget(root)
+        root.hide()
 
         main = QVBoxLayout(root)
         main.setContentsMargins(12, 12, 12, 12)
@@ -205,6 +217,10 @@ class MainWindowQt(QMainWindow):
         g4l.addWidget(self.lbl_column_preset, 3, 0)
         g4l.addWidget(self.cmb_column_preset, 3, 1, 1, 2)  # row 3, col 1, span 1 row, span 2 cols
 
+        self.btn_to_normal = QPushButton("Normal")
+        g4l.addWidget(self.btn_to_normal, 4, 0, 1, 3)
+        self.btn_to_normal.clicked.connect(self.show_normal_layout)
+
         controls_row.addWidget(g4, stretch=1)
 
         main.addLayout(controls_row, stretch=0)
@@ -228,11 +244,65 @@ class MainWindowQt(QMainWindow):
         # Populate and wire the column preset combo box after controller is initialized
         self.controller.populate_column_preset_combo(self.cmb_column_preset)
         self.cmb_column_preset.currentTextChanged.connect(self.controller.on_column_preset_change)
+        self.controller.populate_project_combo(self.normal_cmb_project)
+        self.normal_cmb_project.currentTextChanged.connect(
+            lambda name: self.controller.populate_connector_combo(self.normal_cmb_connector, name)
+        )
         
         # Storage for pending callbacks (for thread-safe updates)
         self._pending_callbacks = {}
         self._callback_counter = 0
     
+    def _build_normal_page(self) -> QWidget:
+        """Build the simplified 'Normal' layout (widgets only; behavior wired later)."""
+        panel = NormalPanel()
+        self.normal_panel = panel
+        # Aliases used by the controller
+        self.normal_cmb_project = panel.cmb_project
+        self.normal_cmb_connector = panel.cmb_connector
+        self.normal_btn_test = panel.start_button
+        self.normal_btn_stop = panel.stop_button
+        self.normal_btn_report_excel = panel.btn_report_excel
+        self.normal_btn_report_word = panel.btn_report_word
+        self.normal_btn_wiki = panel.btn_wiki
+        panel.mode_changed.connect(
+            lambda mode: self.show_engineering_layout() if mode == "engineer" else None
+        )
+        return panel
+
+    @Slot()
+    def show_normal_layout(self):
+        self.normal_panel.select_normal_mode()
+        self._show_page(self.normal_page)
+
+    @Slot()
+    def show_engineering_layout(self):
+        self._show_page(self.engineering_page)
+
+    def _show_page(self, page: QWidget):
+        for p in (self.normal_page, self.engineering_page):
+            p.setVisible(p is page)
+        self.fit_to_current_layout()
+
+    def fit_to_current_layout(self):
+        """Normal layout: compact window sized to the panel. Engineering layout: maximized."""
+        normal = self.normal_page.isVisibleTo(self)
+        if normal:
+            self.setMinimumSize(0, 0)
+            self.setMaximumSize(16777215, 16777215)
+            if self.isMaximized() or self.isFullScreen():
+                self.showNormal()
+            self.normal_page.ensurePolished()
+            self.normal_page.layout().activate()
+            hint = self.normal_page.sizeHint()
+            avail = self.screen().availableGeometry() if self.screen() else None
+            width, height = hint.width() + 40, hint.height() + 20
+            if avail is not None:
+                height = min(height, avail.height() - 70)
+            self.resize(width, height)
+        else:
+            self.showMaximized()
+
     @Slot()
     def _on_test_complete(self):
         """Slot called when test completes (from controller)."""
@@ -284,7 +354,8 @@ def _main():
         print(f"WARNING: Stylesheet not found at {css_path}")
     
     win = MainWindowQt()
-    win.showMaximized()  # Open in full screen/maximized mode
+    win.show()
+    QTimer.singleShot(0, win.fit_to_current_layout)  # after first layout pass
     return app.exec()
 
 if __name__ == "__main__":

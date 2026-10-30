@@ -71,7 +71,7 @@ UUT               <->  Test Fixture
 - Simulation mode supports test-data validation without hardware; Debug mode
   allows a test to be paused mid-run.
 
-![IO Tester application layout](assets/images/application-layout.svg)
+![IO Tester application layout](assets/images/applications-layout-Normal_Engineer.JPG)
 
 ## Four UUT test types are supported per pin
 

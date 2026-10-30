@@ -5,7 +5,7 @@ Board:
   - ArduinoMega
   - ArduinoUno
   - none
-  Port: COM3
+  Port: COM7
   BaudRate: 115200
   simulation: true
 UDP_Settings:
@@ -17,19 +17,19 @@ UDP_Settings:
     enabled: true
     send_ip: 192.168.195.11
     send_port: 2880
-    receive_ip: 192.168.195.90
+    receive_ip: 192.168.195.60
     receive_port: 1011
   - card_id: 2
     enabled: true
     send_ip: 192.168.195.12
     send_port: 2880
-    receive_ip: 192.168.195.90
+    receive_ip: 192.168.195.60
     receive_port: 1012
   - card_id: 3
-    enabled: true
+    enabled: false
     send_ip: 192.168.195.13
     send_port: 2880
-    receive_ip: 192.168.195.90
+    receive_ip: 192.168.195.10
     receive_port: 1013
   - card_id: 4
     enabled: false

@@ -33,6 +33,7 @@ from hw_tester.core.udp_card_manager import UDPCardManager
 from hw_tester.hardware.controllino_io import ControllinoIO
 from hw_tester.hardware.hardware_factory import initialize_hardware
 from hw_tester.ui.qt.widgets.pin_table_qt import CommSettingsTable
+from hw_tester.ui.qt.normal_panel_qt import Phase
 from hw_tester.core.test_Ibit import ibit_test
 
 
@@ -106,6 +107,17 @@ class MainController:
         # Set debug button text and style based on settings
         debug_text = "Debug: True" if self.debug_mode else "Debug: False"
         self.main_window.btn_debug.setText(debug_text)
+        self.sync_normal_status()
+
+    def sync_normal_status(self):
+        """Mirror simulation / IO Box / LocalHost state into the Normal layout status chips."""
+        panel = getattr(self.main_window, "normal_panel", None)
+        if panel is None:
+            return
+        panel.set_connection_status(
+            self.settings.get('Board', {}).get('simulation', True),
+            self.settings.get('UDP_Settings', {}).get('localhost_mode', False),
+        )
         
         if self.debug_mode:
             self.main_window.btn_debug.setObjectName("btnActive")
@@ -245,6 +257,14 @@ class MainController:
         self.main_window.btn_test.clicked.connect(self.on_test)
         self.main_window.btn_test_all.clicked.connect(self.on_test_all)
         self.main_window.btn_stop.clicked.connect(self.on_stop_t)
+        self.main_window.normal_btn_test.clicked.connect(self.on_normal_test)
+        self.main_window.normal_btn_stop.clicked.connect(self.on_normal_stop)
+        self.main_window.normal_btn_report_excel.clicked.connect(self.on_report)
+        self.main_window.normal_panel.btn_comm_check.clicked.connect(self.on_comm_check)
+        self.main_window.normal_panel.btn_ibit.clicked.connect(self.on_normal_ibit)
+        self.main_window.normal_btn_report_word.clicked.connect(self.on_doc)
+        self.main_window.normal_panel.btn_report_fails.clicked.connect(self.on_fails)
+        self.main_window.normal_btn_wiki.clicked.connect(self.on_wiki)
         
         # Group 3: Log controls
         self.main_window.btn_clear_log.clicked.connect(self.on_clear_log)
@@ -387,6 +407,27 @@ class MainController:
             pin_id: Pin ID being tested (e.g., "J1-1")
         """
         self.main_window.lbl_testing_pin.setText(pin_id if pin_id else "---")
+
+    def _normal_counts(self):
+        """Return (done, total, passed, failed) pin counts from the table."""
+        passed = failed = done = 0
+        rows = self._get_table_rows_as_dicts()
+        for row in rows:
+            results = [row.get("Power_Result"), row.get("PullUp_Result"), row.get("Logic_DI_Result")]
+            if "Fail" in results:
+                failed += 1
+                done += 1
+            elif "Pass" in results:
+                passed += 1
+                done += 1
+        return done, len(rows), passed, failed
+
+    def refresh_normal_counters(self):
+        """Recount results from the table and update the Normal layout panel."""
+        self.main_window.normal_panel.refresh_status(*self._normal_counts())
+
+    def reset_normal_counters(self):
+        self.refresh_normal_counters()
     
     def update_test_results(self, power_result: str = None, pullup_result: str = None, logic_result: str = None):
         """
@@ -434,6 +475,43 @@ class MainController:
         self.main_window.lbl_logic_result.setText("---")
         self.main_window.lbl_logic_result.setStyleSheet("")
     
+    def _db_root(self) -> Path:
+        db_path = Path(self.settings.get('Paths', {}).get('database', 'tests/DB'))
+        return db_path if db_path.is_absolute() else Path.cwd() / db_path
+
+    def populate_connector_combo(self, combo: QComboBox, project: str):
+        """Fill the Normal-layout Connector combo with Excel file names (no extension) under the project folder."""
+        names = []
+        project_dir = self._db_root() / project if project else None
+        try:
+            if project_dir and project_dir.is_dir():
+                names = sorted(
+                    p.stem for p in project_dir.iterdir()
+                    if p.is_file() and p.suffix.lower() in (".xlsx", ".xls") and not p.name.startswith("~$")
+                )
+        except OSError:
+            names = []
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItems(names)
+        combo.setCurrentIndex(-1)
+        combo.blockSignals(False)
+
+    def populate_project_combo(self, combo: QComboBox):
+        """Fill the Normal-layout Project combo with the folder names found in the DB path."""
+        db_path = Path(self.settings.get('Paths', {}).get('database', 'tests/DB'))
+        if not db_path.is_absolute():
+            db_path = Path.cwd() / db_path
+        try:
+            folders = sorted(p.name for p in db_path.iterdir() if p.is_dir()) if db_path.is_dir() else []
+        except OSError:
+            folders = []
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItems(folders)
+        combo.setCurrentIndex(-1)
+        combo.blockSignals(False)
+
     def on_load(self):
         """
         Handle Load button click - open file dialog and load connector data from Excel file.
@@ -458,7 +536,10 @@ class MainController:
             # User cancelled
             return
         
-        file_path = Path(file_path)
+        self._load_connector_file(Path(file_path))
+
+    def _load_connector_file(self, file_path: Path) -> bool:
+        """Load a connector Excel file into the table. Returns True on success."""
         file_name = file_path.name
         
         # Extract connector name from filename (remove .xlsx extension)
@@ -496,6 +577,7 @@ class MainController:
                 f"Loaded {len(self.connector.pins)} pins from '{connector_name}'",
                 "SUCCESS"
             )
+            return True
             
         except FileNotFoundError as e:
             self.main_window.log.append(f"File not found - {e}", "ERROR")
@@ -511,7 +593,32 @@ class MainController:
                 f"Error loading connector:\n{str(e)}",
                 "critical"
             )
-    
+        return False
+
+    def on_normal_test(self):
+        """Normal layout Test button - load the selected project/connector, then run all pins."""
+        project = self.main_window.normal_cmb_project.currentText().strip()
+        connector = self.main_window.normal_cmb_connector.currentText().strip()
+        if not project or not connector:
+            self.main_window.log.append("Select a project and a connector first.", "WARNING")
+            self._show_message("No Selection", "Please select a project and a connector.", "warning")
+            return
+
+        project_dir = self._db_root() / project
+        file_path = next(
+            (project_dir / f"{connector}{ext}" for ext in (".xlsx", ".xls")
+             if (project_dir / f"{connector}{ext}").is_file()),
+            None
+        )
+        if file_path is None:
+            self.main_window.log.append(f"Connector file not found: {connector} in {project_dir}", "ERROR")
+            self._show_message("File Not Found", f"Could not find '{connector}' in:\n{project_dir}", "critical")
+            return
+
+        if not self._load_connector_file(file_path):
+            return
+        self.on_test_all()
+
     def _connector_to_rows(self, connector: Connector) -> list:
         """
         Convert Connector object to table rows.
@@ -659,7 +766,11 @@ class MainController:
             
             self.main_window.log.append("Starting DOC report generation...", "INFO")
             
-            output_path = create_doc_report_via_dialog()
+            reports_dir_setting = self.settings.get('Paths', {}).get('reports', None)
+            reports_dir = Path(reports_dir_setting) if reports_dir_setting else Path.cwd() / "Results"
+            reports_dir.mkdir(parents=True, exist_ok=True)
+
+            output_path = create_doc_report_via_dialog(reports_dir)
             
             if output_path:
                 self.main_window.log.append(f"DOC report saved to {output_path}", "SUCCESS")
@@ -969,14 +1080,18 @@ class MainController:
 
         try:
             comm_path.parent.mkdir(parents=True, exist_ok=True)
-            comm_path.write_text(yaml.safe_dump(comm_data, sort_keys=False), encoding="utf-8")
-            
-            # Save updated settings including report path to settings.yaml
+            # Sync in-memory settings so save_settings doesn't overwrite Comm_settings.yaml with stale values
+            self.settings["Board"] = comm_data["Board"]
+            self.settings["UDP_Settings"] = comm_data["UDP_Settings"]
+
+            # Save updated settings (settings.yaml and Comm_settings.yaml)
             save_settings(self.settings, "settings.yaml", "Comm_settings.yaml")
             
             self.main_window.log.append(f"Saved Comm_settings.yaml to {comm_path}", "SUCCESS")
             self.settings = load_settings()
             self._init_ui_state()
+            self.populate_project_combo(self.main_window.normal_cmb_project)
+            self.populate_connector_combo(self.main_window.normal_cmb_connector, "")
             self._show_message(
                 "Restart Required",
                 "For the changes of IPs and COMM to take effect, the application needs to be restarted.",
@@ -1062,8 +1177,8 @@ class MainController:
             else:
                 self.main_window.btn_simulation.setObjectName("")
             self.main_window.btn_simulation.style().polish(self.main_window.btn_simulation)
+            self.sync_normal_status()
             
-            # Log success
             self.main_window.log.append(
                 f"Simulation mode changed: {old_mode} → {new_mode}",
                 "SUCCESS"
@@ -1155,6 +1270,7 @@ class MainController:
             else:
                 self.main_window.btn_connection.setObjectName("")
             self.main_window.btn_connection.style().polish(self.main_window.btn_connection)
+            self.sync_normal_status()
             
         except Exception as e:
             self.main_window.log.append(
@@ -1269,6 +1385,9 @@ class MainController:
         After pulsing, performs a light ping-style communication check for enabled cards.
         """
         self.main_window.log.append("Starting Comm Check pulse sequence...", "INFO")
+        self.main_window.normal_panel.reset_comm_result()
+        self.main_window.normal_panel.comm_countdown.emit(
+            float(self.settings.get('Timeouts', {}).get('CommCheck', 120.0)))
         self.main_window.btn_keepalive.setStyleSheet("")
         self.main_window.btn_keepalive.style().unpolish(self.main_window.btn_keepalive)
         self.main_window.btn_keepalive.style().polish(self.main_window.btn_keepalive)
@@ -1354,6 +1473,7 @@ class MainController:
 
     def _apply_comm_check_button_color(self, success: bool):
         """Set the Comm Check button color based on overall result."""
+        self.main_window.normal_panel.comm_result.emit(success)
         if success:
             self.main_window.btn_keepalive.setStyleSheet(
                 "background-color: #28a745; color: #ffffff;"
@@ -1365,6 +1485,7 @@ class MainController:
 
     def _apply_ibit_button_color(self, success: bool):
         """Set the IBIT button color based on overall result."""
+        self.main_window.normal_panel.set_ibit_result(success)
         print(f"[MainController._apply_ibit_button_color] success={success}")
         if success:
             self.main_window.btn_ibit.setStyleSheet(
@@ -1383,15 +1504,26 @@ class MainController:
         print ("arrived here ")
         QTimer.singleShot(0, lambda: self._apply_ibit_button_color(success))
 
-    def _run_ping_command(self, host: str, count: int = 4, timeout_sec: int = 1) -> tuple[bool, int, int]:
-        """Run a system ping to the given host and return success plus packet counts."""
+    def _run_ping_command(self, host: str, count: int = 4, timeout_sec: Optional[float] = None) -> tuple[bool, int, int]:
+        """Run a system ping to the given host and return success plus packet counts.
+
+        Timeouts come from settings.yaml: Timeouts.CommCheck_PingTimeout (wait per reply, seconds)
+        and Timeouts.CommCheck_Timeout (limit for the whole ping command, seconds).
+        """
         if not host:
             return False, 0, 0
+
+        timeouts = self.settings.get('Timeouts', {})
+        if timeout_sec is None:
+            timeout_sec = float(timeouts.get('CommCheck_PingTimeout', 1.0))
+        overall_timeout = float(timeouts.get('CommCheck_Timeout', timeout_sec * count + 4))
 
         system_name = platform.system().lower()
         param = '-n' if system_name == 'windows' else '-c'
         timeout_param = '-w' if system_name == 'windows' else '-W'
-        cmd = ['ping', param, str(count), timeout_param, str(timeout_sec), host]
+        # Windows ping expects milliseconds, Linux/macOS expect seconds
+        timeout_value = str(max(1, int(timeout_sec * 1000))) if system_name == 'windows' else str(max(1, int(round(timeout_sec))))
+        cmd = ['ping', param, str(count), timeout_param, timeout_value, host]
 
         try:
             completed = subprocess.run(
@@ -1399,7 +1531,7 @@ class MainController:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout_sec + 4,
+                timeout=overall_timeout,
                 check=False
             )
             output = (completed.stdout or "") + "\n" + (completed.stderr or "")
@@ -1453,15 +1585,33 @@ class MainController:
         self.main_window.btn_ibit.style().polish(self.main_window.btn_ibit)
 
         self.main_window.btn_stop_ibit.setEnabled(True)
+        self.main_window.normal_panel.set_ibit_running(True)
         
+        # The step timers start once the operator answers each prompt with Continue
+        timeouts = self.settings.get('Timeouts', {})
+        panel = self.main_window.normal_panel
+
+        def with_countdown(prompt, seconds):
+            def wrapped():
+                run = prompt()
+                if run and self.running_ibit:
+                    panel.ibit_countdown.emit(seconds)
+                return run
+            return wrapped
+
+        step1_prompt = with_countdown(
+            self._request_ibit_test_prompt, float(timeouts.get('IBIt_step1_Timeout', 1200.0)))
+        step2_prompt = with_countdown(
+            self._request_fuse_test_prompt, float(timeouts.get('IBIt_step2_Timeout', 600.0)))
+
         # Run Ibit test in background thread using TestHandle
         def run_ibit_thread():
             success = False
             if self.test_handler:
                 _, _, success = ibit_test(
                     self.test_handler,
-                    self._request_fuse_test_prompt,
-                    self._request_ibit_test_prompt,
+                    step2_prompt,
+                    step1_prompt,
                 )
             self._update_ibit_button_color_threadsafe(success)
             self._on_ibit_complete_threadsafe()
@@ -1480,6 +1630,7 @@ class MainController:
         
         self.main_window.btn_stop_ibit.setEnabled(False)
         self.main_window.btn_ibit.setEnabled(True)
+        self.main_window.normal_panel.set_ibit_running(False)
 
         # Wait 2 seconds, then clear mux bits to ensure all pins are shut down
         # import time
@@ -1505,7 +1656,15 @@ class MainController:
         self.running_ibit = False
         self.main_window.btn_stop_ibit.setEnabled(False)
         self.main_window.btn_ibit.setEnabled(True)
+        self.main_window.normal_panel.set_ibit_running(False)
         self.main_window.log.append("I_Bit test sequence completed", "SUCCESS")
+    
+    def on_normal_ibit(self):
+        """Normal layout IBIT button: starts IBIT, or stops it while it is running."""
+        if self.running_ibit:
+            self.on_stop_ibit()
+        else:
+            self.on_ibit()
     
     def on_test(self):
         """Handle Test button click - Execute test sequence on selected pins."""
@@ -1585,6 +1744,7 @@ class MainController:
         
         # Update UI state
         self.running = True
+        self._stopped_by_user = False
         self.test_handler.running = True
         self.main_window.btn_stop.setEnabled(True)
         self.main_window.btn_test.setEnabled(False)
@@ -1592,6 +1752,8 @@ class MainController:
         
         # Clear previous test results
         self.clear_test_results()
+        self.reset_normal_counters()
+        self.main_window.normal_panel.set_phase(Phase.RUNNING)
         
         # Clear selection to avoid visual conflicts with Pass/Fail row colors
         self.main_window.table.clear_selection()
@@ -1629,7 +1791,17 @@ class MainController:
         # Clear test result labels
         self.clear_test_results()
         
+        self.refresh_normal_counters()
+        _, _, _, failed_count = self._normal_counts()
         failures = getattr(self.test_handler, "last_sequence_failures", [])
+        if getattr(self, "_stopped_by_user", False):
+            phase = Phase.STOPPED
+        elif failures or failed_count:
+            phase = Phase.FAILED
+        else:
+            phase = Phase.PASSED
+        self.main_window.normal_panel.set_phase(phase)
+        
         if failures:
             completion_message = f"Test sequence completed: {len(failures)} failure(s)"
             completion_level = "WARNING"
@@ -1651,7 +1823,18 @@ class MainController:
         self.main_window.btn_stop.setEnabled(False)
         self.main_window.btn_test.setEnabled(True)
         self.main_window.btn_test_all.setEnabled(True)
-        
+        self._stopped_by_user = True
+        self.refresh_normal_counters()
+        self.main_window.normal_panel.set_phase(Phase.STOPPED)
+
+    def on_normal_stop(self):
+        """Normal layout Stop button - always confirm first, stopping by accident is costly."""
+        answer = QMessageBox.question(
+            self.main_window, "Stop the test?", "Stop the test now?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if answer == QMessageBox.Yes:
+            self.on_stop_t()
     
     def _get_selected_pin_ids(self) -> List[str]:
         """
@@ -1781,7 +1964,10 @@ class QtTableAdapter:
             )
         
         # Update the table (thread-safe)
-        QTimer.singleShot(0, lambda: self.main_window.table.update_row(pin_id, values))
+        QTimer.singleShot(0, lambda: (
+            self.main_window.table.update_row(pin_id, values),
+            self.controller.refresh_normal_counters(),
+        ))
     
     def select_all(self):
         """Select all rows in the table."""

@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 from hw_tester.ui.qt.main_window_qt import MainWindowQt
 
@@ -28,6 +29,7 @@ def main() -> int:
 
     w = MainWindowQt()
     w.show()
+    QTimer.singleShot(0, w.fit_to_current_layout)
     return app.exec()
 
 

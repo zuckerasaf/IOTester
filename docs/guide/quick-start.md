@@ -37,7 +37,7 @@ or in local host mode
 
 If you see a WARNING about connection, see [Troubleshooting](#troubleshooting) below.
 
-![IO Tester application layout](../assets/images/application-layout.svg)
+![IO Tester applications layout](../assets/images/applications-layout-Normal_Engineer.JPG)
 
 ---
 
@@ -69,10 +69,10 @@ Click **[ Test_All ]**.
 
 The tester will work through every pin automatically:
 
-- The currently-tested row turns **YELLOW**
-- The "Testing Pin / Power / Pullup / Logic" status bar updates live
+- in engineer layout on the pin table the currently-tested row turns **YELLOW**
+- in engineer layout The "Testing Pin / Power / Pullup / Logic" status bar updates live
 
-### To test selected pins only
+### To test selected pins only - in engineering layout
 
 Click one or more rows in the pin table (`Ctrl+click` for multi-select), then click **[ Test ]**.
 
@@ -82,7 +82,7 @@ Click **[ Stop ]** at any time - the current pin finishes and then stops.
 
 ---
 
-## Step 5 - Read the results
+## Step 5 - Read the results - in engineering layout
 
 Pin currently being tested raw will bw marked with yellow  
 
@@ -98,7 +98,7 @@ Values are **Pass** or **Fail**. Hover over any cell to see the full text.
 
 ## Step 6 - Save a report
 
-Upon the completion ofof the test run or on Click **[ Report ]**.
+Upon the completion of the test run or on Click **[ Report ]**.
 
 Choose a file name and location. An Excel file is saved containing all pin data and test results for this session.
 

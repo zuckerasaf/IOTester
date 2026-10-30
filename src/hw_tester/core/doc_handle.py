@@ -386,13 +386,13 @@ def prompt_output_path(default_dir: Optional[Path] = None) -> Optional[Path]:
 	return Path(output_path) if output_path else None
 
 
-def create_doc_report_via_dialog() -> Optional[Path]:
-	"""Select files via dialog and create the Word report."""
-	report_files = select_report_files()
+def create_doc_report_via_dialog(reports_dir: Optional[Path] = None) -> Optional[Path]:
+	"""Select files via dialog and create the Word report (dialogs open in reports_dir)."""
+	report_files = select_report_files(reports_dir)
 	if not report_files:
 		return None
 
-	output_path = prompt_output_path()
+	output_path = prompt_output_path(reports_dir)
 	if not output_path:
 		return None
 
@@ -410,7 +410,7 @@ def create_fails_report_via_dialog(reports_dir: Optional[Path] = None) -> Option
 		Path to the created fails report, or None if canceled/no fails found.
 	"""
 	# Select Excel report files
-	report_files = select_report_files()
+	report_files = select_report_files(reports_dir)
 	if not report_files:
 		return None
 	

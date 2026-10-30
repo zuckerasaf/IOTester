@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Generate Volcan targets",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\hw_tester\\utils\\generate_targets.py",
+            "args": [
+                "${workspaceFolder}\\tests\\DB\\DB_Volcan\\source file .xlsx",
+                "--output-dir",
+                "${workspaceFolder}\\tests\\DB\\DB_Volcan"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

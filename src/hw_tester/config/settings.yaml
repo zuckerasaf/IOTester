@@ -1,6 +1,6 @@
 IO_Tester:
   Name: HW Tester
-  Version: 2.0.0
+  Version: 3.0.0
   Description: A tool for testing and validating hardware pin configurations.
 Debug:
   mode: false
@@ -112,6 +112,9 @@ Timeouts:
   TestStep: 2.5
   Connection: 5.0
   pins_to_stabilize: 0.5
+  CommCheck: 60.0
+  IBIt_step1_Timeout: 1200.0
+  IBIt_step2_Timeout: 600.0
 scale:
   voltage: 6.14
   voltage_degredation: 1.5
@@ -134,7 +137,7 @@ Paths:
   powerdown_MTC_FWD: tests/DB/MTC_FWD/powerdown_MTC_FWD.json
   powerup_MTC_AFT: tests/DB/MTC_AFT/powerup_MTC_AFT.json
   powerdown_MTC_AFT: tests/DB/MTC_AFT/powerdown_MTC_AFT.json
-  database: C:\ArduinoProject\IO_Tester\tests\DB\MK3_Gunner
+  database: C:\ArduinoProject\IO_Tester\tests\DB
 ExcelColumns:
   ID: H
   Connect: A
