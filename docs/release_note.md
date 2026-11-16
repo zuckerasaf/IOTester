@@ -25,3 +25,19 @@
 - Developed the MkDocs-based Wiki and included the project overview, quick-start guide, user manual, I-BIT guide, Power Test guide, PullUp Test guide, Logic Test guide, and Cable Test guide.
 - Included the design document, system-flow documentation, error-message reference, and interactive logic, power, and pull-up test-flow diagrams.
 - Added the Release Notes page to the Wiki and updated the system-flow and design documents for Cable Test selection, execution, validation, and cleanup.
+
+## Version 3.0.0
+
+### Added
+
+- Added a second layout to the tester UI.
+
+#### fixing 
+- setting form save the data form the UI to the Comm_settings.yaml
+
+
+## Version 4.0.0
+
+### Added
+
+- Added the Excel Creator app.

@@ -1,0 +1,371 @@
+{
+  "version": 1,
+  "source_sheets": [
+    "Spider Card #1",
+    "Spider Card #2",
+    "Spider Card #3",
+    "Spider Card #4"
+  ],
+  "first_data_row": 7,
+  "connector_regex": "^J\\d+$",
+  "card_regex": "#(\\d+)",
+  "file_name_template": "Target_{conn}.xlsx",
+  "issues_file_name": "Open_Issues.xlsx",
+  "output_sheet_name": "Sheet",
+  "connector_field": "conn",
+  "source_fields": [
+    {
+      "key": "discrete",
+      "label": "Discrete Name",
+      "column": "B"
+    },
+    {
+      "key": "signal",
+      "label": "Signal Name",
+      "column": "C"
+    },
+    {
+      "key": "type",
+      "label": "Type",
+      "column": "D"
+    },
+    {
+      "key": "conn",
+      "label": "Connector",
+      "column": "E"
+    },
+    {
+      "key": "pin_out",
+      "label": "Pin Out",
+      "column": "F"
+    },
+    {
+      "key": "from_",
+      "label": "From",
+      "column": "G"
+    },
+    {
+      "key": "plug",
+      "label": "Plug",
+      "column": "H"
+    },
+    {
+      "key": "pin",
+      "label": "Pin",
+      "column": "I"
+    },
+    {
+      "key": "color",
+      "label": "Color",
+      "column": "J"
+    },
+    {
+      "key": "awg",
+      "label": "AWG",
+      "column": "K"
+    }
+  ],
+  "target_columns": [
+    {
+      "header": "Card",
+      "source": "@card",
+      "constant": ""
+    },
+    {
+      "header": "Discrete Mame",
+      "source": "discrete",
+      "constant": ""
+    },
+    {
+      "header": "Signal Name",
+      "source": "signal",
+      "constant": ""
+    },
+    {
+      "header": "Type",
+      "source": "type",
+      "constant": ""
+    },
+    {
+      "header": "Connector",
+      "source": "conn",
+      "constant": ""
+    },
+    {
+      "header": "SPS",
+      "source": "pin_out",
+      "constant": ""
+    },
+    {
+      "header": "Orignal",
+      "source": "pin_out",
+      "constant": ""
+    },
+    {
+      "header": "Pin Out",
+      "source": "pin_out",
+      "constant": ""
+    },
+    {
+      "header": "From",
+      "source": "from_",
+      "constant": ""
+    },
+    {
+      "header": "Plug",
+      "source": "plug",
+      "constant": ""
+    },
+    {
+      "header": "Pin",
+      "source": "pin",
+      "constant": ""
+    },
+    {
+      "header": "Color",
+      "source": "color",
+      "constant": ""
+    },
+    {
+      "header": "AWG",
+      "source": "awg",
+      "constant": ""
+    },
+    {
+      "header": "Power_Expected",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Power_Input",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "PullUp_Expected",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "PullUp_Input",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "logic_input",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Logic_Command",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Logic_Expected",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Test_Result",
+      "source": "",
+      "constant": ""
+    }
+  ],
+  "rules": [
+    {
+      "name": "AI rows",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "regex",
+          "value": "(?<![A-Za-z])AI_?(\\d+)"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "1"
+        },
+        {
+          "column": "R",
+          "value": "TBD"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_AI{g1}_10"
+        }
+      ]
+    },
+    {
+      "name": "Red wire with voltage in Plug",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "L",
+          "op": "contains",
+          "value": "RED"
+        },
+        {
+          "column": "J",
+          "op": "regex",
+          "value": "(\\d+(?:\\.\\d+)?)\\s*V\\b"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "{g1}"
+        },
+        {
+          "column": "O",
+          "value": "P"
+        }
+      ]
+    },
+    {
+      "name": "RTN plug",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "RTN"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "0"
+        },
+        {
+          "column": "Q",
+          "value": "G"
+        }
+      ]
+    },
+    {
+      "name": "CH. minus pin",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "CH."
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "-"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "0"
+        },
+        {
+          "column": "Q",
+          "value": "G"
+        }
+      ]
+    },
+    {
+      "name": "Red CH. plus pin (voltage from From range)",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "L",
+          "op": "contains",
+          "value": "RED"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "CH"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "{I|rangemax}"
+        },
+        {
+          "column": "O",
+          "value": "TBD"
+        }
+      ]
+    },
+    {
+      "name": "DI rows",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "regex",
+          "value": "(?<![A-Za-z])DI_?(\\d+)"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "3.5"
+        },
+        {
+          "column": "R",
+          "value": "TBD"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_DI{g1}_0"
+        }
+      ]
+    },
+    {
+      "name": "DO rows",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "regex",
+          "value": "(?<![A-Za-z])DO_?(\\d+)"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "4"
+        },
+        {
+          "column": "Q",
+          "value": "C{A|num}_DO{g1}_1"
+        }
+      ]
+    }
+  ]
+}

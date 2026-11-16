@@ -49,6 +49,7 @@ nav:
     - Logic Test: guide/logic-test.md
     - Cable Test: guide/cable-test.md
     - Excel Import Procedure: guide/excel-import-procedure.md
+    - Connector Targets App: guide/connector-targets.md
   - Design:
     - Design Document: design/design-document.md
     - System Flows: design/system-flows.md

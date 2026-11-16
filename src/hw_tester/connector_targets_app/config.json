@@ -1,0 +1,618 @@
+{
+  "version": 1,
+  "source_sheets": [
+    "CARD 1",
+    "CARD 2",
+    "CARD 3",
+    "CARD 4",
+    "CARD 5"
+  ],
+  "first_data_row": 11,
+  "connector_regex": "^J\\d+$",
+  "card_regex": "(\\d+)",
+  "file_name_template": "V1_{conn}.xlsx",
+  "issues_file_name": "Open_Issues.xlsx",
+  "output_sheet_name": "Sheet",
+  "connector_field": "conn",
+  "source_fields": [
+    {
+      "key": "discrete",
+      "label": "Discrete Name",
+      "column": "B"
+    },
+    {
+      "key": "signal",
+      "label": "Signal Name",
+      "column": "C"
+    },
+    {
+      "key": "type",
+      "label": "Type",
+      "column": "D"
+    },
+    {
+      "key": "conn",
+      "label": "Connector",
+      "column": "E"
+    },
+    {
+      "key": "pin_out",
+      "label": "Pin Out",
+      "column": "H"
+    },
+    {
+      "key": "from_",
+      "label": "From",
+      "column": "I"
+    },
+    {
+      "key": "plug",
+      "label": "Plug",
+      "column": "J"
+    },
+    {
+      "key": "pin",
+      "label": "Pin",
+      "column": "K"
+    },
+    {
+      "key": "color",
+      "label": "Color",
+      "column": "L"
+    },
+    {
+      "key": "awg",
+      "label": "AWG",
+      "column": "M"
+    }
+  ],
+  "target_columns": [
+    {
+      "header": "Card",
+      "source": "@card",
+      "constant": ""
+    },
+    {
+      "header": "Discrete Mame",
+      "source": "discrete",
+      "constant": ""
+    },
+    {
+      "header": "Signal Name",
+      "source": "signal",
+      "constant": ""
+    },
+    {
+      "header": "Type",
+      "source": "type",
+      "constant": ""
+    },
+    {
+      "header": "Connector",
+      "source": "conn",
+      "constant": ""
+    },
+    {
+      "header": "SPS",
+      "source": "pin_out",
+      "constant": ""
+    },
+    {
+      "header": "Orignal",
+      "source": "pin_out",
+      "constant": ""
+    },
+    {
+      "header": "Pin Out",
+      "source": "pin_out",
+      "constant": ""
+    },
+    {
+      "header": "From",
+      "source": "awg",
+      "constant": ""
+    },
+    {
+      "header": "Plug",
+      "source": "plug",
+      "constant": ""
+    },
+    {
+      "header": "Pin",
+      "source": "pin",
+      "constant": ""
+    },
+    {
+      "header": "Color",
+      "source": "color",
+      "constant": ""
+    },
+    {
+      "header": "AWG",
+      "source": "awg",
+      "constant": ""
+    },
+    {
+      "header": "Power_Expected",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Power_Input",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "PullUp_Expected",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "PullUp_Input",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "logic_input",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Logic_Command",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Logic_Expected",
+      "source": "",
+      "constant": ""
+    },
+    {
+      "header": "Test_Result",
+      "source": "",
+      "constant": ""
+    }
+  ],
+  "rules": [
+    {
+      "name": "DI rows - not Matrix",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "di"
+        },
+        {
+          "column": "C",
+          "op": "regex",
+          "value": "^(?!.*(?:X|Y)\\d+)"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "3.5"
+        },
+        {
+          "column": "R",
+          "value": "TBD_DI"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_DI{g1}_0"
+        }
+      ]
+    },
+    {
+      "name": "DI rows - Matrix",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "di"
+        },
+        {
+          "column": "C",
+          "op": "regex",
+          "value": "(?!.*(?:X|Y)\\d+)"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "3.5"
+        }
+      ]
+    },
+    {
+      "name": "DI rows - RTN pin",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "di"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "R",
+          "value": "{H@J=24V I\\O RTN}"
+        }
+      ]
+    },
+    {
+      "name": "DO rows - not Matrix",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "do"
+        },
+        {
+          "column": "C",
+          "op": "regex",
+          "value": "^(?!.*(?:X|Y)\\d+)"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "4"
+        },
+        {
+          "column": "Q",
+          "value": "C{A|num}_DO{g1}_1"
+        }
+      ]
+    },
+    {
+      "name": "DO rows - Matrix",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "do"
+        },
+        {
+          "column": "C",
+          "op": "regex",
+          "value": "[XY]\\d+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "4"
+        },
+        {
+          "column": "Q",
+          "value": "C{A|num}_DO{g1}_1"
+        },
+        {
+          "column": "R",
+          "value": "TBD_DI"
+        },
+        {
+          "column": "S",
+          "value": "C{A|num}_DO{g1}_1"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_DI_TBD_0"
+        }
+      ]
+    },
+    {
+      "name": "AI rows",
+      "enabled": true,
+      "stop": false,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "ai"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "8"
+        },
+        {
+          "column": "R",
+          "value": "TBD_AI"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_AI{g1}_10"
+        }
+      ]
+    },
+    {
+      "name": "AI rows - 10V pin",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "code_number",
+          "value": "ai"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "R",
+          "value": "{H@N==10}"
+        }
+      ]
+    },
+    {
+      "name": "Red wire with voltage in Plug",
+      "enabled": true,
+      "stop": false,
+      "conditions": [
+        {
+          "column": "L",
+          "op": "contains",
+          "value": "RED"
+        },
+        {
+          "column": "J",
+          "op": "regex",
+          "value": "(\\d+(?:\\.\\d+)?)\\s*V\\b"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "{g1}"
+        },
+        {
+          "column": "O",
+          "value": "P"
+        }
+      ]
+    },
+    {
+      "name": "RTN plug",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "RTN"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "0"
+        },
+        {
+          "column": "Q",
+          "value": "G"
+        }
+      ]
+    },
+    {
+      "name": "GND plug",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "GND"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "0"
+        },
+        {
+          "column": "Q",
+          "value": "G"
+        }
+      ]
+    },
+    {
+      "name": "Black CH. minus pin",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "CH."
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "-"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "0"
+        },
+        {
+          "column": "P",
+          "value": "0"
+        },
+        {
+          "column": "Q",
+          "value": "G"
+        }
+      ]
+    },
+    {
+      "name": "Red CH. plus pin (voltage from From range)",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "L",
+          "op": "equals",
+          "value": "RED"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "CH"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "{j|rangemax}"
+        },
+        {
+          "column": "O",
+          "value": "TBD_CH+"
+        }
+      ]
+    },
+    {
+      "name": "ENCX A+ on P1",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "contains",
+          "value": "INC_ENCX_A+"
+        },
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "P1"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "R",
+          "value": "TBD_INC"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_IE1_1"
+        }
+      ]
+    },
+    {
+      "name": "ENCY A+ on P5",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "contains",
+          "value": "INC_ENCY_A+"
+        },
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "P5"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "R",
+          "value": "TBD_INC"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_IE2_1"
+        }
+      ]
+    },
+    {
+      "name": "ENCX B+ on P1",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "contains",
+          "value": "INC_ENCX_B+"
+        },
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "P1"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "R",
+          "value": "TBD_INC"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_IE1_65535"
+        }
+      ]
+    },
+    {
+      "name": "ENCY B+ on P5",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "contains",
+          "value": "INC_ENCY_B+"
+        },
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "P5"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "R",
+          "value": "TBD_INC"
+        },
+        {
+          "column": "T",
+          "value": "C{A|num}_IE2_65535"
+        }
+      ]
+    }
+  ]
+}
