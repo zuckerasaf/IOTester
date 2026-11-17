@@ -37,7 +37,8 @@ Menu *Configuration*: Load config file / Save / Save as / Reset (reload file) / 
 
 ## Notes
 - The source workbook is never modified.
-- Rows with an empty connector cell are kept in a connector file only when the rows directly above and
-  below belong to the same connector; all of them are listed in the issues file.
+- A selected tab whose name does not match the card number pattern uses card 100 and is listed in the issues report.
+- Rows with an empty connector cell are skipped and listed in the issues file, but not summarized in the text run report.
+- TBD values are listed in the text run report by target file, row and column.
 - Validation: if a row did not match any enabled fill rule and all rule-target columns stayed empty,
   the row is added to `Open_Issues.xlsx` as "No fill rule matched; rule target columns stayed empty".

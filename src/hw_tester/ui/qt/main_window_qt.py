@@ -217,8 +217,11 @@ class MainWindowQt(QMainWindow):
         g4l.addWidget(self.lbl_column_preset, 3, 0)
         g4l.addWidget(self.cmb_column_preset, 3, 1, 1, 2)  # row 3, col 1, span 1 row, span 2 cols
 
+        self.btn_connector_targets = QPushButton("Connector Targets")
+        g4l.addWidget(self.btn_connector_targets, 4, 0, 1, 3)
+
         self.btn_to_normal = QPushButton("Normal")
-        g4l.addWidget(self.btn_to_normal, 4, 0, 1, 3)
+        g4l.addWidget(self.btn_to_normal, 5, 0, 1, 3)
         self.btn_to_normal.clicked.connect(self.show_normal_layout)
 
         controls_row.addWidget(g4, stretch=1)

@@ -13,7 +13,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QThread, Signal, QUrl
 from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import (
-    QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout, QGroupBox,
+    QApplication, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter,
     QTableWidget, QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget,
@@ -220,10 +220,13 @@ class RunTab(QWidget):
         self.out_edit.setPlaceholderText("empty = same folder as the source file")
         b2 = QPushButton("Browse...")
         b2.clicked.connect(self.pick_out)
+        self.file_tpl = QLineEdit()
+        self.file_tpl.setToolTip("Output file name, {conn} is replaced by the connector, e.g. J1")
 
         form = QFormLayout()
         form.addRow("Source workbook:", hbox(self.source_edit, b1))
         form.addRow("Output folder:", hbox(self.out_edit, b2))
+        form.addRow("Target file name:", self.file_tpl)
         lay.addLayout(form)
 
         self.load_btn = QPushButton("Load tabs from source")
@@ -401,13 +404,12 @@ class SourceTab(QWidget):
         conn_lay.addWidget(self.conn_prefix)
         conn_lay.addWidget(conn_help)
         self.card_regex = QLineEdit()
-        self.card_regex.setToolTip("Applied to the tab name; group 1 is the card number.")
+        self.card_regex.setToolTip("Applied to the tab name; group 1 is the card number. "
+                                   "If the pattern does not match, card 100 is used and reported.")
         card_btn = QPushButton("Regex dictionary")
         card_btn.clicked.connect(lambda: show_regex_dictionary(self))
         card_box = hbox(self.card_regex, card_btn)
         self.card_regex.setMinimumWidth(200)
-        self.file_tpl = QLineEdit()
-        self.file_tpl.setToolTip("Output file name, {conn} is replaced by the connector, e.g. J1")
         self.issues_name = QLineEdit()
         self.sheet_name = QLineEdit()
         self.conn_field = QComboBox()
@@ -415,7 +417,6 @@ class SourceTab(QWidget):
         form.addRow("Connector letter(s):", conn_box)
         form.addRow("Card number from tab name (regex):", card_box)
         form.addRow("Connector column is source field:", self.conn_field)
-        form.addRow("Target file name:", self.file_tpl)
         form.addRow("Open issues file name:", self.issues_name)
         form.addRow("Sheet name inside target files:", self.sheet_name)
         lay.addWidget(box)
@@ -507,7 +508,6 @@ class SourceTab(QWidget):
         self.first_row.setValue(int(cfg["first_data_row"]))
         self._load_conn_prefix(cfg["connector_regex"])
         self.card_regex.setText(cfg["card_regex"])
-        self.file_tpl.setText(cfg["file_name_template"])
         self.issues_name.setText(cfg["issues_file_name"])
         self.sheet_name.setText(cfg.get("output_sheet_name", "Sheet"))
         self.sheet_list.clear()
@@ -526,7 +526,6 @@ class SourceTab(QWidget):
         cfg["first_data_row"] = self.first_row.value()
         cfg["connector_regex"] = self._conn_regex_from_prefix()
         cfg["card_regex"] = self.card_regex.text()
-        cfg["file_name_template"] = self.file_tpl.text()
         cfg["issues_file_name"] = self.issues_name.text()
         cfg["output_sheet_name"] = self.sheet_name.text() or "Sheet"
         cfg["source_sheets"] = [self.sheet_list.item(i).text() for i in range(self.sheet_list.count())
@@ -624,6 +623,46 @@ ASG_LEGEND = (
 )
 
 
+class LookupDialog(QDialog):
+    def __init__(self, parent, choices, template):
+        super().__init__(parent)
+        self.setWindowTitle("Look up a value in this connector")
+        match = engine.LOOKUP_RE.fullmatch(template)
+        result_col, search_col, value = match.groups() if match else ("H", "J", "")
+        exact = value.startswith("=")
+        self.result_col = combo_with(choices, result_col.upper())
+        self.search_col = combo_with(choices, search_col.upper())
+        self.match_type = combo_with([("Contains", "contains"), ("Equals", "equals")],
+                                     "equals" if exact else "contains")
+        self.search_value = QLineEdit(value[1:] if exact else value)
+        form = QFormLayout(self)
+        form.addRow("Return value from:", self.result_col)
+        form.addRow("Look in:", self.search_col)
+        form.addRow("Match:", self.match_type)
+        form.addRow("Value to find:", self.search_value)
+        info = QLabel("Uses the first matching row in the same connector; matching ignores case.")
+        info.setWordWrap(True)
+        form.addRow(info)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+    def accept(self):
+        value = self.search_value.text().strip()
+        if not value or "{" in value or "}" in value or (
+                self.match_type.currentData() == "contains" and value.startswith("=")):
+            QMessageBox.warning(self, "Lookup", "Enter a value without braces. "
+                                "For a value starting with '=', use Equals.")
+            return
+        super().accept()
+
+    def template(self):
+        prefix = "=" if self.match_type.currentData() == "equals" else ""
+        return "{" + self.result_col.currentData() + "@" + self.search_col.currentData() + "=" + \
+               prefix + self.search_value.text().strip() + "}"
+
+
 class RulesTab(QWidget):
     def __init__(self, main):
         super().__init__()
@@ -699,9 +738,12 @@ class RulesTab(QWidget):
         legend.setStyleSheet("color: gray;")
         rl.addWidget(legend)
         aa, ar = QPushButton("Add value"), QPushButton("Remove value")
+        lookup = QPushButton("Set lookup...")
+        lookup.setToolTip("Set the selected value to a lookup in another row of the same connector.")
         aa.clicked.connect(lambda: self.add_asg_row({"column": "N", "value": ""}))
         ar.clicked.connect(lambda: remove_selected_row(self.asg_table))
-        rl.addWidget(hbox(aa, ar))
+        lookup.clicked.connect(self.set_lookup)
+        rl.addWidget(hbox(aa, ar, lookup))
         split.addWidget(right)
         split.setStretchFactor(1, 3)
         outer.addWidget(split, 1)
@@ -725,6 +767,16 @@ class RulesTab(QWidget):
         it = item(a["value"])
         it.setToolTip(ASG_LEGEND)
         self.asg_table.setItem(r, 1, it)
+
+    def set_lookup(self):
+        row = self.asg_table.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Lookup", "Select a value in 'Then write' first.")
+            return
+        value = self.asg_table.item(row, 1)
+        dialog = LookupDialog(self, self.col_choices(), value.text())
+        if dialog.exec() == QDialog.Accepted:
+            value.setText(dialog.template())
 
     # --- rule list handling
     def refresh_list(self, select=0):
@@ -853,7 +905,7 @@ class MainWindow(QMainWindow):
         cl = QVBoxLayout(central)
         cl.addWidget(self.tabs, 1)
         self.save_btn = QPushButton("Save")
-        self.save_btn.setToolTip("Save the settings (Source && Tabs, Column Mapping, Fill Rules) to the configuration file.")
+        self.save_btn.setToolTip("Save the settings (Run, Source && Tabs, Column Mapping, Fill Rules) to the configuration file.")
         self.save_btn.clicked.connect(self.save_cfg)
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setToolTip("Discard the edits made since the last save and reload the saved settings "
@@ -890,6 +942,7 @@ class MainWindow(QMainWindow):
 
     # --- config <-> widgets
     def load_all(self, snapshot=True):
+        self.run_tab.file_tpl.setText(self.cfg["file_name_template"])
         self.source_tab.load_from_cfg(self.cfg)
         self.map_tab.load_from_cfg(self.cfg)
         self.rules_tab.load_from_cfg(self.cfg)
@@ -908,6 +961,7 @@ class MainWindow(QMainWindow):
         self._saved_cfg = copy.deepcopy(self.cfg)
 
     def commit_all(self):
+        self.cfg["file_name_template"] = self.run_tab.file_tpl.text()
         self.source_tab.commit_to_cfg(self.cfg)
         self.map_tab.fields = self.cfg["source_fields"]
         self.map_tab.commit_to_cfg(self.cfg)

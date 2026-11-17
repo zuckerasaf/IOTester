@@ -325,6 +325,7 @@ class MainController:
         self.main_window.btn_debug.clicked.connect(self.on_debug_toggle)
         self.main_window.btn_next.clicked.connect(self.on_next)
         self.main_window.btn_wiki.clicked.connect(self.on_wiki)
+        self.main_window.btn_connector_targets.clicked.connect(self.on_connector_targets)
         self.main_window.btn_keepalive.clicked.connect(self.on_comm_check)
         self.main_window.btn_ibit.clicked.connect(self.on_ibit)
         self.main_window.btn_stop_ibit.clicked.connect(self.on_stop_ibit)
@@ -1441,6 +1442,26 @@ class MainController:
         except Exception as e:
             self.main_window.log.append(f"Error opening Wiki: {str(e)}", "ERROR")
     
+    def on_connector_targets(self):
+        """Handle Connector Targets button click - launch the Connector Targets app as a separate process."""
+        app_script = Path(__file__).resolve().parents[3] / "connector_targets_app" / "app.py"
+        if getattr(sys, "frozen", False):
+            command = [str(Path(sys.executable).resolve().parent / "ConnectorTargets.exe")]
+            target = Path(command[0])
+        else:
+            command = [sys.executable, str(app_script)]
+            target = app_script
+        if not target.exists():
+            self.main_window.log.append(f"Connector Targets app not found: {target}", "WARNING")
+            self._show_message("Connector Targets Not Found",
+                               f"Connector Targets app not found at:\n{target}", "warning")
+            return
+        try:
+            subprocess.Popen(command, cwd=str(target.parent))
+            self.main_window.log.append("Opened Connector Targets app", "SUCCESS")
+        except Exception as e:
+            self.main_window.log.append(f"Error opening Connector Targets app: {str(e)}", "ERROR")
+
     def on_comm_check(self):
         """
         Handle Comm Check button click - pulse all digital ports for the configured board.

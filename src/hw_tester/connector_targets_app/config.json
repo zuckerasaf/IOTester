@@ -5,12 +5,13 @@
     "CARD 2",
     "CARD 3",
     "CARD 4",
-    "CARD 5"
+    "CARD 5",
+    "POWER"
   ],
   "first_data_row": 11,
   "connector_regex": "^J\\d+$",
   "card_regex": "(\\d+)",
-  "file_name_template": "V1_{conn}.xlsx",
+  "file_name_template": "AFT_{conn}.xlsx",
   "issues_file_name": "Open_Issues.xlsx",
   "output_sheet_name": "Sheet",
   "connector_field": "conn",
@@ -175,7 +176,7 @@
   ],
   "rules": [
     {
-      "name": "DI rows - not Matrix",
+      "name": "DI rows - not Matrix connect to 24 RTN",
       "enabled": true,
       "stop": true,
       "conditions": [
@@ -197,7 +198,7 @@
         },
         {
           "column": "R",
-          "value": "TBD_DI"
+          "value": "{H@J=24V I\\O RTN}"
         },
         {
           "column": "T",
@@ -334,7 +335,7 @@
       "assignments": [
         {
           "column": "N",
-          "value": "8"
+          "value": "1"
         },
         {
           "column": "R",
@@ -365,9 +366,117 @@
       ]
     },
     {
+      "name": "DIM CARD 0-5V_CONSOLE -> Analog input",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "DIM CARD 0-5V_CONSOLE"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "O",
+          "value": "C1_AO2_10"
+        },
+        {
+          "column": "N",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "DIM CARD 0-5V_INST -> Analog input",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "DIM CARD 0-5V_INST"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "O",
+          "value": "C1_AO1_10"
+        },
+        {
+          "column": "N",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "DIM CARD 0-5V -> Analog input",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "DIM CARD 0-5V"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "CH.1+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "O",
+          "value": "C1_AO1_10"
+        },
+        {
+          "column": "N",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "DIM CARD 0-28V_BRT DIM -> Analog input",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "J",
+          "op": "contains",
+          "value": "DIM CARD 0-28V_BRT DIM"
+        },
+        {
+          "column": "K",
+          "op": "contains",
+          "value": "+"
+        }
+      ],
+      "assignments": [
+        {
+          "column": "O",
+          "value": "C1_AO5_10"
+        },
+        {
+          "column": "N",
+          "value": "24"
+        }
+      ]
+    },
+    {
       "name": "Red wire with voltage in Plug",
       "enabled": true,
-      "stop": false,
+      "stop": true,
       "conditions": [
         {
           "column": "L",
@@ -525,7 +634,7 @@
       "assignments": [
         {
           "column": "R",
-          "value": "TBD_INC"
+          "value": "{H@J=5V I\\O RTN}"
         },
         {
           "column": "T",
@@ -552,7 +661,7 @@
       "assignments": [
         {
           "column": "R",
-          "value": "TBD_INC"
+          "value": "{H@J=5V I\\O RTN}"
         },
         {
           "column": "T",
@@ -579,7 +688,7 @@
       "assignments": [
         {
           "column": "R",
-          "value": "TBD_INC"
+          "value": "{H@J=5V I\\O RTN}"
         },
         {
           "column": "T",
@@ -606,11 +715,29 @@
       "assignments": [
         {
           "column": "R",
-          "value": "TBD_INC"
+          "value": "{H@J=5V I\\O RTN}"
         },
         {
           "column": "T",
           "value": "C{A|num}_IE2_65535"
+        }
+      ]
+    },
+    {
+      "name": "empty row",
+      "enabled": true,
+      "stop": true,
+      "conditions": [
+        {
+          "column": "B",
+          "op": "is_empty",
+          "value": ""
+        }
+      ],
+      "assignments": [
+        {
+          "column": "N",
+          "value": "3.5"
         }
       ]
     }

@@ -1,0 +1,199 @@
+J1: AFT_J1.xlsx  card100=4, total=4
+J4: AFT_J4.xlsx  card100=36, total=36
+J5: AFT_J5.xlsx  card1=3, card2=13, card3=3, card4=6, card5=6, total=31
+J6: AFT_J6.xlsx  card1=27, card4=2, total=29
+J8: AFT_J8.xlsx  card1=40, card2=1, total=41
+J9: AFT_J9.xlsx  card1=5, card2=31, total=36
+J10: AFT_J10.xlsx  card1=8, card2=21, total=29
+J11: AFT_J11.xlsx  card1=16, card2=12, card3=11, total=39
+J12: AFT_J12.xlsx  card1=5, card3=15, card4=4, total=24
+J13: AFT_J13.xlsx  card3=36, card4=5, total=41
+J14: AFT_J14.xlsx  card1=15, card4=16, total=31
+J15: AFT_J15.xlsx  card1=12, total=12
+J16: AFT_J16.xlsx  card5=2, total=2
+J17: AFT_J17.xlsx  card2=4, card4=5, total=9
+J18: AFT_J18.xlsx  card3=19, total=19
+J19: AFT_J19.xlsx  card4=19, total=19
+J20: AFT_J20.xlsx  card2=14, card4=3, total=17
+J21: AFT_J21.xlsx  card1=4, card4=9, total=13
+J22: AFT_J22.xlsx  card2=2, card3=5, total=7
+J23: AFT_J23.xlsx  card3=2, card4=7, total=9
+J24: AFT_J24.xlsx  card1=4, card3=6, card4=5, total=15
+J25: AFT_J25.xlsx  card4=8, total=8
+J26: AFT_J26.xlsx  card100=12, total=12
+J27: AFT_J27.xlsx  card4=3, card5=2, total=5
+J28: AFT_J28.xlsx  card1=5, total=5
+J29: AFT_J29.xlsx  card3=3, card4=8, total=11
+J30: AFT_J30.xlsx  card2=7, card4=9, total=16
+J31: AFT_J31.xlsx  card2=6, card4=5, total=11
+J32: AFT_J32.xlsx  card2=6, card4=4, total=10
+J33: AFT_J33.xlsx  card2=5, card5=2, total=7
+J34: AFT_J34.xlsx  card100=5, total=5
+J35: AFT_J35.xlsx  card3=10, card5=12, total=22
+J36: AFT_J36.xlsx  card5=4, total=4
+J37: AFT_J37.xlsx  card5=3, total=3
+J38: AFT_J38.xlsx  card2=8, card3=4, card5=11, total=23
+J39: AFT_J39.xlsx  card100=24, total=24
+J41: AFT_J41.xlsx  card1=1, card3=12, card5=5, total=18
+J42: AFT_J42.xlsx  card100=25, total=25
+J45: AFT_J45.xlsx  card2=6, total=6
+J50: AFT_J50.xlsx  card5=7, total=7
+
+Open_Issues.xlsx: 369 row(s)
+  POWER: 1 x No card number in source tab name; using card 100
+  POWER: 6 x No fill rule matched; rule target columns stayed empty
+  POWER: 28 x Duplicate Pin Out in connector file
+  CARD 2: 31 x Logic Expected is set but logic input is empty
+  CARD 3: 1 x No fill rule matched; rule target columns stayed empty
+  CARD 3: 6 x Duplicate Pin Out in connector file
+  CARD 4: 1 x No fill rule matched; rule target columns stayed empty
+  CARD 4: 2 x Duplicate Pin Out in connector file
+  CARD 5: 12 x Logic Expected is set but logic input is empty
+  CARD 2: 2 x Duplicate Pin Out in connector file
+  CARD 1: 1 x No fill rule matched; rule target columns stayed empty
+
+TBD value details:
+  AFT_J5.xlsx: row 12, column R (logic_input) = TBD_DI (source CARD 2, row 87)
+  AFT_J5.xlsx: row 12, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 87)
+  AFT_J5.xlsx: row 13, column R (logic_input) = TBD_DI (source CARD 2, row 88)
+  AFT_J5.xlsx: row 13, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 88)
+  AFT_J5.xlsx: row 14, column R (logic_input) = TBD_DI (source CARD 2, row 89)
+  AFT_J5.xlsx: row 14, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 89)
+  AFT_J5.xlsx: row 15, column R (logic_input) = TBD_DI (source CARD 2, row 90)
+  AFT_J5.xlsx: row 15, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 90)
+  AFT_J6.xlsx: row 29, column R (logic_input) = TBD_AI (source CARD 4, row 155)
+  AFT_J6.xlsx: row 30, column R (logic_input) = TBD_AI (source CARD 4, row 157)
+  AFT_J15.xlsx: row 9, column R (logic_input) = TBD_DI (source CARD 1, row 88)
+  AFT_J15.xlsx: row 9, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 88)
+  AFT_J15.xlsx: row 10, column R (logic_input) = TBD_DI (source CARD 1, row 89)
+  AFT_J15.xlsx: row 10, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 89)
+  AFT_J15.xlsx: row 11, column R (logic_input) = TBD_DI (source CARD 1, row 90)
+  AFT_J15.xlsx: row 11, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 90)
+  AFT_J15.xlsx: row 12, column R (logic_input) = TBD_DI (source CARD 1, row 91)
+  AFT_J15.xlsx: row 12, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 91)
+  AFT_J15.xlsx: row 13, column R (logic_input) = TBD_DI (source CARD 1, row 92)
+  AFT_J15.xlsx: row 13, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 92)
+  AFT_J18.xlsx: row 11, column R (logic_input) = TBD_DI (source CARD 3, row 86)
+  AFT_J18.xlsx: row 11, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 86)
+  AFT_J18.xlsx: row 12, column R (logic_input) = TBD_DI (source CARD 3, row 87)
+  AFT_J18.xlsx: row 12, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 87)
+  AFT_J18.xlsx: row 13, column R (logic_input) = TBD_DI (source CARD 3, row 88)
+  AFT_J18.xlsx: row 13, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 88)
+  AFT_J18.xlsx: row 14, column R (logic_input) = TBD_DI (source CARD 3, row 89)
+  AFT_J18.xlsx: row 14, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 89)
+  AFT_J19.xlsx: row 11, column R (logic_input) = TBD_DI (source CARD 4, row 112)
+  AFT_J19.xlsx: row 11, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 112)
+  AFT_J19.xlsx: row 12, column R (logic_input) = TBD_DI (source CARD 4, row 113)
+  AFT_J19.xlsx: row 12, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 113)
+  AFT_J19.xlsx: row 13, column R (logic_input) = TBD_DI (source CARD 4, row 114)
+  AFT_J19.xlsx: row 13, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 114)
+  AFT_J19.xlsx: row 14, column R (logic_input) = TBD_DI (source CARD 4, row 115)
+  AFT_J19.xlsx: row 14, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 115)
+
+Duplicate Pin Out details:
+  AFT_J4.xlsx: Pin Out A1, duplicate target rows 2, 3 (source POWER, row 74)
+  AFT_J4.xlsx: Pin Out A1, duplicate target rows 2, 3 (source POWER, row 75)
+  AFT_J4.xlsx: Pin Out A2, duplicate target rows 4, 5 (source POWER, row 76)
+  AFT_J4.xlsx: Pin Out A2, duplicate target rows 4, 5 (source POWER, row 77)
+  AFT_J4.xlsx: Pin Out A3, duplicate target rows 6, 7 (source POWER, row 78)
+  AFT_J4.xlsx: Pin Out A3, duplicate target rows 6, 7 (source POWER, row 79)
+  AFT_J4.xlsx: Pin Out A4, duplicate target rows 8, 9 (source POWER, row 80)
+  AFT_J4.xlsx: Pin Out A4, duplicate target rows 8, 9 (source POWER, row 81)
+  AFT_J4.xlsx: Pin Out A5, duplicate target rows 10, 11 (source POWER, row 82)
+  AFT_J4.xlsx: Pin Out A5, duplicate target rows 10, 11 (source POWER, row 83)
+  AFT_J4.xlsx: Pin Out A6, duplicate target rows 12, 13 (source POWER, row 84)
+  AFT_J4.xlsx: Pin Out A6, duplicate target rows 12, 13 (source POWER, row 85)
+  AFT_J4.xlsx: Pin Out 1, duplicate target rows 14, 15 (source POWER, row 86)
+  AFT_J4.xlsx: Pin Out 1, duplicate target rows 14, 15 (source POWER, row 87)
+  AFT_J4.xlsx: Pin Out 2, duplicate target rows 16, 17 (source POWER, row 88)
+  AFT_J4.xlsx: Pin Out 2, duplicate target rows 16, 17 (source POWER, row 89)
+  AFT_J4.xlsx: Pin Out 7, duplicate target rows 22, 23 (source POWER, row 94)
+  AFT_J4.xlsx: Pin Out 7, duplicate target rows 22, 23 (source POWER, row 95)
+  AFT_J4.xlsx: Pin Out 8, duplicate target rows 24, 25 (source POWER, row 96)
+  AFT_J4.xlsx: Pin Out 8, duplicate target rows 24, 25 (source POWER, row 97)
+  AFT_J4.xlsx: Pin Out 13, duplicate target rows 30, 31 (source POWER, row 102)
+  AFT_J4.xlsx: Pin Out 13, duplicate target rows 30, 31 (source POWER, row 103)
+  AFT_J4.xlsx: Pin Out 14, duplicate target rows 32, 33 (source POWER, row 104)
+  AFT_J4.xlsx: Pin Out 14, duplicate target rows 32, 33 (source POWER, row 105)
+  AFT_J4.xlsx: Pin Out 15, duplicate target rows 34, 35 (source POWER, row 106)
+  AFT_J4.xlsx: Pin Out 15, duplicate target rows 34, 35 (source POWER, row 107)
+  AFT_J4.xlsx: Pin Out 16, duplicate target rows 36, 37 (source POWER, row 108)
+  AFT_J4.xlsx: Pin Out 16, duplicate target rows 36, 37 (source POWER, row 109)
+  AFT_J18.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 3, row 93)
+  AFT_J18.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 3, row 174)
+  AFT_J19.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 4, row 119)
+  AFT_J19.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 4, row 185)
+  AFT_J38.xlsx: Pin Out 25, duplicate target rows 4, 9 (source CARD 2, row 163)
+  AFT_J38.xlsx: Pin Out 25, duplicate target rows 4, 9 (source CARD 2, row 168)
+  AFT_J41.xlsx: Pin Out 13, duplicate target rows 3, 5 (source CARD 3, row 123)
+  AFT_J41.xlsx: Pin Out 13, duplicate target rows 3, 5 (source CARD 3, row 125)
+  AFT_J41.xlsx: Pin Out 20, duplicate target rows 4, 6 (source CARD 3, row 124)
+  AFT_J41.xlsx: Pin Out 20, duplicate target rows 4, 6 (source CARD 3, row 126)
+
+Missing logic input details:
+  AFT_J9.xlsx: row 7, column T = C2_DI6_0, column R is empty (source CARD 2, row 19)
+  AFT_J9.xlsx: row 8, column T = C2_DI7_0, column R is empty (source CARD 2, row 20)
+  AFT_J9.xlsx: row 9, column T = C2_DI8_0, column R is empty (source CARD 2, row 21)
+  AFT_J9.xlsx: row 10, column T = C2_DI9_0, column R is empty (source CARD 2, row 22)
+  AFT_J9.xlsx: row 11, column T = C2_DI10_0, column R is empty (source CARD 2, row 23)
+  AFT_J9.xlsx: row 12, column T = C2_DI11_0, column R is empty (source CARD 2, row 24)
+  AFT_J9.xlsx: row 13, column T = C2_DI12_0, column R is empty (source CARD 2, row 25)
+  AFT_J9.xlsx: row 14, column T = C2_DI13_0, column R is empty (source CARD 2, row 26)
+  AFT_J9.xlsx: row 15, column T = C2_DI14_0, column R is empty (source CARD 2, row 27)
+  AFT_J9.xlsx: row 16, column T = C2_DI15_0, column R is empty (source CARD 2, row 28)
+  AFT_J9.xlsx: row 17, column T = C2_DI16_0, column R is empty (source CARD 2, row 29)
+  AFT_J9.xlsx: row 18, column T = C2_DI17_0, column R is empty (source CARD 2, row 30)
+  AFT_J9.xlsx: row 19, column T = C2_DI18_0, column R is empty (source CARD 2, row 31)
+  AFT_J9.xlsx: row 20, column T = C2_DI19_0, column R is empty (source CARD 2, row 32)
+  AFT_J9.xlsx: row 21, column T = C2_DI20_0, column R is empty (source CARD 2, row 33)
+  AFT_J9.xlsx: row 22, column T = C2_DI21_0, column R is empty (source CARD 2, row 34)
+  AFT_J9.xlsx: row 23, column T = C2_DI22_0, column R is empty (source CARD 2, row 35)
+  AFT_J9.xlsx: row 24, column T = C2_DI23_0, column R is empty (source CARD 2, row 36)
+  AFT_J9.xlsx: row 25, column T = C2_DI24_0, column R is empty (source CARD 2, row 37)
+  AFT_J9.xlsx: row 26, column T = C2_DI25_0, column R is empty (source CARD 2, row 38)
+  AFT_J9.xlsx: row 27, column T = C2_DI26_0, column R is empty (source CARD 2, row 39)
+  AFT_J9.xlsx: row 28, column T = C2_DI27_0, column R is empty (source CARD 2, row 40)
+  AFT_J9.xlsx: row 29, column T = C2_DI29_0, column R is empty (source CARD 2, row 42)
+  AFT_J9.xlsx: row 30, column T = C2_DI30_0, column R is empty (source CARD 2, row 43)
+  AFT_J9.xlsx: row 31, column T = C2_DI31_0, column R is empty (source CARD 2, row 44)
+  AFT_J9.xlsx: row 32, column T = C2_DI32_0, column R is empty (source CARD 2, row 45)
+  AFT_J9.xlsx: row 33, column T = C2_DI33_0, column R is empty (source CARD 2, row 46)
+  AFT_J9.xlsx: row 34, column T = C2_DI34_0, column R is empty (source CARD 2, row 47)
+  AFT_J9.xlsx: row 35, column T = C2_DI35_0, column R is empty (source CARD 2, row 48)
+  AFT_J9.xlsx: row 36, column T = C2_DI36_0, column R is empty (source CARD 2, row 49)
+  AFT_J9.xlsx: row 37, column T = C2_DI37_0, column R is empty (source CARD 2, row 50)
+  AFT_J38.xlsx: row 14, column T = C5_DI15_0, column R is empty (source CARD 5, row 31)
+  AFT_J38.xlsx: row 15, column T = C5_DI16_0, column R is empty (source CARD 5, row 32)
+  AFT_J38.xlsx: row 16, column T = C5_DI17_0, column R is empty (source CARD 5, row 33)
+  AFT_J38.xlsx: row 17, column T = C5_DI18_0, column R is empty (source CARD 5, row 34)
+  AFT_J38.xlsx: row 18, column T = C5_DI19_0, column R is empty (source CARD 5, row 35)
+  AFT_J38.xlsx: row 19, column T = C5_DI20_0, column R is empty (source CARD 5, row 36)
+  AFT_J38.xlsx: row 20, column T = C5_DI21_0, column R is empty (source CARD 5, row 37)
+  AFT_J38.xlsx: row 21, column T = C5_DI22_0, column R is empty (source CARD 5, row 38)
+  AFT_J38.xlsx: row 22, column T = C5_DI23_0, column R is empty (source CARD 5, row 39)
+  AFT_J38.xlsx: row 23, column T = C5_DI24_0, column R is empty (source CARD 5, row 40)
+  AFT_J38.xlsx: row 24, column T = C5_DI25_0, column R is empty (source CARD 5, row 41)
+  AFT_J41.xlsx: row 15, column T = C5_DI33_0, column R is empty (source CARD 5, row 50)
+
+Rule hits (rows matched):
+  DI rows - not Matrix: 265
+  DI rows - Matrix: 23
+  DI rows - RTN pin: 0
+  DO rows - not Matrix: 82
+  DO rows - Matrix: 17
+  AI rows: 41
+  AI rows - 10V pin: 41
+  DIM CARD 0-5V_CONSOLE -> Analog input: 14
+  DIM CARD 0-5V_INST -> Analog input: 5
+  DIM CARD 0-5V -> Analog input: 4
+  DIM CARD 0-28V_BRT DIM -> Analog input: 10
+  Red wire with voltage in Plug: 69
+  RTN plug: 81
+  GND plug: 4
+  Black CH. minus pin: 32
+  Red CH. plus pin (voltage from From range): 0
+  ENCX A+ on P1: 2
+  ENCY A+ on P5: 2
+  ENCX B+ on P1: 2
+  ENCY B+ on P5: 2
+  empty row: 21

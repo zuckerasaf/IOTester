@@ -135,10 +135,13 @@ def default_config():
     }
 
 
-ISSUE_UNASSIGNED = "Unassigned row: empty connector, not between two rows of the same J#"
+ISSUE_UNASSIGNED = "Skipped row: empty connector cell in source"
 ISSUE_INCLUDED = "Included in {conn} file, connector cell empty in source"
 ISSUE_NO_RULE_MATCH = "No fill rule matched; rule target columns stayed empty"
 ISSUE_TBD = "TBD value in target file; needs manual fix"
+ISSUE_DUPLICATE_PIN = "Duplicate Pin Out in connector file"
+ISSUE_CARD_FALLBACK = "No card number in source tab name; using card 100"
+ISSUE_MISSING_LOGIC_INPUT = "Logic Expected is set but logic input is empty"
 
 THIN = Side(style="thin")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
@@ -283,10 +286,7 @@ class Source:
 
     def card_number(self, sheet_name):
         m = self.card_re.search(sheet_name)
-        if not m:
-            raise ConfigError(f"Cannot find a card number in tab name {sheet_name!r} "
-                              f"with pattern {self.card_re.pattern!r}")
-        return int(m.group(1))
+        return int(m.group(1)) if m else None
 
 
 def collect_rows(wb, cfg):
@@ -301,6 +301,12 @@ def collect_rows(wb, cfg):
     for sheet in cfg["source_sheets"]:
         ws = wb[sheet]
         card = src.card_number(sheet)
+        if card is None:
+            card = 100
+            issues.append(dict(
+                type=ISSUE_CARD_FALLBACK, sheet=sheet, card=card, row=None,
+                above=None, below=None, values={},
+                note=f"Tab name did not match card number pattern {src.card_re.pattern!r}."))
         max_r = ws.max_row
         r = src.first_row
         while r <= max_r:
@@ -317,14 +323,10 @@ def collect_rows(wb, cfg):
                 end = r - 1
                 above = src.conn_of(ws, start - 1) if start > src.first_row else None
                 below = src.conn_of(ws, end + 1) if end + 1 <= max_r else None
-                same = above not in (None, "OTHER") and above == below
                 for rr in range(start, end + 1):
                     vals = src.row_values(ws, rr)
-                    if same:
-                        rows_by_conn.setdefault(above, []).append(
-                            dict(card=card, row=rr, sheet=sheet, values=vals))
                     issues.append(dict(
-                        type=ISSUE_INCLUDED.format(conn=above) if same else ISSUE_UNASSIGNED,
+                        type=ISSUE_UNASSIGNED,
                         sheet=sheet, card=card, row=rr,
                         above=None if above == "OTHER" else above,
                         below=None if below == "OTHER" else below, values=vals))
@@ -528,6 +530,31 @@ def _build_tbd_issues(cfg, item, row, target_name, target_row):
     return issues
 
 
+def _build_duplicate_pin_issues(cfg, items, rows, target_name):
+    pin_index = next((i for i, col in enumerate(cfg["target_columns"])
+                      if _text(col["header"]).casefold() == "pin out"), None)
+    if pin_index is None:
+        return []
+    pins = OrderedDict()
+    for index, row in enumerate(rows):
+        value = _text(row[pin_index])
+        if value:
+            pins.setdefault(value.casefold(), []).append(index)
+    issues = []
+    for indexes in pins.values():
+        if len(indexes) < 2:
+            continue
+        target_rows = ", ".join(str(i + 2) for i in indexes)
+        for i in indexes:
+            item = items[i]
+            issues.append(dict(
+                type=ISSUE_DUPLICATE_PIN, sheet=item["sheet"], card=item["card"],
+                row=item["row"], above=None, below=None, values=item["values"],
+                note=f"{target_name or 'target file'}: Pin Out {_text(rows[i][pin_index])}, "
+                     f"duplicate target rows {target_rows}"))
+    return issues
+
+
 # ----------------------------------------------------------------------------
 # Writing outputs
 # ----------------------------------------------------------------------------
@@ -556,7 +583,15 @@ def build_target_rows(cfg, rows, hits=None, use_rules=True, validation_issues=No
                     validation_issues.append(_build_no_rule_issue(item))
         if validation_issues is not None:
             validation_issues.extend(_build_tbd_issues(cfg, item, r, target_name, n + 2))
+            if len(r) >= 20 and not _is_empty_cell(r[19]) and _is_empty_cell(r[17]):
+                validation_issues.append(dict(
+                    type=ISSUE_MISSING_LOGIC_INPUT, sheet=item["sheet"], card=item["card"],
+                    row=item["row"], above=None, below=None, values=item["values"],
+                    note=f"{target_name or 'target file'}: row {n + 2}, "
+                         f"column T = {_text(r[19])}, column R is empty"))
         out.append(r)
+    if validation_issues is not None:
+        validation_issues.extend(_build_duplicate_pin_issues(cfg, rows, out, target_name))
     return out
 
 
@@ -650,9 +685,30 @@ def run(source_path, out_dir, cfg, only=None, log=print, use_rules=True):
     report += ["", f"{ipath.name}: {len(issues)} row(s)"]
     summary = OrderedDict()
     for it in issues:
+        if it["type"] in (ISSUE_UNASSIGNED, ISSUE_TBD):
+            continue
         summary[(it["type"], it["sheet"])] = summary.get((it["type"], it["sheet"]), 0) + 1
     for (t, s), n in summary.items():
         report.append(f"  {s}: {n} x {t}")
+    tbd_issues = [it for it in issues if it["type"] == ISSUE_TBD]
+    if tbd_issues:
+        report += ["", "TBD value details:"]
+        for it in tbd_issues:
+            report.append(f"  {it['note']} (source {it['sheet']}, row {it['row']})")
+    duplicate_issues = [it for it in issues if it["type"] == ISSUE_DUPLICATE_PIN]
+    if duplicate_issues:
+        report += ["", "Duplicate Pin Out details:"]
+        for it in duplicate_issues:
+            report.append(f"  {it['note']} (source {it['sheet']}, row {it['row']})")
+    elif not any(_text(col["header"]).casefold() == "pin out" for col in cfg["target_columns"]):
+        report += ["", "Duplicate Pin Out check skipped: no Pin Out target column."]
+    missing_input = [it for it in issues if it["type"] == ISSUE_MISSING_LOGIC_INPUT]
+    if missing_input:
+        report += ["", "Missing logic input details:"]
+        for it in missing_input:
+            report.append(f"  {it['note']} (source {it['sheet']}, row {it['row']})")
+    elif len(cfg["target_columns"]) < 20:
+        report += ["", "Missing logic input check skipped: target column T is not configured."]
     if use_rules:
         report += ["", "Rule hits (rows matched):"]
         for rule in cfg["rules"]:

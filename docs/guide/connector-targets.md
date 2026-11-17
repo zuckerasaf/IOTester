@@ -20,6 +20,7 @@ The source workbook is never modified.
 1. Open the **Run** page.
 2. Press **Browse...** next to *Source workbook* and choose the source Excel file.
 3. (Optional) Choose an *Output folder*. If empty, the files are written next to the source file.
+   Set *Target file name* to the desired template; `{conn}` is replaced by the connector.
 4. Press **Load tabs from source** to read the tab names into the *Source & Tabs* page.
 5. Pick a connector in the list and press **Preview connector** to check the result without writing anything.
 6. Press **Generate files**.
@@ -35,6 +36,7 @@ The source workbook is never modified.
 |---|---|
 | Source workbook | The Excel file to read - HSID . |
 | Output folder | Where files are written. Empty = same folder as the source. |
+| Target file name | Template where `{conn}` is replaced by the connector, for example `Target_{conn}.xlsx`. |
 | Load tabs from source | Reads the tab names of the source file into the *Source & Tabs* page. |
 | Connector / Preview connector | Shows the rows of one target file without writing anything. |
 | Generate files | Writes the target files for all connectors and the issues file. |
@@ -52,8 +54,7 @@ Describes the layout of the source workbook.
 - **Layout of the source tabs**
     - Connector prefix - the letter(s) every connector name starts with (not case sensitive).
     - First data row.
-    - Card number pattern - a regex applied to the tab name; group 1 is the card number. **Regex dictionary** lists the common regex symbols.
-    - Target file name - template where `{conn}` is replaced by the connector, for example `Target_{conn}.xlsx`.
+    - Card number pattern - a regex applied to the tab name; group 1 is the card number. If it does not match, card 100 is used and listed in the issues report. **Regex dictionary** lists the common regex symbols.
     - Sheet name inside the target files.
 - **Tabs to search** - checked tabs are used, and their order is the row order in the target files. Use **Up**, **Down** and **Add tab name...**.
 - **Source columns** - which Excel column holds which field. Use **Add field** and **Remove selected**.
@@ -101,13 +102,19 @@ Case is ignored.
 
 If a placeholder is empty, the value is not written. Number-like results are stored as numbers.
 
+To look up a value from another row, select a row under **Then write** and press **Set lookup...**.
+Choose the column to return, the column to search, the match type, and the value to find.
+For example, return **H - Pin Out**, look in **J - Plug**, and find `24V I\O RTN`.
+The first matching row in the same connector supplies the value; matching ignores case.
+If there is no match or its returned cell is empty, the assignment is not written.
+
 **Stop after this rule matched** skips the remaining rules for that row.
 
 To test rules, choose a connector on this page and press **Preview connector**. The preview includes unsaved edits. **Refresh connectors** reads the connector list from the source again.
 
 ## 5. Saving the configuration
 
-- **Save** - saves Source & Tabs, Column Mapping and Fill Rules to the configuration file.
+- **Save** - saves the target file name and settings from Source & Tabs, Column Mapping and Fill Rules to the configuration file.
 - **Cancel** - discards the edits made since the last save.
 - **Reset** - re-reads the loaded configuration file (built-in defaults if none is loaded).
 
@@ -119,9 +126,12 @@ The **Configuration** menu offers: *Load config file...*, *Save*, *Save as...*, 
 
 - **`Target_J#.xlsx`** - one per connector, ready to load in the IO Tester.
 - **`Open_Issues.xlsx`** - rows that need manual review:
-    - Rows with an empty connector cell are kept in a connector file only when the rows directly above and below belong to the same connector, and all of them are listed here.
+    - A tab whose name does not match the card number pattern is listed with card 100.
+    - Every row whose non-empty **Pin Out** also appears in the same connector file is listed, with the target file and matching row numbers in **Notes**. Values are compared without regard to case or surrounding spaces. The run report also lists the duplicates.
+    - Rows with a value in target column **T** and an empty or whitespace-only column **R** are listed with their source and target locations. The run report also lists these rows.
+    - Rows with an empty connector cell are skipped and listed here, but not summarized in the text run report.
     - Rows that matched no enabled fill rule and whose rule target columns stayed empty are listed as *"No fill rule matched; rule target columns stayed empty"*.
-    - Every cell in a target file that still contains `TBD` is listed as *"TBD value in target file; needs manual fix"*. The **Notes** column tells you where to fix it: the target file, the row, the column letter and header, and the current value (for example `V1_J5.xlsx: row 3, column R (logic_input) = TBD_DI`). The source tab, card and source row are in the other columns.
+    - Every cell in a target file that still contains `TBD` is listed as *"TBD value in target file; needs manual fix"*. The **Notes** column and text run report show the target file, row, column and value (for example `V1_J5.xlsx: row 3, column R (logic_input) = TBD_DI`). The source tab, card and source row are in the other columns.
 
 ## 7. Troubleshooting
 
