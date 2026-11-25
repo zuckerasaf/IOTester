@@ -1,12 +1,11 @@
 {
   "version": 1,
   "source_sheets": [
-    "CARD 1",
-    "CARD 2",
-    "CARD 3",
-    "CARD 4",
-    "CARD 5",
-    "POWER"
+    "Spider Card #1",
+    "Spider Card #2",
+    "Spider Card #3",
+    "Spider Card #4",
+    "Power Only"
   ],
   "first_data_row": 11,
   "connector_regex": "^J\\d+$",

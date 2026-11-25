@@ -44,7 +44,7 @@ nav:
   - User Guide:
     - User Manual (Normal View): guide/Normal-View-user-manual.md
     - User Manual (Engineering View): guide/Engineering-View-user-manual.md
-    - Connector Targets App: guide/connector-targets.md
+    - DB Creator: guide/connector-targets.md
   - Design:
     - Design Document: design/design-document.md
     - System Flows: design/system-flows.md

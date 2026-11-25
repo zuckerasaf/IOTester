@@ -1492,7 +1492,7 @@ class MainController:
             self.main_window.log.append(f"Error opening Wiki: {str(e)}", "ERROR")
     
     def on_connector_targets(self):
-        """Handle Connector Targets button click - launch the Connector Targets app as a separate process."""
+        """Handle the DB Creator button click and launch the app as a separate process."""
         app_script = Path(__file__).resolve().parents[3] / "connector_targets_app" / "app.py"
         if getattr(sys, "frozen", False):
             command = [str(Path(sys.executable).resolve().parent / "ConnectorTargets.exe")]
@@ -1501,15 +1501,15 @@ class MainController:
             command = [sys.executable, str(app_script)]
             target = app_script
         if not target.exists():
-            self.main_window.log.append(f"Connector Targets app not found: {target}", "WARNING")
-            self._show_message("Connector Targets Not Found",
-                               f"Connector Targets app not found at:\n{target}", "warning")
+            self.main_window.log.append(f"DB Creator app not found: {target}", "WARNING")
+            self._show_message("DB Creator Not Found",
+                               f"DB Creator app not found at:\n{target}", "warning")
             return
         try:
             subprocess.Popen(command, cwd=str(target.parent))
-            self.main_window.log.append("Opened Connector Targets app", "SUCCESS")
+            self.main_window.log.append("Opened DB Creator app", "SUCCESS")
         except Exception as e:
-            self.main_window.log.append(f"Error opening Connector Targets app: {str(e)}", "ERROR")
+            self.main_window.log.append(f"Error opening DB Creator app: {str(e)}", "ERROR")
 
     def on_comm_check(self):
         """

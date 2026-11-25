@@ -1,7 +1,7 @@
 # Excel Import and Transformation Procedure
 
 This procedure describes the Excel-processing utilities in
-[`read_excell.py`](../../src/hw_tester/utils/read_excell.py). The module has
+[`read_excell.py`](https://github.com/zuckerasaf/IOTester/blob/main/src/hw_tester/utils/read_excell.py). The module has
 three related responsibilities:
 
 1. Transform source wiring workbooks into the column format used by IO Tester.

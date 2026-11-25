@@ -80,7 +80,7 @@ echo BUILD COMPLETE!
 echo ========================================
 echo.
 echo Installer created successfully!
-echo Location: installer_output\IOTester_Setup_v2.0.0.exe
+echo Location: installer_output\IOTester_Setup_v1.0.0.exe
 echo.
 echo You can now distribute this installer to your customers.
 echo.

@@ -107,6 +107,34 @@ if exist "src\hw_tester\ui\Styles\dark.css" (
     echo Source stylesheet missing, skipping dark.css
 )
 
+rem Build the DB Creator executable next to IOTester.exe.
+echo Building DB Creator executable...
+%PYINSTALLER_CMD% %PYINSTALLER_ARGS% --noconfirm --clean --onefile --windowed ^
+    --name ConnectorTargets ^
+    --distpath "%BUILD_OUTPUT_DIR%" ^
+    --workpath "%BUILD_DIR%\ConnectorTargets" ^
+    --specpath "%BUILD_DIR%\ConnectorTargets" ^
+    --paths "src\hw_tester\connector_targets_app" ^
+    --hidden-import=PySide6.QtCore ^
+    --hidden-import=PySide6.QtGui ^
+    --hidden-import=PySide6.QtWidgets ^
+    --hidden-import=openpyxl ^
+    "src\hw_tester\connector_targets_app\app.py"
+
+if errorlevel 1 (
+    echo.
+    echo DB Creator build failed.
+    pause
+    exit /b 1
+)
+
+if exist "src\hw_tester\connector_targets_app\config.json" (
+    echo Copying DB Creator configuration...
+    copy /y "src\hw_tester\connector_targets_app\config.json" "%BUILD_OUTPUT_DIR%\config.json" >nul
+) else (
+    echo WARNING: DB Creator config.json not found; built-in defaults will be used.
+)
+
 rem Build the Wiki (mkdocs site) and copy it next to the executable
 if exist ".venv\Scripts\python.exe" (
     echo Building Wiki site with mkdocs...

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Connector Targets: Qt desktop app around engine.py.
+"""DB Creator: Qt desktop app around engine.py.
 
 Run:   python app.py
 Needs: pip install PySide6 openpyxl
@@ -21,7 +21,11 @@ from PySide6.QtWidgets import (
 
 import engine
 
-APP_DIR = Path(__file__).resolve().parent
+APP_DIR = (
+    Path(sys.executable).resolve().parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parent
+)
 USER_CONFIG = APP_DIR / "config.json"
 
 
@@ -959,7 +963,7 @@ class MainWindow(QMainWindow):
         self.source_tab.load_from_cfg(self.cfg)
         self.map_tab.load_from_cfg(self.cfg)
         self.rules_tab.load_from_cfg(self.cfg)
-        self.setWindowTitle("Connector Targets - " + (str(self.cfg_path) if self.cfg_path else "default configuration"))
+        self.setWindowTitle("DB Creator - " + (str(self.cfg_path) if self.cfg_path else "default configuration"))
         self.source_tab.cfg_label.setText(str(self.cfg_path) if self.cfg_path
                                           else "Built-in defaults (not saved to a file yet)")
         if snapshot:
@@ -1053,7 +1057,7 @@ class MainWindow(QMainWindow):
             engine.save_config(self.cfg, cfg_path)
             self.cfg_path = cfg_path
             self._saved_cfg = copy.deepcopy(self.cfg)
-            self.setWindowTitle("Connector Targets - " + p)
+            self.setWindowTitle("DB Creator - " + p)
 
     def cancel_changes(self):
         """Throw away unsaved edits: reload the last saved configuration (built-in defaults if none)."""

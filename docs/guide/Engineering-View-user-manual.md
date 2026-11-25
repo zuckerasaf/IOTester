@@ -36,7 +36,7 @@ The controls are described below in the order they appear in the window.
 | Control | What it does |
 |---|---|
 | **Connector** | Shows the name of the loaded connector file. The report filename is based on this field. |
-| **Settings** | Opens the application settings dialog. See [Settings](#8-settings). |
+| **Settings** | Opens the application settings dialog. See [Settings](#9-settings). |
 | **Load** | Opens a file picker to load a connector test workbook (`.xlsx` or `.xls`). The workbook's pin data is displayed in the table. |
 | **Report** | Creates an Excel report from the current pin table. You can edit the suggested filename before saving. |
 | **DOC** | Opens the report-selection dialog for creating a Word document report. |
@@ -212,7 +212,7 @@ After saving changes to the COM port or card communication settings, restart the
 | **Debug: True/False** | Enables or disables step-by-step debug mode. In debug mode, a test can pause at checkpoints until **Next** is clicked. |
 | **Wiki** | Opens the local HTML documentation site, if it has been built and is available. |
 | **Preset** | Changes the visible pin-table columns using the selected saved preset. |
-| **Generate DB** | Opens the Connector Targets utility, which builds connector test workbooks from a source workbook. |
+| **Generate DB** | Opens the DB Creator utility, which builds connector test workbooks from a source workbook. |
 | **Normal** | Switches to the simplified Normal View. |
 
 ### Comm Check
@@ -260,7 +260,7 @@ The IBIT button indicates the overall result, and the Operational Log contains d
 
 ### Build connector test workbooks
 
-Click **Generate DB** to open the Connector Targets utility. In that utility, select a source workbook and output folder, review the source tabs and column mapping, then generate the connector files. The source workbook is not modified. See the [Connector Targets guide](connector-targets.md) for details.
+Click **Generate DB** to open the DB Creator utility. In that utility, select a source workbook and output folder, review the source tabs and column mapping, then generate the connector files. The source workbook is not modified. See the [DB Creator guide](connector-targets.md) for details.
 
 ## 11. Test results
 

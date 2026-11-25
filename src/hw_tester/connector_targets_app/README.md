@@ -1,4 +1,4 @@
-# Connector Targets (Qt app)
+# DB Creator (Qt app)
 
 Builds one `Target_J#.xlsx` per connector from the Spider Card tabs of a source workbook,
 plus `Open_Issues.xlsx` for rows that need manual review.
