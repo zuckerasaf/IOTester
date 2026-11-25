@@ -105,8 +105,8 @@ filtering.
 
 | I want to... | Go to |
 |---|---|
-| Get up and running quickly | [Quick Start Guide](guide/quick-start.md) |
-| Learn the full application in detail | [User Manual](guide/user-manual.md) |
+| Get up and running quickly | [User Manual (Normal View)](guide/Normal-View-user-manual.md) |
+| Learn the full application in detail | [User Manual (Engineering View)](guide/Engineering-View-user-manual.md) |
 | Understand the system architecture | [Design Document](design/design-document.md) |
 | Understand Cable Test configuration | [Cable Test Guide](guide/cable-test.md) |
 | Understand how each workflow operates internally | [System Flows](design/system-flows.md) |

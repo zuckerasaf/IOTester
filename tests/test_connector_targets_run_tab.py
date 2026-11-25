@@ -53,7 +53,9 @@ class ConnectorTargetsUiTests(unittest.TestCase):
         config_path = self.path / "config.json"
         window.cfg_path = config_path
         window.save_cfg()
-        self.assertEqual(connector_app.engine.load_config(config_path)["file_name_template"], "V1_{conn}.xlsx")
+        saved_cfg = connector_app.engine.load_config(config_path)
+        self.assertEqual(saved_cfg["file_name_template"], "V1_{conn}.xlsx")
+        self.assertNotIn("connector_field", saved_cfg)
         self.assertFalse(window.has_unsaved_changes())
 
         window.run_tab.file_tpl.setText("Other_{conn}.xlsx")
@@ -69,6 +71,91 @@ class ConnectorTargetsUiTests(unittest.TestCase):
         window.cfg["source_sheets"] = ["Spider Card #1"]
         connector_app.engine.run(source, self.path, window.cfg)
         self.assertTrue((self.path / "V1_J10.xlsx").is_file())
+
+    def test_saving_existing_configuration_requires_confirmation(self):
+        config_path = self.path / "config.json"
+        config_path.write_text("existing configuration", encoding="utf-8")
+        self.window.cfg_path = config_path
+
+        with patch.object(QMessageBox, "question", side_effect=[QMessageBox.No, QMessageBox.Yes]) as confirm:
+            self.window.save_cfg()
+            self.assertEqual(config_path.read_text(encoding="utf-8"), "existing configuration")
+            self.window.save_cfg()
+
+        self.assertEqual(confirm.call_count, 2)
+        self.assertIn('"file_name_template"', config_path.read_text(encoding="utf-8"))
+
+    def test_generating_over_existing_output_requires_confirmation(self):
+        workbook = Workbook()
+        workbook.active.title = "Spider Card #1"
+        workbook.active["E7"] = "J1"
+        for sheet_name in ("Spider Card #2", "Spider Card #3", "Spider Card #4"):
+            workbook.create_sheet(sheet_name)
+        source = self.path / "source.xlsx"
+        workbook.save(source)
+        output = self.path / "output"
+        output.mkdir()
+        existing_target = output / "Target_J1.xlsx"
+        existing_target.write_text("existing output", encoding="utf-8")
+        self.window.run_tab.source_edit.setText(str(source))
+        self.window.run_tab.out_edit.setText(str(output))
+
+        with patch.object(QMessageBox, "question", return_value=QMessageBox.No) as confirm:
+            self.window.run_tab.do_run()
+
+        self.assertTrue(confirm.called)
+        self.assertIn(str(existing_target), confirm.call_args.args[2])
+        self.assertEqual(existing_target.read_text(encoding="utf-8"), "existing output")
+        self.assertIsNone(self.window.run_tab.thread)
+
+    def test_connector_column_comes_from_conn_source_field_row(self):
+        source_tab = self.window.source_tab
+        self.assertFalse(hasattr(source_tab, "conn_field"))
+        self.assertEqual(source_tab.field_table.horizontalHeaderItem(0).text(),
+                         "Key (use 'conn' for Connector)")
+        conn_row = next(
+            row for row in range(source_tab.field_table.rowCount())
+            if source_tab.field_table.item(row, 0).text() == "conn"
+        )
+        source_tab.field_table.item(conn_row, 2).setText("G")
+        source_tab.commit_to_cfg(self.window.cfg)
+        self.window.cfg["source_sheets"] = ["Spider Card #1"]
+        self.assertNotIn("connector_field", self.window.cfg)
+
+        workbook = Workbook()
+        workbook.active.title = "Spider Card #1"
+        workbook.active["E7"] = "not a connector"
+        workbook.active["G7"] = "J20"
+        source = self.path / "source.xlsx"
+        workbook.save(source)
+
+        connector_app.engine.run(source, self.path, self.window.cfg)
+        self.assertTrue((self.path / "Target_J20.xlsx").is_file())
+
+    def test_empty_connector_list_logs_source_tabs_hint(self):
+        source = self.path / "source.xlsx"
+        source.touch()
+        self.window.run_tab.source_edit.setText(str(source))
+
+        with patch.object(connector_app.engine, "list_connectors", return_value=[]):
+            self.window.run_tab.refresh_connectors(silent=True)
+
+        self.assertIn("No connector loaded - see Source & Tabs.",
+                      self.window.run_tab.log.toPlainText())
+
+    def test_load_source_logs_hint_when_no_source_tabs_are_selected(self):
+        workbook = Workbook()
+        workbook.active.title = "Different tab name"
+        source = self.path / "source.xlsx"
+        workbook.save(source)
+        self.window.run_tab.source_edit.setText(str(source))
+
+        self.window.run_tab.load_source()
+
+        log = self.window.run_tab.log.toPlainText()
+        self.assertIn("Loaded 1 tab(s): Different tab name", log)
+        self.assertIn("No connector loaded - see Source & Tabs.", log)
+        self.assertEqual(self.window.run_tab.conn_combo.count(), 0)
 
     def test_lookup_editor_populates_rule_and_generated_connector_files(self):
         window = self.window

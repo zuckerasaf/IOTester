@@ -25,6 +25,7 @@ import openpyxl
 import yaml
 
 from hw_tester.utils.read_excell import load_connector_from_excel
+from hw_tester.utils.report_status import normalize_report_status, read_report_status
 from hw_tester.hardware.pin import Connector, Pin, TestResult
 from hw_tester.utils.config_loader import load_settings, save_settings, get_board_pin_map, get_board_pin_config, resolve_config_path, get_project_root
 from hw_tester.core.test_handle import TestHandle
@@ -60,6 +61,7 @@ class MainController:
         self.running = False
         self.running_ibit = False
         self.connected = False
+        self._port_check = None
         
         # Threading event for Next button debug control
         self.next_event = threading.Event()
@@ -129,10 +131,12 @@ class MainController:
         suffixes = (("_Not_Complete", "Not Complete"), ("_Fail", "Fail"), ("_Pass", "Pass"))
         for path in files:
             stem = path.stem
-            result = "—"
+            result = read_report_status(path) or "—"
             for tag, label in suffixes:
                 if stem.endswith(tag):
-                    result, stem = label, stem[: -len(tag)]
+                    if result == "—":
+                        result = label
+                    stem = stem[: -len(tag)]
                     break
             try:
                 when = datetime.fromtimestamp(path.stat().st_mtime)
@@ -159,6 +163,7 @@ class MainController:
             self.settings.get('Board', {}).get('simulation', True),
             self.settings.get('UDP_Settings', {}).get('localhost_mode', False),
         )
+        self._sync_port_status()
         
         if self.debug_mode:
             self.main_window.btn_debug.setObjectName("btnActive")
@@ -170,6 +175,22 @@ class MainController:
         column_visibility = self.settings.get('UI', {}).get('ColumnVisibility', {})
         if column_visibility:
             self.main_window.table.set_column_visibility(column_visibility)
+
+    def _sync_port_status(self):
+        port = self.settings.get('Board', {}).get('Port', '')
+        if self._port_check is None:
+            self.main_window.normal_panel.set_port_status(port, "warn", "Board connection not checked")
+        elif self._port_check[0] != port:
+            self.main_window.normal_panel.set_port_status(
+                port, "warn", "Configured port changed; restart to check the new port"
+            )
+        else:
+            _, success, detail = self._port_check
+            self.main_window.normal_panel.set_port_status(port, "ok" if success else "fail", detail)
+
+    def _record_port_check(self, port, success, detail):
+        self._port_check = (port, success, detail)
+        self._sync_port_status()
     
     def _init_hardware(self):
         """Initialize hardware connection."""
@@ -187,9 +208,21 @@ class MainController:
             self.hardware = initialize_hardware(self.settings, log_callback=self._log_callback)
             # Reload settings in case hardware initialization changed simulation mode
             self.settings = load_settings()
+            board = self.settings.get('Board', {})
+            port = board.get('Port', '')
+            if board.get('Type', 'none') == 'none':
+                self._port_check = None
+                self._sync_port_status()
+            else:
+                connected = bool(getattr(self.hardware, 'connected', False))
+                detail = ("Last board connection succeeded" if connected else
+                          "Last board connection failed or no board was initialized")
+                self._record_port_check(port, connected, f"{detail}; not continuously monitored")
         except Exception as e:
             self.main_window.log.append(f"Hardware initialization failed: {e}", "ERROR")
             self.hardware = None
+            port = self.settings.get('Board', {}).get('Port', '')
+            self._record_port_check(port, False, f"Hardware initialization failed: {e}")
     
     def _test_com_connection(self) -> bool:
         """Validate the serial COM port connection before switching off simulation."""
@@ -203,9 +236,11 @@ class MainController:
             except Exception:
                 pass
             self.main_window.log.append(f"COM port {port} is available and board connected.", "SUCCESS")
+            self._record_port_check(port, True, "Last COM port and board check succeeded; not continuously monitored")
             return True
         except Exception as e:
             self.main_window.log.append(f"Failed to connect to board on {port}", "ERROR")
+            self._record_port_check(port, False, f"Last COM port and board check failed: {e}")
             return False
 
     def _init_test_components(self):
@@ -300,7 +335,6 @@ class MainController:
         self.main_window.btn_stop.clicked.connect(self.on_stop_t)
         self.main_window.normal_btn_test.clicked.connect(self.on_normal_test)
         self.main_window.normal_btn_stop.clicked.connect(self.on_normal_stop)
-        self.main_window.normal_btn_report_excel.clicked.connect(self.on_report)
         self.main_window.normal_panel.btn_comm_check.clicked.connect(self.on_comm_check)
         self.main_window.normal_panel.btn_ibit.clicked.connect(self.on_normal_ibit)
         self.main_window.normal_panel.reports_list.btn_refresh.clicked.connect(self.refresh_report_list)
@@ -555,6 +589,19 @@ class MainController:
         combo.addItems(folders)
         combo.setCurrentIndex(-1)
         combo.blockSignals(False)
+        if combo is self.main_window.normal_cmb_project:
+            self.update_normal_project_path(combo.currentText())
+
+    def on_normal_project_changed(self, project: str):
+        """Update the selected project's folder path and available connectors."""
+        self.update_normal_project_path(project)
+        self.populate_connector_combo(self.main_window.normal_cmb_connector, project)
+
+    def update_normal_project_path(self, project: str):
+        """Show the selected project's data folder in the Normal panel."""
+        project = project.strip()
+        project_dir = self._db_root() / project if project else self._db_root()
+        self.main_window.normal_panel.project_path_label.set_full_text(str(project_dir))
 
     def on_load(self):
         """
@@ -774,6 +821,8 @@ class MainController:
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Report"
+            if suffix:
+                wb.properties.description = normalize_report_status(suffix)
             
             # Write header from keys of first row
             headers = list(rows[0].keys())

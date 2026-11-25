@@ -12,7 +12,7 @@ with patch.object(sys, "path", [str(Path(__file__).resolve().parents[1] / "src" 
 
 
 class TextReportTests(unittest.TestCase):
-    def test_tbd_details_are_listed_by_file_and_skipped_rows_are_not_summarized(self):
+    def test_tbd_details_are_listed_and_empty_connector_rows_are_omitted(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             workbook = Workbook()
@@ -34,7 +34,6 @@ class TextReportTests(unittest.TestCase):
             }]
             result = engine.run(source, path, cfg, log=lambda _: None)
 
-            self.assertNotIn(engine.ISSUE_UNASSIGNED, result["report"])
             self.assertNotIn(engine.ISSUE_TBD, result["report"])
             self.assertIn("TBD value details:", result["report"])
             for name in ("Target_J10.xlsx", "Target_J11.xlsx"):
@@ -44,8 +43,10 @@ class TextReportTests(unittest.TestCase):
                              result["report"])
 
             issues = load_workbook(path / "Open_Issues.xlsx", data_only=True)
-            types = [row[1] for row in issues.active.iter_rows(min_row=2, values_only=True)]
-            self.assertEqual(types.count(engine.ISSUE_UNASSIGNED), 1)
+            issue_rows = list(issues.active.iter_rows(min_row=2, values_only=True))
+            types = [row[1] for row in issue_rows]
+            self.assertNotIn(8, [row[4] for row in issue_rows])
+            self.assertNotIn("No connector", [value for row in issue_rows for value in row])
             self.assertEqual(types.count(engine.ISSUE_TBD), 4)
             issues.close()
 

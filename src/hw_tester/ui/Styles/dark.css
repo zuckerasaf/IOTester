@@ -387,3 +387,10 @@ QDialog QScrollArea > QWidget > QWidget {
     background: #1f2328;
     border: none;
 }
+
+QScrollArea#spiderTemperatureScroll,
+QScrollArea#spiderTemperatureScroll > QWidget,
+QWidget#spiderTemperatureContent {
+    background: #23272e;
+    border: none;
+}

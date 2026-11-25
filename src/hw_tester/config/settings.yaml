@@ -224,3 +224,7 @@ Connectors:
     offset: 36
     Type: output
     onebox_cableTest: true
+Card_temperature:
+  green: 40
+  yellow: 50
+  red: 60

@@ -12,7 +12,6 @@
   "file_name_template": "Target_{conn}.xlsx",
   "issues_file_name": "Open_Issues.xlsx",
   "output_sheet_name": "Sheet",
-  "connector_field": "conn",
   "source_fields": [
     {
       "key": "discrete",

@@ -6,12 +6,13 @@ from PySide6.QtGui import QFont, QCloseEvent
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QComboBox, QLineEdit, QCheckBox,
-    QGroupBox, QLabel, QSizePolicy, QSpacerItem, QApplication, QStackedWidget
+    QGroupBox, QLabel, QApplication, QStackedWidget
 )
 
 from hw_tester.ui.qt.normal_panel_qt import NormalPanel
 from hw_tester.ui.qt.controllers import MainController
 from hw_tester.ui.qt.widgets import LogViewQt, PinTableQt
+from hw_tester.ui.qt.widgets.spider_temperature_qt import SpiderTemperatureQt
 from hw_tester.utils.config_loader import load_settings
 
 
@@ -159,24 +160,19 @@ class MainWindowQt(QMainWindow):
 
         controls_row.addWidget(g2, stretch=3)
 
-        # Group 3: log option
-        g3 = QGroupBox("Log")
-        g3l = QVBoxLayout(g3)
+        # Group 3: Spider card temperatures
+        self.spider_temperatures = SpiderTemperatureQt(lambda: self.controller.settings)
+        self.spider_temperatures.cards_changed.connect(self.normal_panel.set_temperature_cards)
+        self.spider_temperatures.card_status_changed.connect(self.normal_panel.set_card_temperature_status)
+        controls_row.addWidget(self.spider_temperatures, stretch=1)
+
+        # Log filters are placed below the operational log.
         self.cb_inf = QCheckBox("INF"); self.cb_inf.setChecked(True)
         self.cb_suc = QCheckBox("SUC"); self.cb_suc.setChecked(True)
         self.cb_wrn = QCheckBox("WRN"); self.cb_wrn.setChecked(True)
         self.cb_err = QCheckBox("ERR"); self.cb_err.setChecked(True)
         self.cb_dbg = QCheckBox("DBG"); self.cb_dbg.setChecked(False)
-        for cb in (self.cb_inf, self.cb_suc, self.cb_wrn, self.cb_err, self.cb_dbg):
-            g3l.addWidget(cb)
-        
-        # Clear button
-        self.btn_clear_log = QPushButton("Clear")
-        g3l.addWidget(self.btn_clear_log)
-        
-        g3l.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding))
-
-        controls_row.addWidget(g3, stretch=1)
+        self.btn_clear_log = QPushButton("Reset")
 
         # Group 4: Test/Debug
         g4 = QGroupBox("Test/Debug")
@@ -217,7 +213,7 @@ class MainWindowQt(QMainWindow):
         g4l.addWidget(self.lbl_column_preset, 3, 0)
         g4l.addWidget(self.cmb_column_preset, 3, 1, 1, 2)  # row 3, col 1, span 1 row, span 2 cols
 
-        self.btn_connector_targets = QPushButton("Connector Targets")
+        self.btn_connector_targets = QPushButton("Generate DB")
         g4l.addWidget(self.btn_connector_targets, 4, 0, 1, 3)
 
         self.btn_to_normal = QPushButton("Normal")
@@ -234,23 +230,31 @@ class MainWindowQt(QMainWindow):
 
         # Use LogViewQt with same API as Tkinter version
         self.log = LogViewQt()
+        self.spider_temperatures.log_message.connect(self.log.append)
         log_layout.addWidget(self.log)
 
         main.addWidget(log_group, stretch=3)
+
+        log_options = QGroupBox("Log Options")
+        log_options_layout = QHBoxLayout(log_options)
+        for cb in (self.cb_inf, self.cb_suc, self.cb_wrn, self.cb_err, self.cb_dbg):
+            log_options_layout.addWidget(cb)
+            log_options_layout.addStretch()
+        log_options_layout.addWidget(self.btn_clear_log)
+        main.addWidget(log_options)
 
         self.log.append("Qt shell is running. Next we wire data + callbacks.", "INFO")
         
         # Initialize controller to handle button logic
         self.controller = MainController(self)
+        self.spider_temperatures.start()
         self.log.append("Controller initialized - Load button is ready.", "INFO")
 
         # Populate and wire the column preset combo box after controller is initialized
         self.controller.populate_column_preset_combo(self.cmb_column_preset)
         self.cmb_column_preset.currentTextChanged.connect(self.controller.on_column_preset_change)
         self.controller.populate_project_combo(self.normal_cmb_project)
-        self.normal_cmb_project.currentTextChanged.connect(
-            lambda name: self.controller.populate_connector_combo(self.normal_cmb_connector, name)
-        )
+        self.normal_cmb_project.currentTextChanged.connect(self.controller.on_normal_project_changed)
         
         # Storage for pending callbacks (for thread-safe updates)
         self._pending_callbacks = {}
@@ -265,7 +269,6 @@ class MainWindowQt(QMainWindow):
         self.normal_cmb_connector = panel.cmb_connector
         self.normal_btn_test = panel.start_button
         self.normal_btn_stop = panel.stop_button
-        self.normal_btn_report_excel = panel.btn_report_excel
         self.normal_btn_report_word = panel.btn_report_word
         self.normal_btn_wiki = panel.btn_wiki
         panel.mode_changed.connect(
@@ -330,6 +333,7 @@ class MainWindowQt(QMainWindow):
     def closeEvent(self, event: QCloseEvent):
         """Handle window close event - clean up resources."""
         try:
+            self.spider_temperatures.stop()
             self.log.append("[MainWindow] Shutting down application...", "INFO")
             
             # Delegate cleanup to controller

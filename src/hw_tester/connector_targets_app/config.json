@@ -11,10 +11,9 @@
   "first_data_row": 11,
   "connector_regex": "^J\\d+$",
   "card_regex": "(\\d+)",
-  "file_name_template": "AFT_{conn}.xlsx",
+  "file_name_template": "MTC_AFT_{conn}.xlsx",
   "issues_file_name": "Open_Issues.xlsx",
   "output_sheet_name": "Sheet",
-  "connector_field": "conn",
   "source_fields": [
     {
       "key": "discrete",
@@ -378,7 +377,7 @@
         {
           "column": "K",
           "op": "contains",
-          "value": "+"
+          "value": "CH.2+"
         }
       ],
       "assignments": [
@@ -459,7 +458,7 @@
         {
           "column": "K",
           "op": "contains",
-          "value": "+"
+          "value": "CH.3+"
         }
       ],
       "assignments": [

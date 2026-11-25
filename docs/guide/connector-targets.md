@@ -11,7 +11,7 @@ The source workbook is never modified.
 
 ## 2. Starting the app
 
-- **From the IO Tester:** switch to the **Engineering** layout and press **Connector Targets** in the *Test/Debug* group. The app opens in its own window and the IO Tester stays usable.
+- **From the IO Tester:** switch to the **Engineering** layout and press **Generate DB** in the *Test/Debug* group. The app opens in its own window and the IO Tester stays usable.
 - **From the command line:**
 
 
@@ -58,6 +58,7 @@ Describes the layout of the source workbook.
     - Sheet name inside the target files.
 - **Tabs to search** - checked tabs are used, and their order is the row order in the target files. Use **Up**, **Down** and **Add tab name...**.
 - **Source columns** - which Excel column holds which field. Use **Add field** and **Remove selected**.
+  The row with key `conn` identifies the connector field; set its **Column letter** here. There is no separate connector-column setting.
 
 ### 4.3 Column Mapping
 
@@ -115,6 +116,7 @@ To test rules, choose a connector on this page and press **Preview connector**. 
 ## 5. Saving the configuration
 
 - **Save** - saves the target file name and settings from Source & Tabs, Column Mapping and Fill Rules to the configuration file.
+- If the configuration file already exists, **Save** asks before replacing it.
 - **Cancel** - discards the edits made since the last save.
 - **Reset** - re-reads the loaded configuration file (built-in defaults if none is loaded).
 
@@ -129,9 +131,11 @@ The **Configuration** menu offers: *Load config file...*, *Save*, *Save as...*, 
     - A tab whose name does not match the card number pattern is listed with card 100.
     - Every row whose non-empty **Pin Out** also appears in the same connector file is listed, with the target file and matching row numbers in **Notes**. Values are compared without regard to case or surrounding spaces. The run report also lists the duplicates.
     - Rows with a value in target column **T** and an empty or whitespace-only column **R** are listed with their source and target locations. The run report also lists these rows.
-    - Rows with an empty connector cell are skipped and listed here, but not summarized in the text run report.
+    - Rows with an empty connector cell are skipped and omitted here.
     - Rows that matched no enabled fill rule and whose rule target columns stayed empty are listed as *"No fill rule matched; rule target columns stayed empty"*.
     - Every cell in a target file that still contains `TBD` is listed as *"TBD value in target file; needs manual fix"*. The **Notes** column and text run report show the target file, row, column and value (for example `V1_J5.xlsx: row 3, column R (logic_input) = TBD_DI`). The source tab, card and source row are in the other columns.
+
+If any output files already exist, **Generate files** asks before replacing them.
 
 ## 7. Troubleshooting
 

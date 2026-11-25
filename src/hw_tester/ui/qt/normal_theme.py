@@ -43,17 +43,22 @@ QProgressBar[phase="{phase}"]::chunk {{ background: {bar}; border-radius: 7px; }
 """
     return f"""
 QWidget#normalPage {{ background: {BG_WINDOW}; }}
+QScrollArea#normalControlsScroll, QScrollArea#normalControlsScroll > QWidget,
+QWidget#normalControlsContent {{ background: {BG_WINDOW}; border: none; }}
 QWidget#normalPage QLabel {{ color: {TEXT}; background: transparent; font-family: "Segoe UI"; }}
 QLabel#title {{ font-size: 24px; font-weight: bold; }}
 QLabel#subtitle {{ font-size: 14px; color: {TEXT_MUTED}; }}
 QLabel#cardHeading {{ font-size: 13px; font-weight: bold; color: {TEXT_MUTED}; letter-spacing: 1px; }}
+QLabel#projectPath {{ font-size: 11px; color: {TEXT_MUTED}; font-weight: normal; }}
 QLabel#fieldLabel {{ font-size: 15px; font-weight: bold; }}
-QLabel#statusChip {{
+QLabel#statusChip, QFrame#card QLabel#statusChip {{
     font-size: 15px; font-weight: bold; padding: 0 16px; border-radius: 16px;
     color: {NEUTRAL_TEXT}; background: {NEUTRAL_BG}; border: 2px solid {NEUTRAL_BORDER};
 }}
-QLabel#statusChip[state="ok"] {{ color: {PASS_TEXT}; background: {PASS_BG}; border-color: {PASS_BORDER}; }}
-QLabel#statusChip[state="warn"] {{ color: #6B4300; background: #FFF1DC; border-color: #E3B565; }}
+QLabel#statusChip[state="ok"], QFrame#card QLabel#statusChip[state="ok"] {{ color: {PASS_TEXT}; background: {PASS_BG}; border-color: {PASS_BORDER}; }}
+QLabel#statusChip[state="warn"], QFrame#card QLabel#statusChip[state="warn"] {{ color: #6B4300; background: #FFF1DC; border-color: #E3B565; }}
+QLabel#statusChip[state="hot"], QFrame#card QLabel#statusChip[state="hot"] {{ color: #7A3500; background: #FFE6D1; border-color: #D87932; }}
+QLabel#statusChip[state="fail"], QFrame#card QLabel#statusChip[state="fail"] {{ color: {FAIL_TEXT}; background: {FAIL_BG}; border-color: {FAIL_BORDER}; }}
 
 QFrame#card {{ background: {CARD_BG}; border: 1px solid {CARD_BORDER}; border-radius: 16px; }}
 QFrame#card QLabel {{ border: none; }}

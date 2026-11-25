@@ -298,8 +298,12 @@ class RunTab(QWidget):
         self.refresh_connectors(silent=True)
 
     def refresh_connectors(self, silent=False):
+        self.conn_combo.clear()
         src = self.check_source()
-        if not src or not self.main.commit_ok(silent=silent):
+        if not src:
+            return
+        if not self.main.commit_ok(silent=silent):
+            self.write("No connector loaded - see Source & Tabs.")
             return
         try:
             conns = engine.list_connectors(src, self.main.cfg)
@@ -308,9 +312,10 @@ class RunTab(QWidget):
                 QMessageBox.warning(self, "Connectors", str(e))
             self.write(f"Could not list connectors: {e}")
             return
-        self.conn_combo.clear()
         self.conn_combo.addItems(conns)
         self.write(f"Connectors found with the current settings: {', '.join(conns) or '(none)'}")
+        if not conns:
+            self.write("No connector loaded - see Source & Tabs.")
 
     def do_preview(self):
         src = self.check_source()
@@ -342,9 +347,23 @@ class RunTab(QWidget):
         src = self.check_source()
         if not src or not self.main.commit_ok():
             return
+        cfg = copy.deepcopy(self.main.cfg)
+        try:
+            connectors = engine.list_connectors(src, cfg)
+        except Exception as e:
+            QMessageBox.critical(self, "Generate files", str(e))
+            return
+        out = Path(self.out_dir())
+        output_paths = [
+            out / cfg["file_name_template"].format(conn=conn)
+            for conn in connectors
+        ]
+        output_paths.extend((out / cfg["issues_file_name"], out / "run_report.txt"))
+        if not self.main.confirm_overwrite(output_paths, "Generate files"):
+            return
         self.run_btn.setEnabled(False)
         self.write("--- running ---")
-        self.thread = RunThread(src, self.out_dir(), copy.deepcopy(self.main.cfg), None, True)
+        self.thread = RunThread(src, self.out_dir(), cfg, None, True)
         self.thread.log.connect(self.write)
         self.thread.done.connect(self.run_done)
         self.thread.failed.connect(self.run_failed)
@@ -412,11 +431,9 @@ class SourceTab(QWidget):
         self.card_regex.setMinimumWidth(200)
         self.issues_name = QLineEdit()
         self.sheet_name = QLineEdit()
-        self.conn_field = QComboBox()
         form.addRow("First data row:", self.first_row)
         form.addRow("Connector letter(s):", conn_box)
         form.addRow("Card number from tab name (regex):", card_box)
-        form.addRow("Connector column is source field:", self.conn_field)
         form.addRow("Open issues file name:", self.issues_name)
         form.addRow("Sheet name inside target files:", self.sheet_name)
         lay.addWidget(box)
@@ -437,7 +454,9 @@ class SourceTab(QWidget):
 
         right = QGroupBox("Source columns (which Excel column holds which field)")
         rl = QVBoxLayout(right)
-        self.field_table = make_table(["Key (used internally)", "Label", "Column letter"])
+        self.field_table = make_table(["Key (use 'conn' for Connector)", "Label", "Column letter"])
+        self.field_table.horizontalHeaderItem(0).setToolTip(
+            "The field with key 'conn' supplies connector values used to group rows into output files.")
         rl.addWidget(self.field_table)
         fa = QPushButton("Add field")
         fr = QPushButton("Remove selected")
@@ -516,11 +535,6 @@ class SourceTab(QWidget):
         self.field_table.setRowCount(0)
         for f in cfg["source_fields"]:
             self.add_field_row(f["key"], f["label"], f["column"])
-        self.conn_field.clear()
-        for f in cfg["source_fields"]:
-            self.conn_field.addItem(f"{f['label']} ({f['key']})", f["key"])
-        i = self.conn_field.findData(cfg["connector_field"])
-        self.conn_field.setCurrentIndex(max(i, 0))
 
     def commit_to_cfg(self, cfg):
         cfg["first_data_row"] = self.first_row.value()
@@ -536,8 +550,7 @@ class SourceTab(QWidget):
                            "label": self.field_table.item(r, 1).text().strip(),
                            "column": self.field_table.item(r, 2).text().strip().upper()})
         cfg["source_fields"] = fields
-        keep = self.conn_field.currentData()
-        cfg["connector_field"] = keep if keep in [f["key"] for f in fields] else (fields[0]["key"] if fields else "")
+        cfg.pop("connector_field", None)
 
 
 # ----------------------------------------------------------------------------
@@ -981,6 +994,18 @@ class MainWindow(QMainWindow):
             return False
         return True
 
+    def confirm_overwrite(self, paths, title):
+        existing = list(dict.fromkeys(Path(path) for path in paths if Path(path).is_file()))
+        if not existing:
+            return True
+        message = "This action will overwrite the following existing file(s):\n\n"
+        message += "\n".join(str(path) for path in existing)
+        message += "\n\nContinue?"
+        return QMessageBox.question(
+            self, title, message,
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        ) == QMessageBox.Yes
+
     def on_tab_changed(self, idx):
         # Save what was edited, then refresh pages that depend on other pages.
         try:
@@ -1011,6 +1036,8 @@ class MainWindow(QMainWindow):
             return
         if self.cfg_path is None:
             return self.save_cfg_as()
+        if not self.confirm_overwrite([self.cfg_path], "Overwrite configuration?"):
+            return
         engine.save_config(self.cfg, self.cfg_path)
         self._saved_cfg = copy.deepcopy(self.cfg)
         self.statusBar().showMessage(f"Saved {self.cfg_path}", 4000)
@@ -1020,8 +1047,11 @@ class MainWindow(QMainWindow):
             return
         p, _ = QFileDialog.getSaveFileName(self, "Save configuration", str(USER_CONFIG), "JSON (*.json)")
         if p:
-            self.cfg_path = Path(p)
-            engine.save_config(self.cfg, self.cfg_path)
+            cfg_path = Path(p)
+            if not self.confirm_overwrite([cfg_path], "Overwrite configuration?"):
+                return
+            engine.save_config(self.cfg, cfg_path)
+            self.cfg_path = cfg_path
             self._saved_cfg = copy.deepcopy(self.cfg)
             self.setWindowTitle("Connector Targets - " + p)
 

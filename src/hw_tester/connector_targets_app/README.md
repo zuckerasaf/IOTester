@@ -13,15 +13,18 @@ Command line (no window) with the same engine:
 ## Pages
 - **Run**: choose the source file and output folder, "Load tabs from source" reads the tab names,
   "Preview connector" shows one target file without writing, "Generate files" writes everything.
-  The log shows the rows per connector, the issues file and how many rows each rule matched.
+  The app asks before replacing any output files that already exist. The log shows the rows per
+  connector, the issues file and how many rows each rule matched.
 - **Source & Tabs**: which tabs are searched (and in which order), first data row, connector pattern,
   card number pattern, file name template (`{conn}`), and which Excel column holds which source field.
+  The source field with key `conn` is used to identify connector values; set its column letter in this table.
 - **Column Mapping**: for each target column (A, B, ...), its header text and which source field,
   card number, constant text or nothing feeds it. This is the "routing" of cells from source to target.
 - **Fill Rules**: rules that fill the test columns (N to U) after the file is built. See the help text on the page.
 
 ## Configuration
 Menu *Configuration*: Load config file / Save / Save as / Reset (reload file) / Built-in defaults.
+Save asks before replacing an existing configuration file.
 `config.json` next to `app.py` is loaded at start-up when it exists. `default_config.json` is the built-in default (same rules as the original
 `generate_targets.py`: AI, red wire with voltage, RTN, CH. minus, red CH. plus, DI, DO).
 
@@ -38,7 +41,7 @@ Menu *Configuration*: Load config file / Save / Save as / Reset (reload file) / 
 ## Notes
 - The source workbook is never modified.
 - A selected tab whose name does not match the card number pattern uses card 100 and is listed in the issues report.
-- Rows with an empty connector cell are skipped and listed in the issues file, but not summarized in the text run report.
+- Rows with an empty connector cell are skipped and omitted from the issues file.
 - TBD values are listed in the text run report by target file, row and column.
 - Validation: if a row did not match any enabled fill rule and all rule-target columns stayed empty,
   the row is added to `Open_Issues.xlsx` as "No fill rule matched; rule target columns stayed empty".

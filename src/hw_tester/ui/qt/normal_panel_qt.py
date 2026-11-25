@@ -4,10 +4,10 @@ from enum import Enum
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QPointF, QRectF, QSize, QTimer, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
+from PySide6.QtGui import QColor, QFontMetrics, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QAbstractItemView, QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
-    QProgressBar, QPushButton, QSizePolicy, QStackedWidget, QTableWidget, QTableWidgetItem,
+    QProgressBar, QPushButton, QScrollArea, QSizePolicy, QStackedWidget, QTableWidget, QTableWidgetItem,
     QVBoxLayout, QWidget,
 )
 
@@ -61,13 +61,6 @@ def _cross(p, s):
     p.drawLine(QPointF(s * .8, s * .2), QPointF(s * .2, s * .8))
 
 
-def _grid(p, s):
-    p.drawRoundedRect(QRectF(s * .12, s * .15, s * .76, s * .7), s * .06, s * .06)
-    p.drawLine(QPointF(s * .12, s * .5), QPointF(s * .88, s * .5))
-    p.drawLine(QPointF(s * .38, s * .15), QPointF(s * .38, s * .85))
-    p.drawLine(QPointF(s * .62, s * .15), QPointF(s * .62, s * .85))
-
-
 def _document(p, s):
     p.drawRoundedRect(QRectF(s * .2, s * .1, s * .6, s * .8), s * .06, s * .06)
     for y in (.35, .5, .65):
@@ -113,9 +106,34 @@ class StepCard(QFrame):
         self.body = QVBoxLayout(self)
         self.body.setContentsMargins(14, 12, 14, 12)
         self.body.setSpacing(6)
+        self.heading_row = QHBoxLayout()
         label = QLabel(heading.upper())
         label.setObjectName("cardHeading")
-        self.body.addWidget(label)
+        self.heading_row.addWidget(label)
+        self.body.addLayout(self.heading_row)
+
+
+class ElidedPathLabel(QLabel):
+    def __init__(self):
+        super().__init__()
+        self._full_text = ""
+        self.setObjectName("projectPath")
+        self.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+
+    def set_full_text(self, text: str):
+        self._full_text = text
+        self.setToolTip(text)
+        self._update_text()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_text()
+
+    def _update_text(self):
+        width = max(0, self.contentsRect().width())
+        self.setText(QFontMetrics(self.font()).elidedText(self._full_text, Qt.ElideMiddle, width))
 
 
 class CounterTile(QFrame):
@@ -198,8 +216,9 @@ class ReportsList(QFrame):
         self.table.setMinimumHeight(150)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
         lay.addWidget(self.table, 1)
-        hint = QLabel("Tick reports for Word / Fail report · double-click to open")
+        hint = QLabel("Tick for Word/Fail report · double-click a row to open in Excel")
         hint.setObjectName("bannerSub")
+        hint.setWordWrap(True)
         lay.addWidget(hint)
 
     def set_reports(self, folder: str, reports: list):
@@ -265,6 +284,15 @@ def _repolish(widget: QWidget):
         child.style().polish(child)
 
 
+class ControlsScrollArea(QScrollArea):
+    def sizeHint(self):
+        content = self.widget()
+        return QSize(PANEL_WIDTH + 16, content.sizeHint().height() if content else 0)
+
+    def minimumSizeHint(self):
+        return QSize(PANEL_WIDTH + 16, 0)
+
+
 class NormalPanel(QWidget):
     """Single-screen operator panel. Only set_phase() and refresh_status() change its look."""
 
@@ -289,8 +317,15 @@ class NormalPanel(QWidget):
         outer.setSpacing(16)
         outer.addStretch()
         column = QWidget()
+        column.setObjectName("normalControlsContent")
         column.setFixedWidth(PANEL_WIDTH)
-        outer.addWidget(column)
+        self.controls_scroll = ControlsScrollArea()
+        self.controls_scroll.setObjectName("normalControlsScroll")
+        self.controls_scroll.setWidgetResizable(True)
+        self.controls_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.controls_scroll.setWidget(column)
+        self.controls_scroll.setFixedWidth(PANEL_WIDTH + 16)
+        outer.addWidget(self.controls_scroll)
         self.reports_list = ReportsList()
         right = QWidget()
         right.setFixedWidth(REPORTS_WIDTH)
@@ -306,6 +341,7 @@ class NormalPanel(QWidget):
         root.setSpacing(20)
 
         root.addLayout(self._build_header())
+        root.addWidget(self._build_connections())
         root.addWidget(self._build_step0())
         root.addWidget(self._build_step1())
         root.addWidget(self._build_action_button())
@@ -326,8 +362,7 @@ class NormalPanel(QWidget):
         self.setTabOrder(self.cmb_project, self.cmb_connector)
         self.setTabOrder(self.cmb_connector, self.start_button)
         self.setTabOrder(self.start_button, self.stop_button)
-        self.setTabOrder(self.stop_button, self.btn_report_excel)
-        self.setTabOrder(self.btn_report_excel, self.btn_report_word)
+        self.setTabOrder(self.stop_button, self.btn_report_word)
         self.setTabOrder(self.btn_report_word, self.btn_report_fails)
         self.setTabOrder(self.btn_report_fails, self.btn_wiki)
         self.setTabOrder(self.btn_wiki, self.btn_engineer)
@@ -372,6 +407,61 @@ class NormalPanel(QWidget):
         self.btn_normal.clicked.connect(lambda: self.mode_changed.emit("normal"))
         row.addWidget(switch)
         return row
+
+    def _build_connections(self) -> StepCard:
+        card = StepCard("Connection")
+        card.heading_row.addStretch()
+        self.chip_port = QLabel("Port: --")
+        self.chip_port.setObjectName("statusChip")
+        self.chip_port.setAlignment(Qt.AlignCenter)
+        self.chip_port.setMinimumHeight(32)
+        self.chip_port.setProperty("state", "warn")
+        self.chip_port.setToolTip("Board connection has not been checked")
+        card.heading_row.addWidget(self.chip_port)
+        self.card_chips = {}
+        self.card_chip_details = {}
+        self.card_chips_layout = QGridLayout()
+        self.card_chips_layout.setSpacing(6)
+        card.body.addLayout(self.card_chips_layout)
+        return card
+
+    def set_port_status(self, port: str, state: str, detail: str):
+        self.chip_port.setText(f"Port: {port or '--'}")
+        self.chip_port.setProperty("state", state)
+        self.chip_port.setToolTip(detail)
+        self.chip_port.setAccessibleName(f"Port {port or 'not configured'}: {detail}")
+        _repolish(self.chip_port)
+
+    def set_temperature_cards(self, cards, localhost: bool):
+        while self.card_chips_layout.count():
+            item = self.card_chips_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self.card_chips.clear()
+        self.card_chip_details.clear()
+        for index, (card_id, host) in enumerate(cards):
+            chip = QLabel(str(card_id))
+            chip.setObjectName("statusChip")
+            chip.setAlignment(Qt.AlignCenter)
+            chip.setMinimumHeight(32)
+            chip.setProperty("state", "warn")
+            self.card_chips[card_id] = chip
+            self.card_chip_details[card_id] = f"Card {card_id} ({host})"
+            self.card_chips_layout.addWidget(chip, index // 7, index % 7)
+            self.set_card_temperature_status(card_id, "unavailable", "Waiting for temperature")
+        if not cards:
+            self.card_chips_layout.addWidget(QLabel("No enabled cards"), 0, 0)
+
+    def set_card_temperature_status(self, card_id, zone: str, detail: str):
+        chip = self.card_chips.get(card_id)
+        if chip is None:
+            return
+        state = {"green": "ok", "yellow": "warn", "orange": "hot", "red": "fail"}.get(zone, "warn")
+        chip.setProperty("state", state)
+        text = f"{self.card_chip_details[card_id]}: {detail}"
+        chip.setToolTip(text)
+        chip.setAccessibleName(text)
+        _repolish(chip)
 
     def _field(self, card: StepCard, caption: str) -> QComboBox:
         label = QLabel(caption)
@@ -475,6 +565,8 @@ class NormalPanel(QWidget):
 
     def _build_step1(self) -> StepCard:
         card = StepCard("Step 1 · Choose what to test")
+        self.project_path_label = ElidedPathLabel()
+        card.heading_row.addWidget(self.project_path_label, 1)
         self.cmb_project = self._field(card, "Project")
         self.cmb_connector = self._field(card, "Connector")
         return card
@@ -537,10 +629,9 @@ class NormalPanel(QWidget):
     def _build_step3(self) -> StepCard:
         card = StepCard("Step 3 · Reports and help")
         specs = (
-            ("btn_report_excel", "Excel report", _grid, "Open the Excel report", 0, 0, 1),
-            ("btn_report_word", "Word report", _document, "Open the Word report", 0, 1, 1),
-            ("btn_report_fails", "Fail report", _cross, "Open the combined fail report", 0, 2, 1),
-            ("btn_wiki", "Wiki help", _help, "Open the help pages", 1, 0, 3),
+            ("btn_report_word", "Word report", _document, "Open the Word report", 0, 0, 1),
+            ("btn_report_fails", "Fail report", _cross, "Open the combined fail report", 0, 1, 1),
+            ("btn_wiki", "Wiki help", _help, "Open the help pages", 1, 0, 2),
         )
         grid = QGridLayout()
         grid.setSpacing(12)
@@ -562,7 +653,6 @@ class NormalPanel(QWidget):
         self.cmb_project.setEnabled(not running)
         self.cmb_connector.setEnabled(not running)
         self.start_button.setEnabled(has_selection and not running)
-        self.btn_report_excel.setEnabled(not running)
         self.btn_report_word.setEnabled(not running)
         self.btn_report_fails.setEnabled(not running)
         self.btn_wiki.setEnabled(True)

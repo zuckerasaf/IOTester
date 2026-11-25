@@ -1,0 +1,85 @@
+J1: volcan_J1.xlsx  card1=44, total=44
+J2: volcan_J2.xlsx  card1=35, card2=13, total=48
+J3: volcan_J3.xlsx  card1=14, card2=19, card3=5, total=38
+J4: volcan_J4.xlsx  card1=10, card3=14, total=24
+J5: volcan_J5.xlsx  card1=5, total=5
+J6: volcan_J6.xlsx  card3=18, total=18
+J7: volcan_J7.xlsx  card3=8, card4=3, total=11
+J8: volcan_J8.xlsx  card4=24, total=24
+J9: volcan_J9.xlsx  card3=8, total=8
+J10: volcan_J10.xlsx  card2=10, total=10
+J11: volcan_J11.xlsx  card3=8, total=8
+J13: volcan_J13.xlsx  card3=5, total=5
+J14: volcan_J14.xlsx  card2=3, total=3
+J15: volcan_J15.xlsx  card3=10, total=10
+J18: volcan_J18.xlsx  card3=7, total=7
+J19: volcan_J19.xlsx  card4=9, total=9
+J20: volcan_J20.xlsx  card4=6, total=6
+J21: volcan_J21.xlsx  card100=5, total=5
+J22: volcan_J22.xlsx  card4=4, total=4
+J23: volcan_J23.xlsx  card4=36, total=36
+J24: volcan_J24.xlsx  card100=2, total=2
+J25: volcan_J25.xlsx  card100=4, total=4
+J26: volcan_J26.xlsx  card3=7, total=7
+J27: volcan_J27.xlsx  card100=20, total=20
+
+Open_Issues.xlsx: 330 row(s)
+  Power Only: 1 x No card number in source tab name; using card 100
+  Spider Card #1: 1 x No fill rule matched; rule target columns stayed empty
+  Spider Card #3: 6 x Logic Expected is set but logic input is empty
+  Spider Card #4: 2 x Logic Expected is set but logic input is empty
+
+TBD value details:
+  volcan_J2.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 31)
+  volcan_J2.xlsx: row 3, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 32)
+  volcan_J3.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 56)
+  volcan_J3.xlsx: row 3, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 57)
+  volcan_J4.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 70)
+  volcan_J4.xlsx: row 3, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 71)
+  volcan_J5.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #1, row 163)
+  volcan_J7.xlsx: row 8, column R (logic_input) = TBD_DI (source Spider Card #3, row 85)
+  volcan_J7.xlsx: row 8, column T (Logic_Expected) = C3_DI_TBD_0 (source Spider Card #3, row 85)
+  volcan_J7.xlsx: row 9, column R (logic_input) = TBD_DI (source Spider Card #3, row 86)
+  volcan_J7.xlsx: row 9, column T (Logic_Expected) = C3_DI_TBD_0 (source Spider Card #3, row 86)
+  volcan_J7.xlsx: row 11, column R (logic_input) = TBD_DI (source Spider Card #4, row 96)
+  volcan_J7.xlsx: row 11, column T (Logic_Expected) = C4_DI_TBD_0 (source Spider Card #4, row 96)
+  volcan_J7.xlsx: row 12, column R (logic_input) = TBD_DI (source Spider Card #4, row 97)
+  volcan_J7.xlsx: row 12, column T (Logic_Expected) = C4_DI_TBD_0 (source Spider Card #4, row 97)
+  volcan_J8.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #4, row 48)
+  volcan_J8.xlsx: row 3, column O (Power_Input) = TBD_CH+ (source Spider Card #4, row 49)
+  volcan_J13.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #3, row 127)
+  volcan_J23.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source Spider Card #4, row 20)
+  volcan_J23.xlsx: row 3, column O (Power_Input) = TBD_CH+ (source Spider Card #4, row 21)
+
+Missing logic input details:
+  volcan_J7.xlsx: row 2, column T = C3_DI4_0, column R is empty (source Spider Card #3, row 11)
+  volcan_J7.xlsx: row 3, column T = C3_DI5_0, column R is empty (source Spider Card #3, row 12)
+  volcan_J7.xlsx: row 4, column T = C3_DI6_0, column R is empty (source Spider Card #3, row 13)
+  volcan_J7.xlsx: row 5, column T = C3_DI7_0, column R is empty (source Spider Card #3, row 14)
+  volcan_J7.xlsx: row 6, column T = C3_DI8_0, column R is empty (source Spider Card #3, row 15)
+  volcan_J7.xlsx: row 7, column T = C3_DI9_0, column R is empty (source Spider Card #3, row 16)
+  volcan_J7.xlsx: row 10, column T = C4_DI4_0, column R is empty (source Spider Card #4, row 11)
+  volcan_J19.xlsx: row 2, column T = C4_DI12_0, column R is empty (source Spider Card #4, row 19)
+
+Rule hits (rows matched):
+  DI rows - not Matrix connect to 24 RTN: 132
+  DI rows - Matrix: 0
+  DI rows - RTN pin: 0
+  DO rows - not Matrix: 102
+  DO rows - Matrix: 4
+  AI rows: 6
+  AI rows - 10V pin: 6
+  DIM CARD 0-5V_CONSOLE -> Analog input: 0
+  DIM CARD 0-5V_INST -> Analog input: 0
+  DIM CARD 0-5V -> Analog input: 0
+  DIM CARD 0-28V_BRT DIM -> Analog input: 0
+  Red wire with voltage in Plug: 28
+  RTN plug: 48
+  GND plug: 0
+  Black CH. minus pin: 12
+  Red CH. plus pin (voltage from From range): 12
+  ENCX A+ on P1: 0
+  ENCY A+ on P5: 0
+  ENCX B+ on P1: 0
+  ENCY B+ on P5: 0
+  empty row: 11

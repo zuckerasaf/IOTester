@@ -1,0 +1,164 @@
+J1: MTC_FWD_J1.xlsx  card100=4, total=4
+J4: MTC_FWD_J4.xlsx  card100=36, total=36
+J5: MTC_FWD_J5.xlsx  card1=8, card2=10, card4=2, card5=6, total=26
+J6: MTC_FWD_J6.xlsx  card1=30, total=30
+J7: MTC_FWD_J7.xlsx  card1=28, card4=2, total=30
+J8: MTC_FWD_J8.xlsx  card1=29, card2=8, card4=4, total=41
+J9: MTC_FWD_J9.xlsx  card1=3, card2=31, total=34
+J10: MTC_FWD_J10.xlsx  card2=24, card4=1, total=25
+J11: MTC_FWD_J11.xlsx  card1=4, card3=16, card4=6, total=26
+J12: MTC_FWD_J12.xlsx  card1=8, card3=21, total=29
+J13: MTC_FWD_J13.xlsx  card1=12, card3=27, total=39
+J14: MTC_FWD_J14.xlsx  card1=5, card3=9, card4=16, total=30
+J15: MTC_FWD_J15.xlsx  card1=3, card4=17, total=20
+J16: MTC_FWD_J16.xlsx  card1=6, card4=7, total=13
+J17: MTC_FWD_J17.xlsx  card7=2, total=2
+J18: MTC_FWD_J18.xlsx  card3=19, total=19
+J19: MTC_FWD_J19.xlsx  card2=9, total=9
+J20: MTC_FWD_J20.xlsx  card4=19, total=19
+J21: MTC_FWD_J21.xlsx  card3=5, card5=2, total=7
+J22: MTC_FWD_J22.xlsx  card100=12, total=12
+J23: MTC_FWD_J23.xlsx  card4=12, total=12
+J24: MTC_FWD_J24.xlsx  card4=13, total=13
+J25: MTC_FWD_J25.xlsx  card1=4, card3=6, card4=6, card7=1, total=17
+J26: MTC_FWD_J26.xlsx  card4=4, card5=8, total=12
+J27: MTC_FWD_J27.xlsx  card2=6, card3=1, card5=9, total=16
+J28: MTC_FWD_J28.xlsx  card5=9, total=9
+J29: MTC_FWD_J29.xlsx  card5=9, card7=9, total=18
+J30: MTC_FWD_J30.xlsx  card5=4, card7=1, total=5
+J31: MTC_FWD_J31.xlsx  card2=5, total=5
+J32: MTC_FWD_J32.xlsx  card2=6, total=6
+J33: MTC_FWD_J33.xlsx  card2=3, card4=2, card5=15, total=20
+J34: MTC_FWD_J34.xlsx  card2=3, card5=13, total=16
+J35: MTC_FWD_J35.xlsx  card5=6, card6=13, total=19
+J36: MTC_FWD_J36.xlsx  card6=13, total=13
+J37: MTC_FWD_J37.xlsx  card2=6, card3=3, card4=4, card6=8, total=21
+J38: MTC_FWD_J38.xlsx  card3=2, card4=2, card6=11, total=15
+J39: MTC_FWD_J39.xlsx  card2=8, card3=2, card6=6, total=16
+J40: MTC_FWD_J40.xlsx  card3=1, card4=5, card6=9, total=15
+J41: MTC_FWD_J41.xlsx  card3=10, card5=2, card6=10, total=22
+J42: MTC_FWD_J42.xlsx  card3=11, card6=12, total=23
+J43: MTC_FWD_J43.xlsx  card3=3, card6=2, card7=6, total=11
+J44: MTC_FWD_J44.xlsx  card100=24, total=24
+J46: MTC_FWD_J46.xlsx  card1=1, card3=10, card5=5, total=16
+J47: MTC_FWD_J47.xlsx  card100=25, total=25
+J48: MTC_FWD_J48.xlsx  card7=8, total=8
+J50: MTC_FWD_J50.xlsx  card5=7, total=7
+
+Open_Issues.xlsx: 81 row(s)
+  POWER: 1 x No card number in source tab name; using card 100
+  POWER: 28 x Duplicate Pin Out in connector file
+  CARD 4: 2 x Logic Expected is set but logic input is empty
+  CARD 3: 1 x No fill rule matched; rule target columns stayed empty
+  CARD 3: 4 x Duplicate Pin Out in connector file
+  CARD 4: 1 x No fill rule matched; rule target columns stayed empty
+  CARD 4: 2 x Duplicate Pin Out in connector file
+  CARD 1: 1 x No fill rule matched; rule target columns stayed empty
+  CARD 5: 1 x Logic Expected is set but logic input is empty
+  CARD 7: 2 x Logic Expected is set but logic input is empty
+
+TBD value details:
+  MTC_FWD_J5.xlsx: row 16, column R (logic_input) = TBD_DI (source CARD 2, row 83)
+  MTC_FWD_J5.xlsx: row 16, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 83)
+  MTC_FWD_J5.xlsx: row 17, column R (logic_input) = TBD_DI (source CARD 2, row 84)
+  MTC_FWD_J5.xlsx: row 17, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 84)
+  MTC_FWD_J5.xlsx: row 18, column R (logic_input) = TBD_DI (source CARD 2, row 85)
+  MTC_FWD_J5.xlsx: row 18, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 85)
+  MTC_FWD_J5.xlsx: row 19, column R (logic_input) = TBD_DI (source CARD 2, row 86)
+  MTC_FWD_J5.xlsx: row 19, column T (Logic_Expected) = C2_DI_TBD_0 (source CARD 2, row 86)
+  MTC_FWD_J6.xlsx: row 21, column R (logic_input) = TBD_DI (source CARD 1, row 89)
+  MTC_FWD_J6.xlsx: row 21, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 89)
+  MTC_FWD_J6.xlsx: row 22, column R (logic_input) = TBD_DI (source CARD 1, row 90)
+  MTC_FWD_J6.xlsx: row 22, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 90)
+  MTC_FWD_J6.xlsx: row 23, column R (logic_input) = TBD_DI (source CARD 1, row 91)
+  MTC_FWD_J6.xlsx: row 23, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 91)
+  MTC_FWD_J6.xlsx: row 24, column R (logic_input) = TBD_DI (source CARD 1, row 92)
+  MTC_FWD_J6.xlsx: row 24, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 92)
+  MTC_FWD_J6.xlsx: row 25, column R (logic_input) = TBD_DI (source CARD 1, row 93)
+  MTC_FWD_J6.xlsx: row 25, column T (Logic_Expected) = C1_DI_TBD_0 (source CARD 1, row 93)
+  MTC_FWD_J7.xlsx: row 30, column R (logic_input) = TBD_AI (source CARD 4, row 152)
+  MTC_FWD_J7.xlsx: row 31, column R (logic_input) = TBD_AI (source CARD 4, row 154)
+  MTC_FWD_J10.xlsx: row 2, column O (Power_Input) = TBD_CH+ (source CARD 2, row 57)
+  MTC_FWD_J18.xlsx: row 11, column R (logic_input) = TBD_DI (source CARD 3, row 95)
+  MTC_FWD_J18.xlsx: row 11, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 95)
+  MTC_FWD_J18.xlsx: row 12, column R (logic_input) = TBD_DI (source CARD 3, row 96)
+  MTC_FWD_J18.xlsx: row 12, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 96)
+  MTC_FWD_J18.xlsx: row 13, column R (logic_input) = TBD_DI (source CARD 3, row 97)
+  MTC_FWD_J18.xlsx: row 13, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 97)
+  MTC_FWD_J18.xlsx: row 14, column R (logic_input) = TBD_DI (source CARD 3, row 98)
+  MTC_FWD_J18.xlsx: row 14, column T (Logic_Expected) = C3_DI_TBD_0 (source CARD 3, row 98)
+  MTC_FWD_J20.xlsx: row 11, column R (logic_input) = TBD_DI (source CARD 4, row 95)
+  MTC_FWD_J20.xlsx: row 11, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 95)
+  MTC_FWD_J20.xlsx: row 12, column R (logic_input) = TBD_DI (source CARD 4, row 96)
+  MTC_FWD_J20.xlsx: row 12, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 96)
+  MTC_FWD_J20.xlsx: row 13, column R (logic_input) = TBD_DI (source CARD 4, row 97)
+  MTC_FWD_J20.xlsx: row 13, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 97)
+  MTC_FWD_J20.xlsx: row 14, column R (logic_input) = TBD_DI (source CARD 4, row 98)
+  MTC_FWD_J20.xlsx: row 14, column T (Logic_Expected) = C4_DI_TBD_0 (source CARD 4, row 98)
+  MTC_FWD_J40.xlsx: row 2, column R (logic_input) = TBD_AI (source CARD 3, row 149)
+
+Duplicate Pin Out details:
+  MTC_FWD_J4.xlsx: Pin Out A1, duplicate target rows 2, 3 (source POWER, row 72)
+  MTC_FWD_J4.xlsx: Pin Out A1, duplicate target rows 2, 3 (source POWER, row 73)
+  MTC_FWD_J4.xlsx: Pin Out A2, duplicate target rows 4, 5 (source POWER, row 74)
+  MTC_FWD_J4.xlsx: Pin Out A2, duplicate target rows 4, 5 (source POWER, row 75)
+  MTC_FWD_J4.xlsx: Pin Out A3, duplicate target rows 6, 7 (source POWER, row 76)
+  MTC_FWD_J4.xlsx: Pin Out A3, duplicate target rows 6, 7 (source POWER, row 77)
+  MTC_FWD_J4.xlsx: Pin Out A4, duplicate target rows 8, 9 (source POWER, row 78)
+  MTC_FWD_J4.xlsx: Pin Out A4, duplicate target rows 8, 9 (source POWER, row 79)
+  MTC_FWD_J4.xlsx: Pin Out A5, duplicate target rows 10, 11 (source POWER, row 80)
+  MTC_FWD_J4.xlsx: Pin Out A5, duplicate target rows 10, 11 (source POWER, row 81)
+  MTC_FWD_J4.xlsx: Pin Out A6, duplicate target rows 12, 13 (source POWER, row 82)
+  MTC_FWD_J4.xlsx: Pin Out A6, duplicate target rows 12, 13 (source POWER, row 83)
+  MTC_FWD_J4.xlsx: Pin Out 1, duplicate target rows 14, 15 (source POWER, row 84)
+  MTC_FWD_J4.xlsx: Pin Out 1, duplicate target rows 14, 15 (source POWER, row 85)
+  MTC_FWD_J4.xlsx: Pin Out 2, duplicate target rows 16, 17 (source POWER, row 86)
+  MTC_FWD_J4.xlsx: Pin Out 2, duplicate target rows 16, 17 (source POWER, row 87)
+  MTC_FWD_J4.xlsx: Pin Out 7, duplicate target rows 22, 23 (source POWER, row 92)
+  MTC_FWD_J4.xlsx: Pin Out 7, duplicate target rows 22, 23 (source POWER, row 93)
+  MTC_FWD_J4.xlsx: Pin Out 8, duplicate target rows 24, 25 (source POWER, row 94)
+  MTC_FWD_J4.xlsx: Pin Out 8, duplicate target rows 24, 25 (source POWER, row 95)
+  MTC_FWD_J4.xlsx: Pin Out 13, duplicate target rows 30, 31 (source POWER, row 100)
+  MTC_FWD_J4.xlsx: Pin Out 13, duplicate target rows 30, 31 (source POWER, row 101)
+  MTC_FWD_J4.xlsx: Pin Out 14, duplicate target rows 32, 33 (source POWER, row 102)
+  MTC_FWD_J4.xlsx: Pin Out 14, duplicate target rows 32, 33 (source POWER, row 103)
+  MTC_FWD_J4.xlsx: Pin Out 15, duplicate target rows 34, 35 (source POWER, row 104)
+  MTC_FWD_J4.xlsx: Pin Out 15, duplicate target rows 34, 35 (source POWER, row 105)
+  MTC_FWD_J4.xlsx: Pin Out 16, duplicate target rows 36, 37 (source POWER, row 106)
+  MTC_FWD_J4.xlsx: Pin Out 16, duplicate target rows 36, 37 (source POWER, row 107)
+  MTC_FWD_J18.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 3, row 102)
+  MTC_FWD_J18.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 3, row 183)
+  MTC_FWD_J20.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 4, row 102)
+  MTC_FWD_J20.xlsx: Pin Out 22, duplicate target rows 18, 20 (source CARD 4, row 182)
+  MTC_FWD_J42.xlsx: Pin Out 25, duplicate target rows 4, 10 (source CARD 3, row 153)
+  MTC_FWD_J42.xlsx: Pin Out 25, duplicate target rows 4, 10 (source CARD 3, row 161)
+
+Missing logic input details:
+  MTC_FWD_J5.xlsx: row 20, column T = C4_DI33_0, column R is empty (source CARD 4, row 51)
+  MTC_FWD_J5.xlsx: row 21, column T = C4_DI34_0, column R is empty (source CARD 4, row 52)
+  MTC_FWD_J46.xlsx: row 13, column T = C5_DI33_0, column R is empty (source CARD 5, row 53)
+  MTC_FWD_J48.xlsx: row 2, column T = C7_DI21_0, column R is empty (source CARD 7, row 31)
+  MTC_FWD_J48.xlsx: row 3, column T = C7_DI22_0, column R is empty (source CARD 7, row 32)
+
+Rule hits (rows matched):
+  DI rows - not Matrix connect to 24 RTN: 377
+  DI rows - Matrix: 23
+  DI rows - RTN pin: 0
+  DO rows - not Matrix: 93
+  DO rows - Matrix: 17
+  AI rows: 46
+  AI rows - 10V pin: 46
+  DIM CARD 0-5V_CONSOLE -> Analog input: 20
+  DIM CARD 0-5V_INST -> Analog input: 7
+  DIM CARD 0-5V -> Analog input: 4
+  DIM CARD 0-28V_BRT DIM -> Analog input: 14
+  Red wire with voltage in Plug: 66
+  RTN plug: 85
+  GND plug: 2
+  Black CH. minus pin: 40
+  Red CH. plus pin (voltage from From range): 1
+  ENCX A+ on P1: 3
+  ENCY A+ on P5: 2
+  ENCX B+ on P1: 3
+  ENCY B+ on P5: 2
+  empty row: 27

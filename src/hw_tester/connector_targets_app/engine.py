@@ -54,7 +54,6 @@ def default_config():
         "file_name_template": "Target_{conn}.xlsx",
         "issues_file_name": "Open_Issues.xlsx",
         "output_sheet_name": "Sheet",
-        "connector_field": "conn",
         "source_fields": [
             {"key": "discrete", "label": "Discrete Name", "column": "B"},
             {"key": "signal", "label": "Signal Name", "column": "C"},
@@ -135,7 +134,6 @@ def default_config():
     }
 
 
-ISSUE_UNASSIGNED = "Skipped row: empty connector cell in source"
 ISSUE_INCLUDED = "Included in {conn} file, connector cell empty in source"
 ISSUE_NO_RULE_MATCH = "No fill rule matched; rule target columns stayed empty"
 ISSUE_TBD = "TBD value in target file; needs manual fix"
@@ -187,6 +185,7 @@ def load_config(path):
         data = json.load(fh)
     cfg = default_config()
     cfg.update(data)
+    cfg.pop("connector_field", None)
     return cfg
 
 
@@ -210,8 +209,8 @@ def validate_config(cfg):
             column_index_from_string(f["column"].strip().upper())
         except Exception:
             errors.append(f"Source field '{f.get('label')}': bad column letter {f.get('column')!r}")
-    if cfg["connector_field"] not in keys:
-        errors.append("Connector field is not one of the source fields")
+    if "conn" not in keys:
+        errors.append("Source fields must include the connector field with key 'conn'")
     for rx_name in ("connector_regex", "card_regex"):
         try:
             re.compile(cfg[rx_name])
@@ -264,7 +263,7 @@ class Source:
         self.cfg = cfg
         self.cols = {f["key"]: column_index_from_string(f["column"].strip().upper())
                      for f in cfg["source_fields"]}
-        self.conn_col = self.cols[cfg["connector_field"]]
+        self.conn_col = self.cols["conn"]
         self.conn_re = re.compile(cfg["connector_regex"])
         self.card_re = re.compile(cfg["card_regex"])
         self.first_row = int(cfg["first_data_row"])
@@ -277,9 +276,6 @@ class Source:
         if isinstance(v, str) and self.conn_re.match(v.strip().upper()):
             return v.strip().upper()
         return "OTHER"
-
-    def row_is_empty(self, ws, r):
-        return all(ws.cell(r, c).value in (None, "") for c in self.cols.values())
 
     def row_values(self, ws, r):
         return {k: ws.cell(r, c).value for k, c in self.cols.items()}
@@ -315,21 +311,6 @@ def collect_rows(wb, cfg):
                 rows_by_conn.setdefault(c, []).append(
                     dict(card=card, row=r, sheet=sheet, values=src.row_values(ws, r)))
                 r += 1
-            elif c is None and not src.row_is_empty(ws, r):
-                # Run of rows with an empty connector cell but other content.
-                start = r
-                while r <= max_r and src.conn_of(ws, r) is None and not src.row_is_empty(ws, r):
-                    r += 1
-                end = r - 1
-                above = src.conn_of(ws, start - 1) if start > src.first_row else None
-                below = src.conn_of(ws, end + 1) if end + 1 <= max_r else None
-                for rr in range(start, end + 1):
-                    vals = src.row_values(ws, rr)
-                    issues.append(dict(
-                        type=ISSUE_UNASSIGNED,
-                        sheet=sheet, card=card, row=rr,
-                        above=None if above == "OTHER" else above,
-                        below=None if below == "OTHER" else below, values=vals))
             else:
                 r += 1
     return rows_by_conn, issues
@@ -685,7 +666,7 @@ def run(source_path, out_dir, cfg, only=None, log=print, use_rules=True):
     report += ["", f"{ipath.name}: {len(issues)} row(s)"]
     summary = OrderedDict()
     for it in issues:
-        if it["type"] in (ISSUE_UNASSIGNED, ISSUE_TBD):
+        if it["type"] == ISSUE_TBD:
             continue
         summary[(it["type"], it["sheet"])] = summary.get((it["type"], it["sheet"]), 0) + 1
     for (t, s), n in summary.items():
