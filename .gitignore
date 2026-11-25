@@ -224,6 +224,8 @@ src/hw_tester/web/~$IO_Tester_logic_Power_test.xlsm
 *.xlsx
 *.zip
 *.pdf
+*.txt
+
 tests/DB/Demo/JDemo.xlsx
 tests/DB/MTC_AFT/J17_Armant_1.xlsx
 tests/DB/Demo/JDemo.xlsx
@@ -252,3 +254,5 @@ tests/Results/IO_Tester_FRS_V1.txt
 tests/Results/P (127.0.0.1c$FileServerMasada) (P) - Shortcut.lnk
 tests/DB/Demo/JDemo.xlsx
 src/hw_tester/web/trace.json
+tests/DB/Demo/DBCreator/AFT_MTC_V1/run_report.txt
+.gitignore
